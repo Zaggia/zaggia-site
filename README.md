@@ -62,7 +62,10 @@ npm install
 npm run dev      # anteprima locale su http://localhost:5173
 npm run build    # sito pronto in dist/
 npm run preview  # prova la build
+npm run build:file  # UN SOLO file: dist-file/pizza-art.html (si apre con doppio clic)
 ```
+
+`pizza-art.html` contiene tutto (codice, 3D, font, foto): si può mandare al cliente per email/WhatsApp o caricare da solo su qualsiasi hosting. Dopo aver aggiunto le foto, rilancia `npm run build:file` per rigenerarlo (con 12 foto pesa qualche MB in più).
 
 ## Modificare i contenuti
 

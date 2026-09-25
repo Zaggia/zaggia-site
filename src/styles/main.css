@@ -1,6 +1,25 @@
-@import '@fontsource-variable/fraunces/full.css';
-@import '@fontsource-variable/fraunces/full-italic.css';
-@import '@fontsource-variable/manrope/index.css';
+/* Font ospitati in locale, solo set latino (copre tutto l'italiano). */
+@font-face {
+  font-family: 'Fraunces Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('../../node_modules/@fontsource-variable/fraunces/files/fraunces-latin-full-normal.woff2') format('woff2-variations');
+}
+@font-face {
+  font-family: 'Fraunces Variable';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('../../node_modules/@fontsource-variable/fraunces/files/fraunces-latin-full-italic.woff2') format('woff2-variations');
+}
+@font-face {
+  font-family: 'Manrope Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url('../../node_modules/@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2') format('woff2-variations');
+}
 
 /* ───────────────────────── Tokens ───────────────────────── */
 :root {

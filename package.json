@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:file": "vite build --config vite.singlefile.config.js && node -e \"require('fs').renameSync('dist-file/index.html','dist-file/pizza-art.html')\"",
     "preview": "vite preview",
     "foto": "node scripts/importa-foto.mjs"
   },
@@ -19,6 +20,7 @@
   },
   "devDependencies": {
     "sharp": "^0.35.4",
-    "vite": "^8.3.1"
+    "vite": "^8.3.1",
+    "vite-plugin-singlefile": "^2.3.3"
   }
 }
