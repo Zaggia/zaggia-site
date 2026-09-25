@@ -46,6 +46,25 @@
     "sameAs": ["https://www.facebook.com/PizzaARTBalduina/"]
   }
   </script>
+  <script>
+    // Sicura: se l'avvio non riesce (errore, browser particolare, anteprima
+    // limitata), la pagina si apre comunque invece di restare sul caricamento.
+    (function () {
+      var d = document.documentElement;
+      d.classList.add('js-on');
+      function open() {
+        if (window.__revealed) return;
+        window.__revealed = true;
+        d.classList.add('boot-failed');
+        var p = document.querySelector('.preloader');
+        if (p) p.parentNode.removeChild(p);
+        if (document.body) document.body.classList.remove('is-loading');
+      }
+      window.__openPage = open;
+      window.addEventListener('error', function () { if (!window.__booted) setTimeout(open, 0); });
+      setTimeout(function () { if (!window.__revealed) open(); }, 10000);
+    })();
+  </script>
   <script type="module" src="/src/main.js"></script>
 </head>
 <body class="is-loading">
@@ -66,6 +85,7 @@
   </svg>
 
   <a class="skip-link" href="#main">Salta al contenuto</a>
+  <noscript><p class="nojs-note">Questa anteprima non esegue JavaScript: per vedere 3D e animazioni apri il file nel browser (Safari o Chrome).</p></noscript>
 
   <!-- Preloader: la pasta lievita mentre il 3D si carica -->
   <div class="preloader" aria-hidden="true">
@@ -451,5 +471,6 @@
     <a data-wa-generic href="https://wa.me/393461830803" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-chat" /></svg>WhatsApp</a>
     <a data-bind-href="directionsUrl" href="https://www.google.com/maps/dir/?api=1&amp;destination=Pizza+Art+Piazza+Giovenale+9+00136+Roma" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-pin" /></svg>Arrivare</a>
   </nav>
+  <script nomodule>window.__openPage && window.__openPage();</script>
 </body>
 </html>

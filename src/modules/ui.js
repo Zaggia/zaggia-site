@@ -7,6 +7,11 @@ import { SplitText } from 'gsap/SplitText';
 
 export function runPreloader({ ready, reduced }) {
   const el = document.querySelector('.preloader');
+  // Già aperta dalla sicura (vedi <head>): niente da animare.
+  if (!el || window.__revealed) {
+    document.body.classList.remove('is-loading');
+    return Promise.resolve();
+  }
   const count = el.querySelector('[data-preload-count]');
   const blob = el.querySelector('.preloader__blob');
   const bubbles = el.querySelectorAll('.preloader__bubbles circle');

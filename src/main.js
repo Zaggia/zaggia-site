@@ -95,6 +95,7 @@ function boot() {
   initActionBar();
 
   runPreloader({ ready: Promise.all([heroReady, fontsReady]), reduced }).then(() => {
+    window.__revealed = true;
     lenis?.start();
     initSplits(reduced);
     initReveals(reduced);
@@ -110,7 +111,13 @@ let booted = false;
 function tryBoot() {
   if (booted || !document.querySelector('.action-bar a:last-child')) return false;
   booted = true;
-  boot();
+  window.__booted = true;
+  try {
+    boot();
+  } catch (err) {
+    console.error(err);
+    window.__openPage?.();
+  }
   return true;
 }
 if (!tryBoot()) {

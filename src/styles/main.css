@@ -75,7 +75,10 @@ body {
   -webkit-font-smoothing: antialiased;
   overflow-x: clip;
 }
-body.is-loading { overflow: hidden; }
+.js-on body.is-loading { overflow: hidden; }
+html:not(.js-on) .preloader, .boot-failed .preloader { display: none; }
+.boot-failed [data-reveal] { opacity: 1 !important; transform: none !important; }
+.nojs-note { position: sticky; top: 0; z-index: 100; margin: 0; padding: 0.8rem var(--gutter); background: var(--c-gold); color: var(--c-bg); font-weight: 700; font-size: 0.9rem; text-align: center; }
 img, canvas, svg { display: block; max-width: 100%; }
 a { color: inherit; }
 button { font: inherit; color: inherit; }
