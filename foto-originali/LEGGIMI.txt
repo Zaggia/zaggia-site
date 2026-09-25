@@ -1,0 +1,17 @@
+Metti qui le foto scaricate da Canva, rinominate così:
+
+  hero-teglia.png            teglia intera di margherita (orizzontale)
+  pizza-bianca.png           pizza bianca con rosmarino
+  patate-rosmarino.png       trancio patate e rosmarino
+  diavola.png                trancio diavola
+  fiori-alici.png            trancio fiori di zucca e alici
+  mortadella-pistacchio.png  trancio mortadella, burrata e pistacchio
+  supli.png                  supplì con il filo di mozzarella
+  fritti.png                 cartoccio di fritti
+  impasto.png                mani che stendono l'impasto (orizzontale)
+  consegna.png               scooter con i cartoni della pizza (orizzontale)
+  feste.png                  tavola con tante teglie (orizzontale)
+  forno.png                  teglia che esce dal forno (orizzontale)
+
+Poi esegui:  npm run foto   (le ottimizza e le mette in src/assets/foto/)
+Va bene anche .jpg o .webp. Le foto mancanti restano illustrate.

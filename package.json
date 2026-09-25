@@ -1,0 +1,24 @@
+{
+  "name": "pizza-art-roma",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Sito immersivo 3D per Pizza ART — pizza al taglio, Piazza Giovenale 9, Roma",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "foto": "node scripts/importa-foto.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/fraunces": "^5.3.0",
+    "@fontsource-variable/manrope": "^5.3.0",
+    "gsap": "^3.15.0",
+    "lenis": "^1.3.26",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.4",
+    "vite": "^8.3.1"
+  }
+}
