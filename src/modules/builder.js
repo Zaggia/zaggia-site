@@ -73,6 +73,7 @@ export function initBuilder(reduced) {
       canvas.width = W;
       canvas.height = H;
       dough = l.dough;
+      canvas.closest('.builder__tray')?.classList.add('is-live');
       sauce = l.sauce;
       dirty = true;
     });

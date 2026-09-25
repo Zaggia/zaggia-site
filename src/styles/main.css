@@ -78,7 +78,9 @@ body {
 .js-on body.is-loading { overflow: hidden; }
 html:not(.js-on) .preloader, .boot-failed .preloader { display: none; }
 .boot-failed [data-reveal] { opacity: 1 !important; transform: none !important; }
-.nojs-note { position: sticky; top: 0; z-index: 100; margin: 0; padding: 0.8rem var(--gutter); background: var(--c-gold); color: var(--c-bg); font-weight: 700; font-size: 0.9rem; text-align: center; }
+/* Avviso visibile solo dove gli script non girano (anteprime che bloccano JS). */
+.nojs-note { position: relative; z-index: 100; margin: 0; padding: 0.8rem var(--gutter); background: var(--c-gold); color: var(--c-bg); font-weight: 700; font-size: 0.9rem; text-align: center; }
+.js-on:not(.boot-failed) .nojs-note { display: none; }
 img, canvas, svg { display: block; max-width: 100%; }
 a { color: inherit; }
 button { font: inherit; color: inherit; }
@@ -319,8 +321,14 @@ h1, h2, h3, p, figure, ol, ul { margin: 0; }
 .hero__scroll i::after { content: ''; position: absolute; left: 0; top: 0; width: 100%; height: 40%; background: var(--c-gold); transform: translateY(-100%); animation: drip 1.8s var(--ease-out) infinite; }
 @keyframes drip { to { transform: translateY(250%); } }
 .hero__hint { position: absolute; z-index: 2; left: 50%; bottom: 1.4rem; transform: translateX(-50%); font-size: 0.75rem; color: var(--c-muted); letter-spacing: 0.08em; display: none; }
-.hero__static { object-fit: contain; transform: perspective(1400px) rotateX(42deg) rotateZ(-10deg) translate(12%, -2%) scale(0.92); }
-@media (max-width: 899px) { .hero__static { transform: perspective(1000px) rotateX(38deg) rotateZ(-8deg) translateY(-27%) scale(1.05); } }
+/* Teglia statica: si vede subito (anche senza JS); sparisce quando il 3D è pronto. */
+.hero__poster {
+  position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; object-fit: contain; pointer-events: none;
+  transform: perspective(1400px) rotateX(42deg) rotateZ(-10deg) translate(12%, -2%) scale(0.92);
+  transition: opacity 0.6s var(--ease-out);
+}
+.hero--webgl .hero__poster { opacity: 0; }
+@media (max-width: 899px) { .hero__poster { transform: perspective(1000px) rotateX(38deg) rotateZ(-8deg) translateY(-27%) scale(1.05); } }
 
 /* ───────────────────────── Marquee ───────────────────────── */
 .marquee {
@@ -339,8 +347,6 @@ h1, h2, h3, p, figure, ol, ul { margin: 0; }
 /* ───────────────────────── Media frames ───────────────────────── */
 .media-frame { position: relative; overflow: hidden; border-radius: var(--radius); background: var(--c-surface); isolation: isolate; }
 .media-frame > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.media-img { opacity: 0; transition: opacity 0.6s var(--ease-out); }
-.media-img.is-ready { opacity: 1; }
 .media-frame[data-parallax] > img { height: 120%; top: -10%; will-change: transform; }
 .media-frame::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1px rgb(246 239 227 / 0.08); pointer-events: none; z-index: 2; }
 
@@ -552,6 +558,15 @@ h1, h2, h3, p, figure, ol, ul { margin: 0; }
 .ring3d { width: 100%; height: min(64svh, 620px); perspective: 1300px; display: grid; place-items: center; touch-action: pan-y; cursor: grab; user-select: none; }
 .ring3d__spin { position: relative; width: clamp(170px, 22vw, 300px); aspect-ratio: 3 / 4; transform-style: preserve-3d; will-change: transform; }
 .ring3d__item { position: absolute; inset: 0; border-radius: 16px; overflow: hidden; backface-visibility: hidden; box-shadow: 0 30px 60px -30px rgb(0 0 0 / 0.9); background: var(--c-surface); }
+/* Senza JS la galleria si scorre col dito. */
+html:not(.js) .gallery__viewport { overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+html:not(.js) .opera { scroll-snap-align: center; }
+/* Senza JS (anello non montato): una fila di foto scorrevole. */
+.ring3d__spin:not(.is-3d) { width: 100%; aspect-ratio: auto; display: flex; gap: 1rem; overflow-x: auto; padding-inline: var(--gutter); scroll-snap-type: x mandatory; }
+.ring3d__spin:not(.is-3d) .ring3d__item { position: relative; inset: auto; flex: 0 0 clamp(170px, 55vw, 280px); aspect-ratio: 3 / 4; scroll-snap-align: center; }
+.builder__tray { position: relative; }
+.builder__poster { position: absolute; inset: clamp(10px, 1.6vw, 18px); width: calc(100% - 2 * clamp(10px, 1.6vw, 18px)); height: calc(100% - 2 * clamp(10px, 1.6vw, 18px)); object-fit: cover; border-radius: 4px; pointer-events: none; }
+.builder__tray.is-live .builder__poster { display: none; }
 .ring3d__item > img, .ring3d__item > canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
 .ring-sec__hint { position: relative; font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--c-muted); }
 

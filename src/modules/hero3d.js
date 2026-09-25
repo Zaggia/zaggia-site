@@ -6,7 +6,6 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { renderPizza, renderHeight, renderCrumb, drawItem, RECIPES } from '../lib/pizza-art.js';
 import { mulberry32 } from '../lib/noise.js';
-import { getArtURL } from '../lib/art-client.js';
 
 const COLS = 4;
 const ROWS = 3;
@@ -443,19 +442,8 @@ export function createHero3D({ canvas, isMobile, reduced, state, textures, onSta
   };
 }
 
-// Senza WebGL: la stessa pizza disegnata in 2D, inclinata con CSS.
+// Larghezza della texture della teglia (anche il worker la disegna così).
+// Senza WebGL resta visibile l'immagine statica della teglia (.hero__poster).
 export function heroTextureWidth(isMobile) {
   return isMobile ? 1536 : 2048;
-}
-
-// Senza WebGL (o su dispositivi troppo lenti): la stessa teglia come immagine,
-// disegnata dal worker e inclinata con CSS. Nessun lavoro sul thread principale.
-export function staticHeroImage() {
-  const img = new Image();
-  img.className = 'hero__canvas hero__static';
-  img.alt = '';
-  img.setAttribute('aria-hidden', 'true');
-  img.decoding = 'async';
-  getArtURL('teglia:margherita', 'l').then((u) => (img.src = u));
-  return img;
 }

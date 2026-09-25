@@ -6,7 +6,6 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SplitText } from 'gsap/SplitText';
 
 import { bindContent, initHours } from './modules/business.js';
-import { hydrateMedia, prefetchArt } from './media.js';
 import { getHeroTextures } from './lib/art-client.js';
 import {
   runPreloader, initHeader, initMenu, initAnchors, initCursor, initMagnetic, initMarquee,
@@ -42,27 +41,30 @@ function boot() {
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   window.scrollTo(0, 0);
 
-  /* Hero 3D: le texture si disegnano nel worker mentre il preloader lievita.
-     Si chiedono per prime, così passano davanti alle illustrazioni. */
+  /* Hero 3D: le texture si disegnano nel worker mentre il preloader lievita. */
   const heroCanvas = document.querySelector('[data-hero-canvas]');
   const heroTextures = getHeroTextures(isMobile ? 1536 : 2048, isMobile ? 1024 : 1365);
 
   bindContent();
   initHours();
   initFry();
-  hydrateMedia();
 
+  // La teglia statica (immagine nell'HTML) resta visibile finché il 3D non
+  // ha disegnato il primo frame; se il 3D si ferma, torna quella.
+  const heroEl = document.querySelector('[data-hero]');
   const heroReady = Promise.all([import('./modules/hero3d.js'), heroTextures])
-    .then(([{ createHero3D, staticHeroImage }, textures]) => {
+    .then(([{ createHero3D }, textures]) => {
       const goStatic = () => {
-        // Dispositivo troppo lento (o senza WebGL): la stessa teglia, ferma.
-        heroCanvas.after(staticHeroImage());
+        heroEl.classList.remove('hero--webgl');
+        heroEl.classList.add('hero--static');
         heroCanvas.style.display = 'none';
-        document.querySelector('[data-hero]').classList.add('hero--static');
         hero?.dispose();
       };
       try {
         hero = createHero3D({ canvas: heroCanvas, isMobile, reduced, state: heroState, textures, onStatic: goStatic });
+        hero.ready.then(() => {
+          if (!heroEl.classList.contains('hero--static')) heroEl.classList.add('hero--webgl');
+        });
         return Promise.race([hero.ready, new Promise((r) => setTimeout(r, 3000))]);
       } catch (err) {
         console.warn('WebGL non disponibile, uso la versione statica.', err);
@@ -101,7 +103,6 @@ function boot() {
     initReveals(reduced);
     heroIntro();
     ScrollTrigger.refresh();
-    setTimeout(prefetchArt, 2500);
   });
 }
 

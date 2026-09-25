@@ -1,7 +1,7 @@
-// Worker: disegna illustrazioni e texture 3D fuori dal thread principale,
-// così lo scroll e le animazioni non si bloccano mai mentre si generano.
+// Worker: disegna le texture 3D e i livelli del configuratore fuori dal
+// thread principale, così scroll e animazioni non si bloccano mai.
 
-import { renderSliceArt, renderPlaceholderArt, renderTegliaArt, renderPizza, renderHeight, renderCrumb, drawDough, renderSauce, RECIPES } from './pizza-art.js';
+import { renderPizza, renderHeight, renderCrumb, drawDough, renderSauce, RECIPES } from './pizza-art.js';
 
 // WebGL con ImageBitmap ignora flipY: capovolgiamo qui, una volta sola.
 function flippedBitmap(src) {
@@ -16,16 +16,7 @@ function flippedBitmap(src) {
 self.onmessage = async (e) => {
   const { id, type } = e.data;
   try {
-    if (type === 'art') {
-      const { key, w, h } = e.data;
-      const c = new OffscreenCanvas(w, h);
-      const [kind, name] = key.split(':');
-      if (kind === 'slice') renderSliceArt(c, name);
-      else if (kind === 'teglia') renderTegliaArt(c);
-      else renderPlaceholderArt(c, name);
-      const blob = await c.convertToBlob({ type: 'image/webp', quality: 0.9 });
-      self.postMessage({ id, blob });
-    } else if (type === 'hero') {
+    if (type === 'hero') {
       const { tw, th } = e.data;
       const cm = tw / 60;
       const color = new OffscreenCanvas(tw, th);

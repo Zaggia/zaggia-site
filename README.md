@@ -26,7 +26,8 @@ Dettagli che fanno la differenza: cursore personalizzato, bottoni magnetici, rot
 
 ### Fluidità
 
-- Illustrazioni, texture 3D e livelli del configuratore si disegnano in un **Web Worker**, fuori dal thread principale: lo scroll non si blocca mai mentre vengono generati.
+- Texture 3D e livelli del configuratore si disegnano in un **Web Worker**, fuori dal thread principale: lo scroll non si blocca mai mentre vengono generati.
+- **Funziona anche dove JavaScript è bloccato** (anteprime delle app sul telefono): immagini, galleria, fritti, carosello e orari sono scritti direttamente nell'HTML in fase di build; le animazioni si aggiungono sopra quando il browser lo permette. In quel caso in alto compare un avviso che invita ad aprire il file nel browser.
 - Il 3D ha un budget di pixel, niente ombre in tempo reale e una **qualità adattiva**: se il dispositivo scende sotto i 40 fps riduce risoluzione ed effetti, e sui computer senza accelerazione grafica passa da solo a una versione statica.
 - Durante lo scroll il codice non legge mai misure della pagina (niente "layout thrashing") e anima solo `transform` e `opacity`.
 - Per una demo su un computer potente puoi forzare il 3D pieno aggiungendo `?qualita=alta` all'indirizzo.
@@ -34,7 +35,7 @@ Dettagli che fanno la differenza: cursore personalizzato, bottoni magnetici, rot
 ## Le foto (generate con AI)
 
 Il locale non ha ancora foto, quindi sono state generate con l'AI di Canva e sono già nel tuo account Canva.
-Finché non le aggiungi, il sito mostra **illustrazioni generate al volo** nello stesso stile (vedi l'anteprima), quindi è già presentabile.
+Finché non le aggiungi, il sito usa **illustrazioni nello stesso stile** già pronte in `src/assets/art/` (vedi l'anteprima), quindi è già presentabile. Si rigenerano con `node scripts/genera-illustrazioni.mjs` (serve Playwright e `npm run dev` avviato).
 
 | Nome file | Soggetto | Apri su Canva |
 |---|---|---|
@@ -55,7 +56,7 @@ Per metterle nel sito:
 
 1. Scarica ogni immagine da Canva e salvala in `foto-originali/` con il nome della prima colonna (es. `supli.png`).
 2. Esegui `npm run foto`: le ridimensiona, le converte in WebP e le mette in `src/assets/foto/`.
-3. `npm run build`. Le foto vere prendono il posto delle illustrazioni, nessun'altra modifica.
+3. `npm run build` (o `npm run build:file`). In fase di build ogni foto presente prende il posto della sua illustrazione, nessun'altra modifica.
 
 In alternativa puoi caricarle direttamente in `src/assets/foto/` dal sito di GitHub ("Add file → Upload files"), con gli stessi nomi.
 Nel footer c'è già la dicitura "Le immagini sono generate con intelligenza artificiale a scopo illustrativo": toglila quando arriveranno le foto vere del locale.

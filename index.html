@@ -56,14 +56,22 @@
       function open(staticMode) {
         if (window.__revealed) return;
         window.__revealed = true;
-        if (staticMode) d.classList.add('boot-failed');
+        if (staticMode) {
+          d.classList.add('boot-failed');
+          var note = document.querySelector('[data-nojs-note]');
+          if (note && window.__bootError) note.appendChild(document.createTextNode(' (' + window.__bootError + ')'));
+        }
         var p = document.querySelector('.preloader');
         if (p && p.parentNode) p.parentNode.removeChild(p);
         if (document.body) document.body.classList.remove('is-loading');
         try { window.dispatchEvent(new Event('pizza:open')); } catch (e) {}
       }
       window.__openPage = open;
-      window.addEventListener('error', function () { if (!window.__booted) setTimeout(function () { open(true); }, 0); });
+      window.addEventListener('error', function (e) {
+        if (window.__booted) return;
+        window.__bootError = String((e && e.message) || 'errore').slice(0, 120);
+        setTimeout(function () { open(true); }, 0);
+      });
       setTimeout(function () { if (!window.__booted) open(true); }, 8000);
       setTimeout(function () { open(false); }, 12000);
     })();
@@ -88,7 +96,7 @@
   </svg>
 
   <a class="skip-link" href="#main">Salta al contenuto</a>
-  <noscript><p class="nojs-note">Questa anteprima non esegue JavaScript: per vedere 3D e animazioni apri il file nel browser (Safari o Chrome).</p></noscript>
+  <p class="nojs-note" data-nojs-note>Anteprima semplificata: questo visualizzatore blocca le animazioni. Per vedere 3D e animazioni apri il file nel browser (Safari o Chrome).</p>
 
   <!-- Preloader: la pasta lievita mentre il 3D si carica -->
   <div class="preloader" aria-hidden="true">
@@ -154,6 +162,7 @@
     <!-- ═════════════ HERO 3D ═════════════ -->
     <section class="hero" id="home" data-hero aria-labelledby="hero-title">
       <div class="hero__stage" data-hero-stage>
+        <!-- @hero-poster -->
         <canvas class="hero__canvas" data-hero-canvas aria-hidden="true"></canvas>
         <div class="hero__glow" aria-hidden="true"></div>
 
@@ -295,6 +304,7 @@
         <div class="builder__grid">
           <div class="builder__stage" data-reveal>
             <div class="builder__tray">
+              <!-- @builder-poster -->
               <canvas class="builder__canvas" data-builder-canvas role="img" aria-label="Anteprima della teglia composta"></canvas>
             </div>
             <p class="builder__name"><small>Titolo dell'opera</small><span data-builder-name>Bianca, pura</span></p>

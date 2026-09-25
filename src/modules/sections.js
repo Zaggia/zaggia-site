@@ -3,8 +3,7 @@
 
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { OPERE, FRITTI, RING, BUSINESS } from '../content.js';
-import { createMedia } from '../media.js';
+import { OPERE, FRITTI, BUSINESS } from '../content.js';
 import { waLink } from './business.js';
 
 const mm = gsap.matchMedia();
@@ -112,19 +111,15 @@ export function initGallery(reduced, builder) {
   const idxEl = sec.querySelector('[data-gallery-index]');
   sec.querySelector('[data-gallery-total]').textContent = String(OPERE.length).padStart(2, '0');
 
-  OPERE.forEach((o, i) => {
-    const li = document.createElement('li');
-    li.className = 'opera';
-    li.innerHTML = `
-      <button class="opera__btn" type="button" data-cursor="Guarda" aria-label="${o.title}: apri i dettagli">
-        <div class="opera__frame"><span class="opera__glare"></span></div>
-        <p class="opera__label"><small>Opera n° ${String(i + 1).padStart(2, '0')}</small><strong>${o.title}</strong><span>${o.notes}</span></p>
-      </button>`;
+  // Le carte sono già nell'HTML (scritte in build da content.js):
+  // qui si aggiungono solo interazioni e 3D.
+  track.querySelectorAll('.opera:not(.opera--cta)').forEach((li, i) => {
+    const o = OPERE[i];
+    if (!o) return;
     const frame = li.querySelector('.opera__frame');
-    frame.prepend(createMedia({ photo: o.photo, fallback: `slice:${o.recipe}`, alt: `${o.title}: ${o.notes}` }));
-    track.append(li);
     const btn = li.querySelector('.opera__btn');
-    btn.addEventListener('click', () => openLightbox(o, builder));
+    const pic = frame.querySelector('img');
+    btn.addEventListener('click', () => openLightbox(o, builder, pic?.currentSrc || pic?.src));
     if (matchMedia('(hover: hover)').matches) {
       let r = null;
       btn.addEventListener('pointerenter', () => (r = frame.getBoundingClientRect()));
@@ -143,12 +138,6 @@ export function initGallery(reduced, builder) {
       });
     }
   });
-
-  // Ultima "opera": invito a comporne una.
-  const cta = document.createElement('li');
-  cta.className = 'opera opera--cta';
-  cta.innerHTML = `<a class="opera__btn" href="#componi" data-cursor="Crea"><div class="opera__frame"><span class="opera__cta"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>La prossima opera<br>la firmi tu</span></div><p class="opera__label"><small>Fuori catalogo</small><strong>Componi la tua</strong><span>Scegli gli ingredienti nel laboratorio.</span></p></a>`;
-  track.append(cta);
 
   const cards = [...track.children];
   // Posizioni misurate una volta (e a ogni resize), mai durante lo scroll:
@@ -213,7 +202,7 @@ export function initGallery(reduced, builder) {
   update3D();
 }
 
-function openLightbox(o, builder) {
+function openLightbox(o, builder, src) {
   const prevFocus = document.activeElement;
   const box = document.createElement('div');
   box.className = 'lightbox';
@@ -234,7 +223,10 @@ function openLightbox(o, builder) {
         </div>
       </div>
     </div>`;
-  box.querySelector('.lightbox__media').append(createMedia({ photo: o.photo, fallback: `slice:${o.recipe}`, alt: o.title, eager: true }));
+  const pic = new Image();
+  pic.alt = o.title;
+  if (src) pic.src = src;
+  box.querySelector('.lightbox__media').append(pic);
   document.body.append(box);
   window.__lenis?.stop();
   requestAnimationFrame(() => box.classList.add('is-open'));
@@ -249,8 +241,9 @@ function openLightbox(o, builder) {
     if (e.key === 'Escape') close();
     if (e.key === 'Tab') {
       const f = [...box.querySelectorAll('button, a')];
-      if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f.at(-1).focus(); }
-      else if (!e.shiftKey && document.activeElement === f.at(-1)) { e.preventDefault(); f[0].focus(); }
+      const last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); f[0].focus(); }
     }
   };
   document.addEventListener('keydown', onKey);
@@ -272,7 +265,7 @@ function openLightbox(o, builder) {
 /* ═════════════ Friggitoria ═════════════ */
 export function initFry() {
   const list = document.querySelector('[data-fry-list]');
-  if (!list) return;
+  if (!list || list.children.length) return; // già scritta in build
   for (const f of FRITTI) {
     const li = document.createElement('li');
     li.setAttribute('data-reveal', '');
@@ -391,14 +384,10 @@ export function initRing(reduced) {
   if (!sec) return;
   const spin = sec.querySelector('[data-ring-spin]');
   const stage = sec.querySelector('[data-ring-stage]');
-  const N = RING.length;
-  const items = RING.map((r, i) => {
-    const el = document.createElement('div');
-    el.className = 'ring3d__item';
-    el.append(createMedia({ photo: r.photo, fallback: r.fallback, alt: r.alt }));
-    spin.append(el);
-    return { el, i };
-  });
+  // Le foto sono già nell'HTML: qui si dispongono in cerchio.
+  const items = [...spin.querySelectorAll('.ring3d__item')].map((el, i) => ({ el, i }));
+  const N = items.length || 1;
+  spin.classList.add('is-3d');
 
   let radius = 0;
   function layout() {
