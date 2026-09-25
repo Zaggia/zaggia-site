@@ -21,72 +21,98 @@ document.documentElement.classList.add('js');
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const isMobile = matchMedia('(max-width: 899px), (pointer: coarse)').matches;
 
-/* Scroll fluido (disattivato con "riduci movimento") */
 let lenis = null;
-if (!reduced) {
-  lenis = new Lenis({ lerp: 0.09, wheelMultiplier: 0.95, touchMultiplier: 1.4 });
-  lenis.on('scroll', ScrollTrigger.update);
-  gsap.ticker.add((time) => lenis.raf(time * 1000));
-  gsap.ticker.lagSmoothing(0);
-  lenis.stop();
-  window.__lenis = lenis;
-}
-if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-window.scrollTo(0, 0);
-
-bindContent();
-initHours();
-initFry();
-hydrateMedia();
-
-/* Hero 3D: caricato a parte, mentre il preloader lievita.
-   Lo stato è condiviso: la timeline di scroll esiste subito, la scena lo legge quando è pronta. */
-const heroCanvas = document.querySelector('[data-hero-canvas]');
-const heroState = { explode: 0, spin: 0, tilt: 0, zoom: 0, introY: reduced ? 0 : -2.4, introSpin: reduced ? 0 : -0.9 };
 let hero = null;
-const heroReady = import('./modules/hero3d.js')
-  .then(({ createHero3D, paintStaticHero }) => {
-    try {
-      hero = createHero3D({ canvas: heroCanvas, isMobile, reduced, state: heroState });
-      return Promise.race([hero.ready, new Promise((r) => setTimeout(r, 3000))]);
-    } catch (err) {
-      console.warn('WebGL non disponibile, uso la versione statica.', err);
-      document.querySelector('[data-hero]').classList.add('hero--static');
-      paintStaticHero(heroCanvas);
-      return null;
-    }
-  })
-  .catch((err) => console.warn(err));
+// Stato condiviso dell'hero: la timeline di scroll esiste subito, la scena 3D lo legge quando è pronta.
+const heroState = { explode: 0, spin: 0, tilt: 0, zoom: 0, introY: reduced ? 0 : -2.4, introSpin: reduced ? 0 : -0.9 };
 
-const fontsReady = document.fonts?.ready ?? Promise.resolve();
+function boot() {
+  /* Scroll fluido (disattivato con "riduci movimento") */
+  if (!reduced) {
+    lenis = new Lenis({ lerp: 0.09, wheelMultiplier: 0.95, touchMultiplier: 1.4 });
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.add((time) => lenis.raf(time * 1000));
+    gsap.ticker.lagSmoothing(0);
+    lenis.stop();
+    window.__lenis = lenis;
+  }
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  window.scrollTo(0, 0);
 
-// L'ordine conta: i pin vanno creati dall'alto verso il basso.
-heroScroll();
-initHeader(lenis);
-initMenu(lenis);
-initAnchors(lenis);
-initCursor();
-initMagnetic();
-initMarquee(lenis, reduced);
-initDough(reduced);
-const builder = initBuilder(reduced);
-initGallery(reduced, builder);
-initSupli(reduced);
-initDelivery(reduced);
-initParty(reduced);
-initRing(reduced);
-initMap();
-initParallax(reduced);
-initFooter(reduced);
-initActionBar();
+  bindContent();
+  initHours();
+  initFry();
+  hydrateMedia();
 
-runPreloader({ ready: Promise.all([heroReady, fontsReady]), reduced }).then(() => {
-  lenis?.start();
-  initSplits(reduced);
-  initReveals(reduced);
-  heroIntro();
-  ScrollTrigger.refresh();
-});
+  /* Hero 3D: caricato a parte, mentre il preloader lievita. */
+  const heroCanvas = document.querySelector('[data-hero-canvas]');
+  const heroReady = import('./modules/hero3d.js')
+    .then(({ createHero3D, paintStaticHero }) => {
+      try {
+        hero = createHero3D({ canvas: heroCanvas, isMobile, reduced, state: heroState });
+        return Promise.race([hero.ready, new Promise((r) => setTimeout(r, 3000))]);
+      } catch (err) {
+        console.warn('WebGL non disponibile, uso la versione statica.', err);
+        document.querySelector('[data-hero]').classList.add('hero--static');
+        paintStaticHero(heroCanvas);
+        return null;
+      }
+    })
+    .catch((err) => console.warn(err));
+
+  const fontsReady = document.fonts?.ready ?? Promise.resolve();
+
+  // L'ordine conta: i pin vanno creati dall'alto verso il basso.
+  heroScroll();
+  initHeader(lenis);
+  initMenu(lenis);
+  initAnchors(lenis);
+  initCursor();
+  initMagnetic();
+  initMarquee(lenis, reduced);
+  initDough(reduced);
+  const builder = initBuilder(reduced);
+  initGallery(reduced, builder);
+  initSupli(reduced);
+  initDelivery(reduced);
+  initParty(reduced);
+  initRing(reduced);
+  initMap();
+  initParallax(reduced);
+  initFooter(reduced);
+  initActionBar();
+
+  runPreloader({ ready: Promise.all([heroReady, fontsReady]), reduced }).then(() => {
+    lenis?.start();
+    initSplits(reduced);
+    initReveals(reduced);
+    heroIntro();
+    ScrollTrigger.refresh();
+  });
+}
+
+// Si parte solo quando tutta la pagina è nel DOM, anche se lo script viene
+// eseguito prima del contenuto (succede in alcune anteprime di file HTML).
+let booted = false;
+function tryBoot() {
+  if (booted || !document.querySelector('.action-bar a:last-child')) return false;
+  booted = true;
+  boot();
+  return true;
+}
+if (!tryBoot()) {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', tryBoot, { once: true });
+  } else {
+    const mo = new MutationObserver(() => {
+      if (document.querySelector('.action-bar a:last-child')) {
+        mo.disconnect();
+        setTimeout(tryBoot, 0);
+      }
+    });
+    mo.observe(document.documentElement, { childList: true, subtree: true });
+  }
+}
 
 function heroIntro() {
   const lines = document.querySelectorAll('[data-hero-split]');

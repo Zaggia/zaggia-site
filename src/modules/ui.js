@@ -126,7 +126,11 @@ export function initAnchors(lenis) {
     e.preventDefault();
     if (lenis) lenis.scrollTo(target, { offset: 0, duration: 1.6 });
     else target.scrollIntoView({ behavior: 'auto' });
-    history.replaceState(null, '', id);
+    try {
+      history.replaceState(null, '', id);
+    } catch {
+      /* anteprime in sandbox: l'URL resta com'è */
+    }
   });
 }
 
