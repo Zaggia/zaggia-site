@@ -47,22 +47,25 @@
   }
   </script>
   <script>
-    // Sicura: se l'avvio non riesce (errore, browser particolare, anteprima
-    // limitata), la pagina si apre comunque invece di restare sul caricamento.
+    // Sicura: la pagina si apre sempre, qualunque cosa succeda.
+    // - codice che non parte (errore, visualizzatore limitato): versione statica dopo 8 s
+    // - codice partito ma caricamento bloccato: lo chiude dopo 12 s, animazioni comprese
     (function () {
       var d = document.documentElement;
       d.classList.add('js-on');
-      function open() {
+      function open(staticMode) {
         if (window.__revealed) return;
         window.__revealed = true;
-        d.classList.add('boot-failed');
+        if (staticMode) d.classList.add('boot-failed');
         var p = document.querySelector('.preloader');
-        if (p) p.parentNode.removeChild(p);
+        if (p && p.parentNode) p.parentNode.removeChild(p);
         if (document.body) document.body.classList.remove('is-loading');
+        try { window.dispatchEvent(new Event('pizza:open')); } catch (e) {}
       }
       window.__openPage = open;
-      window.addEventListener('error', function () { if (!window.__booted) setTimeout(open, 0); });
-      setTimeout(function () { if (!window.__revealed) open(); }, 10000);
+      window.addEventListener('error', function () { if (!window.__booted) setTimeout(function () { open(true); }, 0); });
+      setTimeout(function () { if (!window.__booted) open(true); }, 8000);
+      setTimeout(function () { open(false); }, 12000);
     })();
   </script>
   <script type="module" src="/src/main.js"></script>
@@ -471,6 +474,5 @@
     <a data-wa-generic href="https://wa.me/393461830803" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-chat" /></svg>WhatsApp</a>
     <a data-bind-href="directionsUrl" href="https://www.google.com/maps/dir/?api=1&amp;destination=Pizza+Art+Piazza+Giovenale+9+00136+Roma" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-pin" /></svg>Arrivare</a>
   </nav>
-  <script nomodule>window.__openPage && window.__openPage();</script>
 </body>
 </html>

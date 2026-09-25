@@ -5,54 +5,60 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SplitText } from 'gsap/SplitText';
 
+// Il caricamento finisce SEMPRE: i tempi sono timer normali (non dipendono dai
+// frame disegnati, che molti visualizzatori rallentano o sospendono) e la
+// sicura nella <head> può chiuderlo in qualsiasi momento con "pizza:open".
 export function runPreloader({ ready, reduced }) {
   const el = document.querySelector('.preloader');
-  // Già aperta dalla sicura (vedi <head>): niente da animare.
+  const unlock = () => document.body.classList.remove('is-loading');
   if (!el || window.__revealed) {
-    document.body.classList.remove('is-loading');
+    unlock();
     return Promise.resolve();
   }
-  const count = el.querySelector('[data-preload-count]');
-  const blob = el.querySelector('.preloader__blob');
-  const bubbles = el.querySelectorAll('.preloader__bubbles circle');
-  const curtain = el.querySelector('.preloader__curtain');
-  const counter = { v: 0 };
-
-  if (reduced) {
-    return ready.then(() => {
+  return new Promise((resolve) => {
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
       el.remove();
-      document.body.classList.remove('is-loading');
-    });
-  }
+      unlock();
+      resolve();
+    };
+    window.addEventListener('pizza:open', finish, { once: true });
 
-  const rise = gsap.timeline();
-  rise
-    .fromTo(blob, { scaleY: 0.35, scaleX: 0.9 }, { scaleY: 1.35, scaleX: 1.05, duration: 1.8, ease: 'sine.inOut' }, 0)
-    .fromTo(bubbles, { scale: 0 }, { scale: 1.6, duration: 0.9, stagger: 0.25, ease: 'back.out(3)' }, 0.2)
-    .to(counter, {
-      v: 72, duration: 1.8, ease: 'power2.inOut',
-      onUpdate: () => (count.textContent = String(Math.round(counter.v)).padStart(2, '0')),
-    }, 0);
+    const waitReady = Promise.race([ready, new Promise((r) => setTimeout(r, 5000))]);
+    if (reduced) {
+      waitReady.then(finish);
+      return;
+    }
 
-  const minTime = new Promise((r) => rise.eventCallback('onComplete', r));
-  const timeout = new Promise((r) => setTimeout(r, 6000));
-  return Promise.all([minTime, Promise.race([ready, timeout])]).then(
-    () => new Promise((resolve) => {
-      gsap.timeline({
-        onComplete: () => {
-          el.remove();
-        },
-      })
-        .to(el.querySelector('.preloader__inner'), { y: -40, opacity: 0, duration: 0.45, ease: 'power2.in' })
-        .to(curtain, { scaleY: 1, duration: 0.55, ease: 'expo.inOut' }, '-=0.1')
+    // Animazione del lievito: solo estetica, non decide quando si apre.
+    const count = el.querySelector('[data-preload-count]');
+    const counter = { v: 0 };
+    gsap.timeline()
+      .fromTo(el.querySelector('.preloader__blob'), { scaleY: 0.35, scaleX: 0.9 }, { scaleY: 1.35, scaleX: 1.05, duration: 1.8, ease: 'sine.inOut' }, 0)
+      .fromTo(el.querySelectorAll('.preloader__bubbles circle'), { scale: 0 }, { scale: 1.6, duration: 0.9, stagger: 0.25, ease: 'back.out(3)' }, 0.2)
+      .to(counter, {
+        v: 72, duration: 1.8, ease: 'power2.inOut',
+        onUpdate: () => (count.textContent = String(Math.round(counter.v)).padStart(2, '0')),
+      }, 0);
+
+    const minTime = new Promise((r) => setTimeout(r, 1900));
+    Promise.all([minTime, waitReady]).then(() => {
+      count.textContent = '72';
+      const curtain = el.querySelector('.preloader__curtain');
+      gsap.timeline({ onComplete: finish })
+        .to(el.querySelector('.preloader__inner'), { y: -40, opacity: 0, duration: 0.4, ease: 'power2.in' })
+        .to(curtain, { scaleY: 1, duration: 0.5, ease: 'expo.inOut' }, '-=0.1')
         .add(() => {
           el.style.background = 'transparent';
-          document.body.classList.remove('is-loading');
-          resolve();
+          unlock();
         })
-        .to(curtain, { scaleY: 0, transformOrigin: 'top', duration: 0.7, ease: 'expo.inOut' });
-    }),
-  );
+        .to(curtain, { scaleY: 0, transformOrigin: 'top', duration: 0.6, ease: 'expo.inOut' });
+      // Se i frame non avanzano, la tenda non conta: si apre comunque.
+      setTimeout(finish, 1700);
+    });
+  });
 }
 
 export function initHeader(lenis) {

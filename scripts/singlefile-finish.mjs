@@ -1,6 +1,6 @@
-// Ritocco finale del file unico: sposta lo script in fondo al <body>, così
-// parte dopo il contenuto anche nei visualizzatori che non rispettano il
-// "defer" dei moduli, e rinomina il file in pizza-art.html.
+// Ritocco finale del file unico: sposta lo script in fondo al <body> come
+// script classico, così parte dopo il contenuto in qualsiasi visualizzatore,
+// e rinomina il file in pizza-art.html.
 
 import { readFile, writeFile, rm } from 'node:fs/promises';
 
@@ -13,7 +13,9 @@ const end = html.indexOf('</script>', start) + '</script>'.length;
 if (start < 0 || end < start || start > html.indexOf('<body')) {
   throw new Error('Script del modulo non trovato nella <head>: controlla la build.');
 }
-const script = html.slice(start, end);
+// Il bundle è un IIFE: diventa uno script classico, eseguito anche dai
+// visualizzatori che non gestiscono i moduli ES.
+const script = html.slice(start, end).replace(/^<script type="module"[^>]*>/, '<script>');
 html = html.slice(0, start) + html.slice(end);
 const bodyEnd = html.lastIndexOf('</body>');
 html = `${html.slice(0, bodyEnd)}${script}\n${html.slice(bodyEnd)}`;

@@ -116,7 +116,7 @@ function tryBoot() {
     boot();
   } catch (err) {
     console.error(err);
-    window.__openPage?.();
+    window.__openPage?.(true);
   }
   return true;
 }
