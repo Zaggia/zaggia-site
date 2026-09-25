@@ -2,7 +2,8 @@
 // poi l'ordine parte già scritto su WhatsApp.
 
 import { gsap } from 'gsap';
-import { drawDough, renderSauce, generateItems, drawItem, INGREDIENTS, sortByLayer } from '../lib/pizza-art.js';
+import { generateItems, drawItem, INGREDIENTS, sortByLayer } from '../lib/pizza-art.js';
+import { getBuilderLayers } from '../lib/art-client.js';
 import { BUILDER_INGREDIENTS, BUILDER_PRESETS, BUSINESS } from '../content.js';
 import { waLink } from './business.js';
 
@@ -46,28 +47,48 @@ export function initBuilder(reduced) {
   let dough = null;
   let sauce = null;
   let items = {};
+  let bakes = {};
+  const dir = {};
   let dirty = true;
+  let layoutId = 0;
 
   function layout() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = Math.round(Math.min(canvas.clientWidth * dpr, 1500));
+    const w = Math.round(Math.min(canvas.clientWidth * dpr, 1400));
     if (!w || w === W) return;
     W = w;
     H = Math.round((W * 2) / 3);
-    canvas.width = W;
-    canvas.height = H;
     cm = W / 60;
     const rect = { x: 0, y: 0, w: W, h: H };
-    dough = document.createElement('canvas');
-    dough.width = W;
-    dough.height = H;
-    drawDough(dough.getContext('2d'), rect, cm, 21);
-    sauce = renderSauce(rect, cm, 22, 1.6);
     items = {};
+    bakes = {};
+    dough = null;
     for (const type of BUILDER_INGREDIENTS) {
       if (!INGREDIENTS[type].spread) items[type] = generateItems(type, rect, cm, 23);
     }
-    dirty = true;
+    // Impasto e pomodoro arrivano dal worker: il thread principale resta libero.
+    const id = ++layoutId;
+    getBuilderLayers(W, H).then((l) => {
+      if (id !== layoutId) return;
+      canvas.width = W;
+      canvas.height = H;
+      dough = l.dough;
+      sauce = l.sauce;
+      dirty = true;
+    });
+  }
+
+  // Un livello per ingrediente: i pezzi atterrati ci vengono disegnati una
+  // volta sola (con l'ombra sfocata); a ogni frame si copia il livello intero.
+  function bakeFor(type) {
+    let b = bakes[type];
+    if (!b) {
+      const c = document.createElement('canvas');
+      c.width = W;
+      c.height = H;
+      b = bakes[type] = { canvas: c, ctx: c.getContext('2d'), settled: new Uint8Array(items[type].length) };
+    }
+    return b;
   }
 
   function draw() {
@@ -98,12 +119,28 @@ export function initBuilder(reduced) {
       }
       const list = items[type] || [];
       const n = list.length;
+      const b = bakeFor(type);
+      const settling = dir[type] === 1;
+      let loose = false;
       for (let i = 0; i < n; i++) {
-        const delay = (i / n) * 0.55;
-        const t = Math.min(1, Math.max(0, (p - delay) / 0.45));
+        const t = (p - (i / n) * 0.55) / 0.45;
+        if (settling && t >= 1) {
+          if (!b.settled[i]) {
+            drawItem(b.ctx, list[i]);
+            b.settled[i] = 1;
+          }
+        } else if (t > 0) loose = true;
+      }
+      ctx.drawImage(b.canvas, 0, 0);
+      if (!loose) continue;
+      // Pezzi non ancora "cotti": in volo mentre cadono, oppure (in uscita)
+      // ancora appoggiati finché non tocca a loro ripartire.
+      for (let i = 0; i < n; i++) {
+        if (b.settled[i]) continue;
+        const t = Math.min(1, (p - (i / n) * 0.55) / 0.45);
         if (t <= 0) continue;
         const eased = 1 - Math.pow(1 - t, 3);
-        drawItem(ctx, list[i], { lift: 1 - eased, alpha: Math.min(1, t * 2.5) });
+        drawItem(ctx, list[i], { lift: 1 - eased, alpha: Math.min(1, t * 2.5), shadow: 'cheap' });
       }
     }
   }
@@ -111,6 +148,12 @@ export function initBuilder(reduced) {
 
   function animateTo(type, on) {
     if (progress[type] === undefined) progress[type] = 0;
+    dir[type] = on ? 1 : -1;
+    // In uscita i pezzi tornano "in volo": svuota il livello cotto.
+    if (!on && bakes[type]) {
+      bakes[type].ctx.clearRect(0, 0, W, H);
+      bakes[type].settled.fill(0);
+    }
     gsap.to(progress, {
       [type]: on ? 1 : 0,
       duration: reduced ? 0.01 : on ? 1.1 : 0.45,

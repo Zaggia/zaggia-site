@@ -1,7 +1,8 @@
 // Foto: se in src/assets/foto c'è il file giusto (es. "supli.webp") lo usa,
-// altrimenti disegna al volo un'immagine procedurale coerente con lo stile.
+// altrimenti chiede al worker un'illustrazione coerente con lo stile.
+// In entrambi i casi l'elemento è una normale <img>: leggera da scorrere.
 
-import { renderSliceArt, renderPlaceholderArt } from './lib/pizza-art.js';
+import { getArtURL } from './lib/art-client.js';
 
 const files = import.meta.glob('./assets/foto/*.{jpg,jpeg,png,webp,avif,JPG,JPEG,PNG,WEBP}', {
   eager: true,
@@ -15,85 +16,67 @@ for (const [path, url] of Object.entries(files)) {
   PHOTOS[name] = url;
 }
 
-const queue = [];
-let scheduled = false;
-
-function pump() {
-  scheduled = false;
-  const job = queue.shift();
-  if (!job) return;
-  job();
-  if (queue.length) schedule();
-}
-
-function schedule() {
-  if (scheduled) return;
-  scheduled = true;
-  // Un disegno per volta, nei momenti liberi: niente scatti durante lo scroll.
-  if ('requestIdleCallback' in window) requestIdleCallback(pump, { timeout: 400 });
-  else setTimeout(pump, 30);
-}
-
-function paintFallback(canvas) {
-  const box = canvas.parentElement.getBoundingClientRect();
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const w = Math.round(Math.min(Math.max(box.width, 320) * dpr, 1400));
-  const ratio = box.width && box.height ? box.height / box.width : 1.25;
-  canvas.width = w;
-  canvas.height = Math.round(w * Math.min(Math.max(ratio, 0.4), 2));
-  const [kind, key] = canvas.dataset.fallback.split(':');
-  if (kind === 'slice') renderSliceArt(canvas, key);
-  else renderPlaceholderArt(canvas, key);
-  canvas.classList.add('is-painted');
-}
-
+// Le illustrazioni si chiedono al worker solo quando lo slot si avvicina alla
+// vista: niente raffica di disegni all'avvio che ruba CPU a scroll e 3D.
+const pendingArt = new WeakMap();
 const io = 'IntersectionObserver' in window
   ? new IntersectionObserver((entries) => {
       for (const e of entries) {
         if (!e.isIntersecting) continue;
         io.unobserve(e.target);
-        queue.push(() => paintFallback(e.target));
-        schedule();
+        pendingArt.get(e.target)?.();
+        pendingArt.delete(e.target);
       }
-    }, { rootMargin: '800px 0px 800px 0px' })
+    }, { rootMargin: '150% 60% 150% 60%' })
   : null;
 
-export function createMedia({ photo, fallback, alt = '', eager = false }) {
+// shape: "p" verticale, "l" orizzontale (solo per le illustrazioni).
+export function createMedia({ photo, fallback, alt = '', eager = false, shape = 'p' }) {
+  const img = new Image();
+  img.alt = alt;
+  img.decoding = 'async';
+  img.draggable = false;
+  img.className = 'media-img';
+  if (!alt) img.setAttribute('aria-hidden', 'true');
+  const ready = () => img.classList.add('is-ready');
+  img.addEventListener('load', ready, { once: true });
   const url = PHOTOS[photo];
   if (url) {
-    const img = new Image();
-    img.src = url;
-    img.alt = alt;
-    img.decoding = 'async';
     img.loading = eager ? 'eager' : 'lazy';
-    img.draggable = false;
-    return img;
-  }
-  const canvas = document.createElement('canvas');
-  canvas.className = 'media-fallback';
-  canvas.dataset.fallback = fallback || 'slice:margherita';
-  if (alt) {
-    canvas.setAttribute('role', 'img');
-    canvas.setAttribute('aria-label', alt);
+    img.src = url;
   } else {
-    canvas.setAttribute('aria-hidden', 'true');
+    const load = () => getArtURL(fallback || 'slice:margherita', shape).then((u) => (img.src = u));
+    if (eager || !io) load();
+    else {
+      pendingArt.set(img, load);
+      // L'osservazione parte quando l'immagine è nel documento.
+      requestAnimationFrame(() => (img.isConnected ? io.observe(img) : load()));
+    }
   }
-  return canvas;
+  return img;
 }
 
-// Da chiamare dopo che l'elemento è nel DOM (serve la misura del contenitore).
-export function observeMedia(node) {
-  if (!(node instanceof HTMLCanvasElement) || node.classList.contains('is-painted')) return;
-  if (io) io.observe(node);
-  else paintFallback(node);
+// Dopo l'intro: prepara in sottofondo, una alla volta, le illustrazioni non
+// ancora richieste (in ordine di pagina), così nessuna cornice resta vuota.
+export function prefetchArt() {
+  const queue = [...document.querySelectorAll('img.media-img')].filter((im) => pendingArt.has(im));
+  const next = () => {
+    const img = queue.shift();
+    if (!img) return;
+    const load = pendingArt.get(img);
+    if (!load) return next();
+    pendingArt.delete(img);
+    io?.unobserve(img);
+    load().then(next, next);
+  };
+  next();
 }
 
 export function hydrateMedia(root = document) {
   root.querySelectorAll('[data-media]').forEach((el) => {
     if (el.dataset.hydrated) return;
     el.dataset.hydrated = '1';
-    const node = createMedia({ photo: el.dataset.photo, fallback: el.dataset.fallback, alt: el.dataset.alt || '' });
-    el.prepend(node);
-    observeMedia(node);
+    const shape = el.dataset.shape || (el.clientHeight > el.clientWidth ? 'p' : 'l');
+    el.prepend(createMedia({ photo: el.dataset.photo, fallback: el.dataset.fallback, alt: el.dataset.alt || '', shape }));
   });
 }

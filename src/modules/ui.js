@@ -54,17 +54,20 @@ export function initHeader(lenis) {
   const header = document.querySelector('[data-header]');
   const bar = document.querySelector('[data-progress-bar]');
   const cutter = document.querySelector('[data-progress-cutter]');
+  const menuEl = document.querySelector('[data-menu]');
   let lastY = 0;
+  let vw = window.innerWidth;
+  window.addEventListener('resize', () => (vw = window.innerWidth), { passive: true });
   const onScroll = (y, limit) => {
     header.classList.toggle('is-scrolled', y > 40);
-    const menuOpen = document.querySelector('[data-menu]')?.classList.contains('is-open');
+    const menuOpen = menuEl?.classList.contains('is-open');
     header.classList.toggle('is-hidden', !menuOpen && y > 400 && y > lastY + 2);
     if (y < lastY - 2) header.classList.remove('is-hidden');
     lastY = y;
     const p = limit > 0 ? y / limit : 0;
+    // Solo transform: niente "left", che costringerebbe a ricalcolare il layout.
     bar.style.transform = `scaleX(${p})`;
-    cutter.style.left = `${p * 100}%`;
-    cutter.style.transform = `rotate(${y * 0.5}deg)`;
+    cutter.style.transform = `translate3d(${(p * vw).toFixed(1)}px, 0, 0) rotate(${(y * 0.5) % 360}deg)`;
   };
   if (lenis) lenis.on('scroll', (l) => onScroll(l.scroll, l.limit));
   else window.addEventListener('scroll', () => onScroll(window.scrollY, document.documentElement.scrollHeight - innerHeight), { passive: true });
@@ -245,13 +248,14 @@ export function initReveals(reduced) {
 export function initParallax(reduced) {
   if (reduced) return;
   document.querySelectorAll('[data-parallax]').forEach((el) => {
+    let n = null;
     ScrollTrigger.create({
       trigger: el,
       start: 'top bottom',
       end: 'bottom top',
       onUpdate: (st) => {
-        const n = el.querySelector('img, canvas');
-        if (n) n.style.transform = `translate3d(0, ${(st.progress - 0.5) * 16}%, 0)`;
+        n ||= el.querySelector('img');
+        if (n) n.style.transform = `translate3d(0, ${((st.progress - 0.5) * 16).toFixed(2)}%, 0)`;
       },
     });
   });
@@ -259,16 +263,16 @@ export function initParallax(reduced) {
 
 export function initFooter(reduced) {
   const fill = document.querySelector('[data-footer-fill]');
-  if (!fill) return;
+  const inner = document.querySelector('[data-footer-fill-inner]');
+  if (!fill || !inner) return;
   if (reduced) {
-    fill.style.setProperty('--fill', '100%');
+    gsap.set([fill, inner], { yPercent: 0 });
     return;
   }
-  gsap.fromTo(fill, { '--fill': '0%' }, {
-    '--fill': '100%',
-    ease: 'none',
-    scrollTrigger: { trigger: '[data-footer]', start: 'top 70%', end: 'bottom bottom', scrub: 0.6 },
-  });
+  // Il riempimento sale dal basso: due transform opposti, nessun repaint del testo.
+  gsap.timeline({ scrollTrigger: { trigger: '[data-footer]', start: 'top 70%', end: 'bottom bottom', scrub: 0.5 } })
+    .fromTo(fill, { yPercent: 100 }, { yPercent: 0, ease: 'none' }, 0)
+    .fromTo(inner, { yPercent: -100 }, { yPercent: 0, ease: 'none' }, 0);
 }
 
 export function initActionBar() {

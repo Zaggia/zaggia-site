@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { renderPizza, renderHeight, renderCrumb, drawItem, RECIPES } from '../lib/pizza-art.js';
 import { mulberry32 } from '../lib/noise.js';
+import { getArtURL } from '../lib/art-client.js';
 
 const COLS = 4;
 const ROWS = 3;
@@ -23,14 +24,27 @@ function canvas2d(w, h) {
   return c;
 }
 
-export function createHero3D({ canvas, isMobile, reduced, state }) {
+// Ombre e dettagli costano: la qualità parte da un budget di pixel e scende
+// da sola se il dispositivo non regge i 40 fps (0 = piena … 3 = versione statica).
+const SOFTWARE_GPU = /swiftshader|llvmpipe|softpipe|software|basic render/i;
+
+export function createHero3D({ canvas, isMobile, reduced, state, textures, onStatic }) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 1.8));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.08;
-  renderer.shadowMap.enabled = !isMobile;
-  renderer.shadowMap.type = THREE.PCFShadowMap;
+
+  let quality = 0;
+  // ?qualita=alta forza il 3D pieno (demo su un computer potente, test).
+  const forced = /[?&]qualita=alta\b/.test(location.search);
+  try {
+    const gl = renderer.getContext();
+    const info = gl.getExtension('WEBGL_debug_renderer_info');
+    const name = gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER) || '';
+    if (SOFTWARE_GPU.test(name) && !forced) quality = 2;
+  } catch {
+    /* nessuna informazione: si parte dalla qualità piena */
+  }
 
   const scene = new THREE.Scene();
   const pmrem = new THREE.PMREMGenerator(renderer);
@@ -41,21 +55,32 @@ export function createHero3D({ canvas, isMobile, reduced, state }) {
   const camTarget = new THREE.Vector3(0, -0.1, 0);
 
   /* ---------- Texture procedurali ---------- */
-  const TW = isMobile ? 1536 : 2048;
-  const TH = Math.round((TW * D) / W);
-  const cm = TW / 60;
-  const colorC = canvas2d(TW, TH);
-  renderPizza(colorC.getContext('2d'), { x: 0, y: 0, w: TW, h: TH }, cm, RECIPES.margherita, 11);
-  const heightC = canvas2d(TW / 2, TH / 2);
-  renderHeight(heightC.getContext('2d'), { x: 0, y: 0, w: TW / 2, h: TH / 2 }, cm / 2, RECIPES.margherita, 11);
-  const crumbC = renderCrumb(512, 96, 3);
-
-  const map = new THREE.CanvasTexture(colorC);
-  map.colorSpace = THREE.SRGBColorSpace;
+  // Di norma arrivano già pronte dal worker (ImageBitmap capovolte);
+  // altrimenti si disegnano qui.
+  const tex = (img, srgb) => {
+    const t = img instanceof ImageBitmap ? new THREE.Texture(img) : new THREE.CanvasTexture(img);
+    if (img instanceof ImageBitmap) {
+      t.flipY = false;
+      t.needsUpdate = true;
+    }
+    if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  };
+  let src = textures;
+  if (!src) {
+    const TW = heroTextureWidth(isMobile);
+    const TH = Math.round((TW * D) / W);
+    const cm = TW / 60;
+    const colorC = canvas2d(TW, TH);
+    renderPizza(colorC.getContext('2d'), { x: 0, y: 0, w: TW, h: TH }, cm, RECIPES.margherita, 11);
+    const heightC = canvas2d(TW / 2, TH / 2);
+    renderHeight(heightC.getContext('2d'), { x: 0, y: 0, w: TW / 2, h: TH / 2 }, cm / 2, RECIPES.margherita, 11);
+    src = { color: colorC, height: heightC, crumb: renderCrumb(512, 96, 3) };
+  }
+  const map = tex(src.color, true);
   map.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-  const bump = new THREE.CanvasTexture(heightC);
-  const crumbTex = new THREE.CanvasTexture(crumbC);
-  crumbTex.colorSpace = THREE.SRGBColorSpace;
+  const bump = tex(src.height, false);
+  const crumbTex = tex(src.crumb, true);
 
   const topMat = new THREE.MeshStandardMaterial({ map, bumpMap: bump, bumpScale: 2.2, roughness: 0.58, metalness: 0 });
   const crumbMat = new THREE.MeshStandardMaterial({ map: crumbTex, roughness: 0.85 });
@@ -71,7 +96,6 @@ export function createHero3D({ canvas, isMobile, reduced, state }) {
   const tray = new THREE.Group();
   const base = new THREE.Mesh(new THREE.BoxGeometry(W + 0.24, 0.05, D + 0.24), steel);
   base.position.y = 0.025;
-  base.receiveShadow = true;
   tray.add(base);
   const wallH = 0.4;
   const wallGeoX = new THREE.BoxGeometry(W + 0.34, wallH, 0.05);
@@ -79,11 +103,9 @@ export function createHero3D({ canvas, isMobile, reduced, state }) {
   for (const s of [-1, 1]) {
     const wx = new THREE.Mesh(wallGeoX, steel);
     wx.position.set(0, wallH / 2, s * (D / 2 + 0.145));
-    wx.castShadow = wx.receiveShadow = true;
     tray.add(wx);
     const wz = new THREE.Mesh(wallGeoZ, steel);
     wz.position.set(s * (W / 2 + 0.145), wallH / 2, 0);
-    wz.castShadow = wz.receiveShadow = true;
     tray.add(wz);
   }
   teglia.add(tray);
@@ -122,10 +144,7 @@ export function createHero3D({ canvas, isMobile, reduced, state }) {
       const top = new THREE.Mesh(g, topMat);
       top.rotation.x = -Math.PI / 2;
       top.position.y = T / 2 + 0.002;
-      top.castShadow = true;
       const body = new THREE.Mesh(bodyGeo, [crumbMat, crumbMat, bottomMat, bottomMat, crumbMat, crumbMat]);
-      body.castShadow = true;
-      body.receiveShadow = true;
       const piece = new THREE.Group();
       piece.add(body, top);
       const home = new THREE.Vector3(-W / 2 + (c + 0.5) * pw, 0.05 + T / 2, -D / 2 + (r + 0.5) * pd);
@@ -160,7 +179,7 @@ export function createHero3D({ canvas, isMobile, reduced, state }) {
   const leafGeo = new THREE.PlaneGeometry(0.95, 0.475);
   const tomatoMat = new THREE.MeshPhysicalMaterial({ color: 0xd3321a, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.15 });
   const tomatoGeo = new THREE.SphereGeometry(0.2, 32, 20);
-  const mozzMat = new THREE.MeshPhysicalMaterial({ color: 0xf8f1e3, roughness: 0.45, sheen: 0.4 });
+  const mozzMat = new THREE.MeshStandardMaterial({ color: 0xf8f1e3, roughness: 0.45 });
   const mozzGeo = new THREE.SphereGeometry(0.17, 32, 20);
   const fr = mulberry32(7);
   const floatCount = isMobile ? 12 : 18;
@@ -174,7 +193,6 @@ export function createHero3D({ canvas, isMobile, reduced, state }) {
     mesh.position.copy(base);
     mesh.userData = { base, phase: fr() * Math.PI * 2, speed: 0.4 + fr() * 0.6, spin: (fr() - 0.5) * 0.8, scale: 0.7 + fr() * 0.6 };
     mesh.scale.multiplyScalar(mesh.userData.scale);
-    mesh.castShadow = false;
     root.add(mesh);
     floats.push(mesh);
   }
@@ -207,14 +225,6 @@ export function createHero3D({ canvas, isMobile, reduced, state }) {
   scene.add(new THREE.HemisphereLight(0xffe8d0, 0x1a0e08, 0.55));
   const key = new THREE.DirectionalLight(0xffd6a8, 2.8);
   key.position.set(3.5, 7, 4);
-  key.castShadow = !isMobile;
-  key.shadow.mapSize.set(1024, 1024);
-  key.shadow.camera.left = -6;
-  key.shadow.camera.right = 6;
-  key.shadow.camera.top = 6;
-  key.shadow.camera.bottom = -6;
-  key.shadow.bias = -0.0008;
-  key.shadow.normalBias = 0.02;
   scene.add(key);
   const rim = new THREE.DirectionalLight(0xff5530, 2.2);
   rim.position.set(-6, 2.5, -5);
@@ -227,11 +237,21 @@ export function createHero3D({ canvas, isMobile, reduced, state }) {
   const pointer = { x: 0, y: 0, sx: 0, sy: 0, over: false };
   let layout = { x: 0, y: 0, dist: 11, rotY: -0.42 };
 
+  let cssW = 1;
+  let cssH = 1;
+  function applyPixelRatio() {
+    const budget = isMobile ? 1.1e6 : 2.4e6;
+    let dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 1.75, Math.sqrt(budget / (cssW * cssH)));
+    if (quality === 1) dpr *= 0.75;
+    if (quality >= 2) dpr = Math.min(dpr * 0.55, 0.8);
+    renderer.setPixelRatio(Math.max(0.5, dpr));
+    renderer.setSize(cssW, cssH, false);
+  }
   function resize() {
-    const w = canvas.clientWidth || window.innerWidth;
-    const h = canvas.clientHeight || window.innerHeight;
-    renderer.setSize(w, h, false);
-    camera.aspect = w / h;
+    cssW = canvas.clientWidth || window.innerWidth;
+    cssH = canvas.clientHeight || window.innerHeight;
+    applyPixelRatio();
+    camera.aspect = cssW / cssH;
     const a = camera.aspect;
     if (a >= 1.15) {
       const x = Math.min(2.4, 0.9 + (a - 1.15) * 1.6);
@@ -255,18 +275,24 @@ export function createHero3D({ canvas, isMobile, reduced, state }) {
     const hit = raycaster.intersectObjects(pieces, true)[0];
     return hit?.object.userData.piece || null;
   }
+  // Il mouse può mandare centinaia di eventi al secondo: si registra solo
+  // l'ultimo e il raycast si fa dentro il frame, una volta sola.
+  let lastMouse = null;
   function onMove(ev) {
     pointer.x = (ev.clientX / window.innerWidth) * 2 - 1;
     pointer.y = (ev.clientY / window.innerHeight) * 2 - 1;
-    if (ev.pointerType === 'mouse') {
-      const p = pickPiece(ev);
-      if (p !== hovered) {
-        if (hovered) hovered.userData.hoverTarget = 0;
-        hovered = p;
-        if (p) p.userData.hoverTarget = 1;
-        canvas.style.cursor = p ? 'pointer' : '';
-        canvas.dispatchEvent(new CustomEvent('piecehover', { detail: !!p, bubbles: true }));
-      }
+    if (ev.pointerType === 'mouse') lastMouse = { clientX: ev.clientX, clientY: ev.clientY };
+  }
+  function updateHover() {
+    if (!lastMouse) return;
+    const p = pickPiece(lastMouse);
+    lastMouse = null;
+    if (p !== hovered) {
+      if (hovered) hovered.userData.hoverTarget = 0;
+      hovered = p;
+      if (p) p.userData.hoverTarget = 1;
+      canvas.style.cursor = p ? 'pointer' : '';
+      canvas.dispatchEvent(new CustomEvent('piecehover', { detail: !!p, bubbles: true }));
     }
   }
   const hops = [];
@@ -283,13 +309,55 @@ export function createHero3D({ canvas, isMobile, reduced, state }) {
   const tmp = new THREE.Vector3();
   let running = false;
   let firstFrame = null;
+  let staticMode = false;
+
+  // Monitor: media dei frame su finestre di 60; sotto i 40 fps si scende di livello.
+  // warmup in secondi: i primi istanti (caricamento texture, shader) non contano.
+  const perf = { frames: 0, sum: 0, warmup: 0.6 };
+  function setQuality(q) {
+    quality = q;
+    if (q >= 3) return goStatic();
+    flour.visible = q < 1;
+    for (const f of floats) f.visible = q < 2;
+    // Intensità a zero, non visible=false: cambiare il numero di luci
+    // costringe a ricompilare tutti gli shader (scatto di centinaia di ms).
+    hoverLight.intensity = q < 2 ? 10 : 0;
+    applyPixelRatio();
+    perf.frames = perf.sum = 0;
+    perf.warmup = 0.3;
+  }
+  function watchPerf(rawDt) {
+    if (forced) return;
+    if (perf.warmup > 0) {
+      perf.warmup -= rawDt;
+      return;
+    }
+    perf.frames++;
+    perf.sum += rawDt;
+    // Giudizio dopo 60 frame, oppure dopo ~1 s se i frame sono lentissimi.
+    if (perf.frames < 60 && !(perf.sum > 0.75 && perf.frames >= 3)) return;
+    const avg = perf.sum / perf.frames;
+    perf.frames = perf.sum = 0;
+    if (avg > 1 / 12) setQuality(3);
+    else if (avg > 1 / 40) setQuality(quality + 1);
+  }
+  function goStatic() {
+    if (staticMode) return;
+    staticMode = true;
+    setRunning(false);
+    onStatic?.();
+  }
 
   function tick(timestamp) {
     timer.update(timestamp);
-    const dt = Math.min(timer.getDelta(), 0.05);
+    const rawDt = timer.getDelta();
+    const dt = Math.min(rawDt, 0.05);
     const t = timer.getElapsed();
-    pointer.sx += (pointer.x - pointer.sx) * 0.06;
-    pointer.sy += (pointer.y - pointer.sy) * 0.06;
+    watchPerf(rawDt);
+    updateHover();
+    const k = 1 - Math.exp(-dt * 3.6);
+    pointer.sx += (pointer.x - pointer.sx) * k;
+    pointer.sy += (pointer.y - pointer.sy) * k;
 
     const e = easeInOut(clamp01(state.explode));
     root.position.set(layout.x - e * layout.shift, layout.y + state.introY + Math.sin(t * 0.8) * 0.05 + e * layout.lift, 0);
@@ -300,7 +368,7 @@ export function createHero3D({ canvas, isMobile, reduced, state }) {
     for (const p of pieces) {
       const u = p.userData;
       const ex = Math.max(e, easeInOut(clamp01(u.intro)));
-      u.hover += (u.hoverTarget - u.hover) * 0.15;
+      u.hover += (u.hoverTarget - u.hover) * (1 - Math.exp(-dt * 9));
       tmp.copy(u.dir).multiplyScalar(u.spread * ex * 1.05);
       p.position.set(u.home.x + tmp.x, u.home.y + u.lift * ex + u.hover * 0.18 + u.hop, u.home.z + tmp.z);
       p.rotation.set(u.rot.x * ex, u.rot.y * ex + u.hop * 2.2, u.rot.z * ex);
@@ -345,13 +413,19 @@ export function createHero3D({ canvas, isMobile, reduced, state }) {
   }
 
   function setRunning(on) {
+    if (staticMode) on = false;
     if (on === running) return;
     running = on;
-    if (on) timer.reset?.();
+    if (on) {
+      timer.reset?.();
+      perf.frames = perf.sum = 0;
+      perf.warmup = 0.3;
+    }
     renderer.setAnimationLoop(on ? tick : null);
   }
 
   const ready = new Promise((res) => (firstFrame = res));
+  if (quality) setQuality(quality);
   setRunning(true);
 
   return {
@@ -363,24 +437,25 @@ export function createHero3D({ canvas, isMobile, reduced, state }) {
       setRunning(false);
       window.removeEventListener('resize', resize);
       window.removeEventListener('pointermove', onMove);
-      renderer.dispose();
+      // Libera la GPU perdendo il contesto: nessuna chiamata GL dopo lo stop.
+      renderer.forceContextLoss();
     },
   };
 }
 
 // Senza WebGL: la stessa pizza disegnata in 2D, inclinata con CSS.
-export function paintStaticHero(canvas) {
-  const w = Math.min(window.innerWidth * (window.devicePixelRatio || 1), 1800);
-  const h = Math.round((w * 2) / 3);
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext('2d');
-  const m = w * 0.18;
-  const pw = w - m * 2;
-  const ph = (pw * 2) / 3;
-  ctx.fillStyle = '#161616';
-  ctx.fillRect(m - 12, (h - ph) / 2 - 12, pw + 24, ph + 24);
-  renderPizza(ctx, { x: m, y: (h - ph) / 2, w: pw, h: ph }, pw / 60, RECIPES.margherita, 11);
-  canvas.style.transform = 'perspective(1200px) rotateX(45deg) rotateZ(-12deg) scale(1.05)';
-  canvas.style.objectFit = 'contain';
+export function heroTextureWidth(isMobile) {
+  return isMobile ? 1536 : 2048;
+}
+
+// Senza WebGL (o su dispositivi troppo lenti): la stessa teglia come immagine,
+// disegnata dal worker e inclinata con CSS. Nessun lavoro sul thread principale.
+export function staticHeroImage() {
+  const img = new Image();
+  img.className = 'hero__canvas hero__static';
+  img.alt = '';
+  img.setAttribute('aria-hidden', 'true');
+  img.decoding = 'async';
+  getArtURL('teglia:margherita', 'l').then((u) => (img.src = u));
+  return img;
 }

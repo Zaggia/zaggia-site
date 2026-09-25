@@ -4,7 +4,7 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { OPERE, FRITTI, RING, BUSINESS } from '../content.js';
-import { createMedia, observeMedia } from '../media.js';
+import { createMedia } from '../media.js';
 import { waLink } from './business.js';
 
 const mm = gsap.matchMedia();
@@ -19,29 +19,45 @@ export function initDough(reduced) {
   const bubblesC = sec.querySelector('[data-dough-bubbles]');
   const media = sec.querySelector('.dough__media');
   const bctx = bubblesC.getContext('2d');
-  const bubbles = Array.from({ length: 70 }, () => ({
+  const bubbles = Array.from({ length: 46 }, () => ({
     x: Math.random(), y: Math.random(), r: 0.3 + Math.random() * 1, born: Math.random() * 0.9, sp: 0.2 + Math.random() * 0.8,
   }));
   let prog = 0;
+  let bw = 0;
+  let bh = 0;
+
+  // Una bolla disegnata una volta, poi solo copiata e scalata: niente gradienti per frame.
+  const sprite = document.createElement('canvas');
+  sprite.width = sprite.height = 64;
+  {
+    const c = sprite.getContext('2d');
+    const g = c.createRadialGradient(22, 22, 3, 32, 32, 31);
+    g.addColorStop(0, 'rgba(255,248,230,0.55)');
+    g.addColorStop(0.8, 'rgba(255,230,190,0.12)');
+    g.addColorStop(1, 'rgba(255,255,255,0.4)');
+    c.fillStyle = g;
+    c.beginPath();
+    c.arc(32, 32, 31, 0, Math.PI * 2);
+    c.fill();
+  }
+  const sizeBubbles = () => {
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    bw = bubblesC.width = Math.round(bubblesC.clientWidth * dpr);
+    bh = bubblesC.height = Math.round(bubblesC.clientHeight * dpr);
+  };
+  new ResizeObserver(sizeBubbles).observe(bubblesC);
+  sizeBubbles();
 
   function paintBubbles(t) {
-    const w = (bubblesC.width = bubblesC.clientWidth);
-    const h = (bubblesC.height = bubblesC.clientHeight);
-    bctx.clearRect(0, 0, w, h);
+    bctx.clearRect(0, 0, bw, bh);
+    const unit = Math.min(bw, bh) * 0.04;
     for (const b of bubbles) {
-      const life = Math.max(0, (prog - b.born) / 0.35);
+      const life = (prog - b.born) / 0.35;
       if (life <= 0) continue;
-      const r = Math.min(1, life) * b.r * Math.min(w, h) * 0.04;
-      const x = b.x * w + Math.sin(t * b.sp + b.x * 10) * 4;
-      const y = b.y * h - life * 10;
-      const g = bctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
-      g.addColorStop(0, 'rgba(255,248,230,0.55)');
-      g.addColorStop(0.8, 'rgba(255,230,190,0.12)');
-      g.addColorStop(1, 'rgba(255,255,255,0.4)');
-      bctx.fillStyle = g;
-      bctx.beginPath();
-      bctx.arc(x, y, r, 0, Math.PI * 2);
-      bctx.fill();
+      const r = Math.min(1, life) * b.r * unit;
+      const x = b.x * bw + Math.sin(t * b.sp + b.x * 10) * 4;
+      const y = b.y * bh - life * 10;
+      bctx.drawImage(sprite, x - r, y - r, r * 2, r * 2);
     }
   }
 
@@ -68,7 +84,7 @@ export function initDough(reduced) {
       start: 'top top',
       end: '+=160%',
       pin: true,
-      scrub: 0.6,
+      scrub: 0.4,
       onUpdate: (s) => update(s.progress),
       onToggle: (s) => (visible = s.isActive),
     });
@@ -80,7 +96,7 @@ export function initDough(reduced) {
       trigger: sec,
       start: 'top 70%',
       end: 'bottom 60%',
-      scrub: 0.6,
+      scrub: 0.4,
       onUpdate: (s) => update(s.progress),
       onToggle: (s) => (visible = s.isActive),
     });
@@ -105,15 +121,15 @@ export function initGallery(reduced, builder) {
         <p class="opera__label"><small>Opera n° ${String(i + 1).padStart(2, '0')}</small><strong>${o.title}</strong><span>${o.notes}</span></p>
       </button>`;
     const frame = li.querySelector('.opera__frame');
-    const media = createMedia({ photo: o.photo, fallback: `slice:${o.recipe}`, alt: `${o.title}: ${o.notes}` });
-    frame.prepend(media);
+    frame.prepend(createMedia({ photo: o.photo, fallback: `slice:${o.recipe}`, alt: `${o.title}: ${o.notes}` }));
     track.append(li);
-    observeMedia(media);
     const btn = li.querySelector('.opera__btn');
     btn.addEventListener('click', () => openLightbox(o, builder));
     if (matchMedia('(hover: hover)').matches) {
+      let r = null;
+      btn.addEventListener('pointerenter', () => (r = frame.getBoundingClientRect()));
       btn.addEventListener('pointermove', (e) => {
-        const r = frame.getBoundingClientRect();
+        if (!r) r = frame.getBoundingClientRect();
         const px = (e.clientX - r.left) / r.width;
         const py = (e.clientY - r.top) / r.height;
         frame.style.setProperty('--ry', `${(px - 0.5) * 14}deg`);
@@ -135,24 +151,36 @@ export function initGallery(reduced, builder) {
   track.append(cta);
 
   const cards = [...track.children];
+  // Posizioni misurate una volta (e a ogni resize), mai durante lo scroll:
+  // leggere offsetLeft dopo aver scritto transform forza un layout per carta.
+  let centers = [];
+  let vw = window.innerWidth;
+  const measure = () => {
+    vw = window.innerWidth;
+    centers = cards.map((c) => c.offsetLeft + c.offsetWidth / 2);
+  };
+  let lastIdx = -1;
   function update3D() {
     const x = gsap.getProperty(track, 'x');
-    const vw = window.innerWidth;
     let best = 0;
     let bestD = Infinity;
-    cards.forEach((card, i) => {
-      const center = card.offsetLeft + x + card.offsetWidth / 2;
-      const d = (center - vw / 2) / vw;
+    for (let i = 0; i < cards.length; i++) {
+      const d = (centers[i] + x - vw / 2) / vw;
+      const ad = Math.abs(d);
       const ry = Math.max(-50, Math.min(50, -d * 55));
-      const z = -Math.min(1, Math.abs(d)) * 260;
-      card.style.transform = `translate3d(0, ${Math.abs(d) * 30}px, ${z}px) rotateY(${ry}deg)`;
-      if (Math.abs(d) < bestD && i < OPERE.length) {
-        bestD = Math.abs(d);
+      const z = -Math.min(1, ad) * 260;
+      cards[i].style.transform = `translate3d(0, ${(ad * 30).toFixed(1)}px, ${z.toFixed(1)}px) rotateY(${ry.toFixed(2)}deg)`;
+      if (ad < bestD && i < OPERE.length) {
+        bestD = ad;
         best = i;
       }
-    });
-    idxEl.textContent = String(best + 1).padStart(2, '0');
+    }
+    if (best !== lastIdx) {
+      lastIdx = best;
+      idxEl.textContent = String(best + 1).padStart(2, '0');
+    }
   }
+  measure();
 
   if (reduced) {
     const vp = sec.querySelector('[data-gallery-viewport]');
@@ -166,15 +194,20 @@ export function initGallery(reduced, builder) {
   gsap.to(track, {
     x: () => -dist(),
     ease: 'none',
+    // onUpdate del tween (non del trigger): gira a ogni tick dello scrub,
+    // così le carte ruotano in sincrono con lo scorrimento.
+    onUpdate: update3D,
     scrollTrigger: {
       trigger: sec.querySelector('[data-gallery-pin]'),
       start: 'top top',
       end: () => `+=${dist()}`,
       pin: true,
-      scrub: 0.8,
+      scrub: 0.5,
       invalidateOnRefresh: true,
-      onUpdate: update3D,
-      onRefresh: update3D,
+      onRefresh: () => {
+        measure();
+        update3D();
+      },
     },
   });
   update3D();
@@ -201,10 +234,8 @@ function openLightbox(o, builder) {
         </div>
       </div>
     </div>`;
-  const media = createMedia({ photo: o.photo, fallback: `slice:${o.recipe}`, alt: o.title, eager: true });
-  box.querySelector('.lightbox__media').append(media);
+  box.querySelector('.lightbox__media').append(createMedia({ photo: o.photo, fallback: `slice:${o.recipe}`, alt: o.title, eager: true }));
   document.body.append(box);
-  observeMedia(media);
   window.__lenis?.stop();
   requestAnimationFrame(() => box.classList.add('is-open'));
   const close = () => {
@@ -285,7 +316,7 @@ export function initDelivery(reduced) {
     trigger: '[data-delivery]',
     start: 'top 75%',
     end: 'bottom 35%',
-    scrub: 1,
+    scrub: 0.6,
     onUpdate: (s) => place(s.progress * 0.999),
   });
 }
@@ -364,12 +395,10 @@ export function initRing(reduced) {
   const items = RING.map((r, i) => {
     const el = document.createElement('div');
     el.className = 'ring3d__item';
-    const m = createMedia({ photo: r.photo, fallback: r.fallback, alt: r.alt });
-    el.append(m);
+    el.append(createMedia({ photo: r.photo, fallback: r.fallback, alt: r.alt }));
     spin.append(el);
-    return { el, m, i };
+    return { el, i };
   });
-  items.forEach(({ m }) => observeMedia(m));
 
   let radius = 0;
   function layout() {

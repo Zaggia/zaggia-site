@@ -24,6 +24,13 @@ Scroll 3D, animazioni interattive e contenuti modificabili da un solo file.
 
 Dettagli che fanno la differenza: cursore personalizzato, bottoni magnetici, rotella tagliapizza come barra di avanzamento, barra azioni fissa su mobile (Chiama · WhatsApp · Arrivare), scheda Google/SEO (`Restaurant` in JSON-LD), anteprima per i link condivisi (`og.jpg`), font ospitati in locale (niente Google Fonts, meglio per il GDPR), rispetto dell'impostazione "riduci movimento", versione statica se il dispositivo non supporta WebGL.
 
+### Fluidità
+
+- Illustrazioni, texture 3D e livelli del configuratore si disegnano in un **Web Worker**, fuori dal thread principale: lo scroll non si blocca mai mentre vengono generati.
+- Il 3D ha un budget di pixel, niente ombre in tempo reale e una **qualità adattiva**: se il dispositivo scende sotto i 40 fps riduce risoluzione ed effetti, e sui computer senza accelerazione grafica passa da solo a una versione statica.
+- Durante lo scroll il codice non legge mai misure della pagina (niente "layout thrashing") e anima solo `transform` e `opacity`.
+- Per una demo su un computer potente puoi forzare il 3D pieno aggiungendo `?qualita=alta` all'indirizzo.
+
 ## Le foto (generate con AI)
 
 Il locale non ha ancora foto, quindi sono state generate con l'AI di Canva e sono già nel tuo account Canva.

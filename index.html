@@ -327,6 +327,8 @@
           <p class="delivery__note">Zone servite e costo della consegna: chiedi al telefono.</p>
         </div>
         <div class="delivery__map" aria-hidden="true">
+          <span class="delivery__radar"></span>
+          <span class="delivery__ping"></span>
           <svg viewBox="0 0 500 500" data-delivery-svg>
             <defs>
               <radialGradient id="radar" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#e5412a" stop-opacity=".35"/><stop offset="1" stop-color="#e5412a" stop-opacity="0"/></radialGradient>
@@ -335,10 +337,9 @@
             <circle class="ring" cx="250" cy="250" r="80" />
             <circle class="ring" cx="250" cy="250" r="150" />
             <circle class="ring" cx="250" cy="250" r="220" />
-            <g class="radar-sweep" data-radar><path d="M250 250 L250 30 A220 220 0 0 1 405 94 Z" /></g>
             <path class="route" data-route d="M250 250 C300 200 330 150 390 140 C440 132 470 190 430 240 C395 285 330 300 300 350 C270 400 190 420 140 380 C95 345 110 280 160 250 C200 226 230 240 250 250" />
             <g class="map-label"><text x="250" y="60">Monte Mario</text><text x="420" y="260">Trionfale</text><text x="250" y="455">Balduina</text><text x="70" y="260">Medaglie d'Oro</text></g>
-            <g class="map-pin"><circle class="pulse" cx="250" cy="250" r="14" /><circle cx="250" cy="250" r="9" /></g>
+            <g class="map-pin"><circle cx="250" cy="250" r="9" /></g>
             <g class="scooter" data-scooter><use href="#i-scooter" x="-24" y="-16" width="48" height="32" /></g>
           </svg>
           <p class="delivery__center"><b>Pizza ART</b><br />P.za Giovenale 9</p>
@@ -434,7 +435,10 @@
         <a href="#teglie">Le teglie</a><a href="#friggitoria">Friggitoria</a><a href="#componi">Componi</a><a href="#consegna">Consegna</a><a href="#feste">Feste</a><a href="#dove">Dove siamo</a>
       </nav>
     </div>
-    <p class="footer__giant" aria-hidden="true"><span data-footer-fill>Pizza ART</span></p>
+    <p class="footer__giant" aria-hidden="true">
+      <span class="footer__outline">Pizza ART</span>
+      <span class="footer__fill" data-footer-fill><span data-footer-fill-inner>Pizza ART</span></span>
+    </p>
     <div class="container footer__legal">
       <p>© <span data-year>2026</span> Pizza ART · <span data-bind="address">Piazza Giovenale, 9</span>, <span data-bind="cap">00136</span> Roma<span data-vat></span></p>
       <p>Le immagini sono generate con intelligenza artificiale a scopo illustrativo.</p>

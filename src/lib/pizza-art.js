@@ -270,7 +270,7 @@ export function drawOil(ctx, rect, cm, seed = 9, amount = 1) {
 const SPACING = {
   mozzarella: 5.4, patate: 3.6, funghi: 4.4, salame: 4.6, mortadella: 6.5,
   fiori: 8.5, alici: 7, olive: 4.2, burrata: 9, basilico: 6.5,
-  rosmarino: 3.2, pistacchio: 1.5, origano: 1.1, sale: 1.6,
+  rosmarino: 3.2, pistacchio: 2.1, origano: 1.1, sale: 1.6,
 };
 
 export function generateItems(type, rect, cm, seed, inset = 2.2) {
@@ -580,17 +580,28 @@ const DRAW = {
 
 // Disegna un singolo pezzo. `lift` (0 = appoggiato, 1 = in volo) allarga
 // l'ombra e ingrandisce il pezzo: lo usa l'animazione di "caduta".
-export function drawItem(ctx, it, { lift = 0, alpha = 1 } = {}) {
+// shadow: true = ombra sfocata (bella, costosa), 'cheap' = ellisse piena
+// (per i pezzi in movimento, ridisegnati a ogni frame).
+export function drawItem(ctx, it, { lift = 0, alpha = 1, shadow = true } = {}) {
   const rand = mulberry32(it.seed);
   ctx.save();
   ctx.globalAlpha = alpha;
+  if (shadow === 'cheap') {
+    const r = it.cm * 1.7 * it.s * (1 + lift * 0.6);
+    ctx.fillStyle = `rgba(20,8,2,${(0.22 * (1 - lift * 0.6)).toFixed(3)})`;
+    ctx.beginPath();
+    ctx.ellipse(it.x, it.y + it.cm * (0.2 + lift * 1.2), r, r * 0.8, 0, 0, TAU);
+    ctx.fill();
+  }
   ctx.translate(it.x, it.y - lift * it.cm * 2);
   ctx.rotate(it.rot);
   const sc = 1 + lift * 0.9;
   ctx.scale(sc, sc);
-  ctx.shadowColor = `rgba(20,8,2,${0.35 - lift * 0.15})`;
-  ctx.shadowBlur = it.cm * (0.35 + lift * 1.6);
-  ctx.shadowOffsetY = it.cm * (0.12 + lift * 2.4);
+  if (shadow === true) {
+    ctx.shadowColor = `rgba(20,8,2,${0.35 - lift * 0.15})`;
+    ctx.shadowBlur = it.cm * (0.35 + lift * 1.6);
+    ctx.shadowOffsetY = it.cm * (0.12 + lift * 2.4);
+  }
   DRAW[it.type](ctx, it, rand);
   ctx.restore();
 }
@@ -737,6 +748,25 @@ export function renderSliceArt(canvas, recipeKey, seed = hashString(recipeKey)) 
   renderPizza(ctx, big, cm, RECIPES[recipeKey] ?? RECIPES.margherita, seed, { sides: [1, 0, 0, 0], sauceInset: 1.6 });
   ctx.restore();
   warmLight(ctx, W, H);
+}
+
+// Teglia intera vista dall'alto su sfondo trasparente: hero senza WebGL.
+export function renderTegliaArt(canvas) {
+  const ctx = canvas.getContext('2d');
+  const { width: W, height: H } = canvas;
+  const pw = W * 0.86;
+  const ph = (pw * 2) / 3;
+  const x = (W - pw) / 2;
+  const y = (H - ph) / 2;
+  const edge = pw * 0.012;
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.6)';
+  ctx.shadowBlur = pw * 0.05;
+  ctx.shadowOffsetY = pw * 0.03;
+  ctx.fillStyle = '#161618';
+  ctx.fillRect(x - edge, y - edge, pw + edge * 2, ph + edge * 2);
+  ctx.restore();
+  renderPizza(ctx, { x, y, w: pw, h: ph }, pw / 60, RECIPES.margherita, 11);
 }
 
 // Riserva per le foto che non sono pizze: composizioni astratte a tema.

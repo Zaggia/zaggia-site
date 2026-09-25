@@ -6,7 +6,8 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SplitText } from 'gsap/SplitText';
 
 import { bindContent, initHours } from './modules/business.js';
-import { hydrateMedia } from './media.js';
+import { hydrateMedia, prefetchArt } from './media.js';
+import { getHeroTextures } from './lib/art-client.js';
 import {
   runPreloader, initHeader, initMenu, initAnchors, initCursor, initMagnetic, initMarquee,
   initSplits, initReveals, initParallax, initFooter, initActionBar,
@@ -16,6 +17,8 @@ import { initBuilder } from './modules/builder.js';
 import { initDough, initGallery, initFry, initDelivery, initParty, initRing, initMap } from './modules/sections.js';
 
 gsap.registerPlugin(ScrollTrigger, SplitText);
+// Su mobile la barra degli indirizzi cambia l'altezza: niente ricalcoli a scatti.
+ScrollTrigger.config({ ignoreMobileResize: true });
 document.documentElement.classList.add('js');
 
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -29,7 +32,7 @@ const heroState = { explode: 0, spin: 0, tilt: 0, zoom: 0, introY: reduced ? 0 :
 function boot() {
   /* Scroll fluido (disattivato con "riduci movimento") */
   if (!reduced) {
-    lenis = new Lenis({ lerp: 0.09, wheelMultiplier: 0.95, touchMultiplier: 1.4 });
+    lenis = new Lenis({ lerp: 0.1, wheelMultiplier: 1, touchMultiplier: 1.3 });
     lenis.on('scroll', ScrollTrigger.update);
     gsap.ticker.add((time) => lenis.raf(time * 1000));
     gsap.ticker.lagSmoothing(0);
@@ -39,22 +42,31 @@ function boot() {
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   window.scrollTo(0, 0);
 
+  /* Hero 3D: le texture si disegnano nel worker mentre il preloader lievita.
+     Si chiedono per prime, così passano davanti alle illustrazioni. */
+  const heroCanvas = document.querySelector('[data-hero-canvas]');
+  const heroTextures = getHeroTextures(isMobile ? 1536 : 2048, isMobile ? 1024 : 1365);
+
   bindContent();
   initHours();
   initFry();
   hydrateMedia();
 
-  /* Hero 3D: caricato a parte, mentre il preloader lievita. */
-  const heroCanvas = document.querySelector('[data-hero-canvas]');
-  const heroReady = import('./modules/hero3d.js')
-    .then(({ createHero3D, paintStaticHero }) => {
+  const heroReady = Promise.all([import('./modules/hero3d.js'), heroTextures])
+    .then(([{ createHero3D, staticHeroImage }, textures]) => {
+      const goStatic = () => {
+        // Dispositivo troppo lento (o senza WebGL): la stessa teglia, ferma.
+        heroCanvas.after(staticHeroImage());
+        heroCanvas.style.display = 'none';
+        document.querySelector('[data-hero]').classList.add('hero--static');
+        hero?.dispose();
+      };
       try {
-        hero = createHero3D({ canvas: heroCanvas, isMobile, reduced, state: heroState });
+        hero = createHero3D({ canvas: heroCanvas, isMobile, reduced, state: heroState, textures, onStatic: goStatic });
         return Promise.race([hero.ready, new Promise((r) => setTimeout(r, 3000))]);
       } catch (err) {
         console.warn('WebGL non disponibile, uso la versione statica.', err);
-        document.querySelector('[data-hero]').classList.add('hero--static');
-        paintStaticHero(heroCanvas);
+        goStatic();
         return null;
       }
     })
@@ -88,6 +100,7 @@ function boot() {
     initReveals(reduced);
     heroIntro();
     ScrollTrigger.refresh();
+    setTimeout(prefetchArt, 2500);
   });
 }
 
@@ -145,7 +158,7 @@ function heroScroll() {
   if (reduced) return;
 
   const tl = gsap.timeline({
-    scrollTrigger: { trigger: stage, start: 'top top', end: '+=150%', pin: true, scrub: 1 },
+    scrollTrigger: { trigger: stage, start: 'top top', end: '+=150%', pin: true, scrub: 0.6 },
   });
   tl.to(content, { y: -140, opacity: 0, ease: 'power2.in', duration: 0.4 }, 0)
     .to(others, { opacity: 0, duration: 0.15 }, 0);

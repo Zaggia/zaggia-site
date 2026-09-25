@@ -80,16 +80,24 @@ export function initSupli(reduced) {
     placeHandle();
   }
 
-  function placeHandle() {
+  // Geometria misurata solo al resize: durante il trascinamento si fanno
+  // soltanto scritture (transform), mai letture che forzano il layout.
+  const geo = { ox: 0, oy: 0, scale: 1 };
+  function measure() {
     const r = svg.getBoundingClientRect();
     const rr = root.getBoundingClientRect();
-    const sx = r.width / 600;
-    handle.style.left = `${r.left - rr.left + (pos.x + 55) * sx}px`;
-    handle.style.top = `${r.top - rr.top + pos.y * sx}px`;
+    geo.ox = r.left - rr.left;
+    geo.oy = r.top - rr.top;
+    geo.scale = r.width / 600;
+    placeHandle();
+  }
+  function placeHandle() {
+    handle.style.transform = `translate3d(${(geo.ox + (pos.x + 55) * geo.scale).toFixed(1)}px, ${(geo.oy + pos.y * geo.scale).toFixed(1)}px, 0) translate(-50%, -50%)`;
   }
 
+  let dragRect = null;
   function toSvg(ev) {
-    const r = svg.getBoundingClientRect();
+    const r = dragRect;
     const s = 600 / r.width;
     return { x: (ev.clientX - r.left) * s - 55, y: (ev.clientY - r.top) * s };
   }
@@ -146,6 +154,7 @@ export function initSupli(reduced) {
     gsap.killTweensOf(pos);
     dragging = true;
     root.classList.add('is-dragging', 'is-pulled');
+    dragRect = svg.getBoundingClientRect();
     const p = toSvg(e);
     target.x = Math.min(MAX_X + 40, Math.max(REST_X, p.x));
     target.y = Math.min(250, Math.max(90, p.y));
@@ -181,7 +190,7 @@ export function initSupli(reduced) {
     }
   });
 
-  window.addEventListener('resize', placeHandle);
+  new ResizeObserver(measure).observe(root);
   draw();
 
   // Invito a giocare: un piccolo strattone finché nessuno lo tocca.
