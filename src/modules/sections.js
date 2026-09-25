@@ -280,6 +280,8 @@ export function initDelivery(reduced) {
   if (!svg) return;
   const route = svg.querySelector('[data-route]');
   const scooter = svg.querySelector('[data-scooter]');
+  // Con JS lo scooter lo guida lo scroll: via il giro automatico in SVG.
+  svg.querySelector('[data-scooter-auto]')?.remove();
   const NS = 'http://www.w3.org/2000/svg';
   const done = document.createElementNS(NS, 'path');
   done.setAttribute('d', route.getAttribute('d'));

@@ -198,6 +198,7 @@
     <div class="marquee" aria-hidden="true" data-marquee>
       <div class="marquee__track" data-marquee-track>
         <span>Pizza al taglio</span><i>✦</i><span>Pizza bianca</span><i>✦</i><span>Supplì</span><i>✦</i><span>Rosticceria</span><i>✦</i><span>Friggitoria</span><i>✦</i><span>Consegna a domicilio</span><i>✦</i>
+        <span>Pizza al taglio</span><i>✦</i><span>Pizza bianca</span><i>✦</i><span>Supplì</span><i>✦</i><span>Rosticceria</span><i>✦</i><span>Friggitoria</span><i>✦</i><span>Consegna a domicilio</span><i>✦</i>
       </div>
     </div>
 
@@ -208,7 +209,7 @@
           <p class="eyebrow">01 — L'impasto</p>
           <h2 class="h2" id="dough-title" data-split>Il tempo è l'ingrediente segreto</h2>
           <div class="dough__counter" aria-hidden="true">
-            <span data-dough-hours>00</span><small>ore</small>
+            <span data-dough-hours>00</span><span class="dough__cssnum"></span><small>ore</small>
           </div>
           <p class="dough__lead">Lievitazione lunga, fino a 72 ore: così la pizza viene leggera, croccante fuori, morbida dentro. E si digerisce bene.</p>
           <ol class="dough__steps" data-dough-steps>
@@ -272,7 +273,7 @@
                 <ellipse cx="172" cy="170" rx="12" ry="46" fill="#fbf2dc"/>
               </g>
               <g class="supli-strings" data-supli-strings></g>
-              <g class="supli-half supli-half--right" data-supli-right>
+              <g class="supli-half supli-half--right" data-supli-right transform="translate(250 170)">
                 <path d="M0 -110 C75 -110 110 -50 110 0 C110 60 70 110 0 110 Z" fill="url(#crust)"/>
                 <path d="M0 -110 C75 -110 110 -50 110 0 C110 60 70 110 0 110 Z" fill="url(#crumbs)"/>
                 <ellipse cx="0" cy="0" rx="26" ry="110" fill="url(#rice)"/>
@@ -329,7 +330,7 @@
               <button type="button" class="link-btn" data-builder-reset><svg class="icon" aria-hidden="true"><use href="#i-reset" /></svg>Svuota</button>
             </div>
             <div class="builder__actions">
-              <a class="btn btn--red magnetic" data-builder-wa href="#" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-chat" /></svg>Invia su WhatsApp</a>
+              <a class="btn btn--red magnetic" data-builder-wa href="https://wa.me/393461830803" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-chat" /></svg>Invia su WhatsApp</a>
               <a class="btn btn--ghost magnetic" data-bind-href="mobileHref" href="tel:+393461830803"><svg class="icon" aria-hidden="true"><use href="#i-phone" /></svg>Chiama</a>
               <button type="button" class="link-btn" data-builder-copy><svg class="icon" aria-hidden="true"><use href="#i-copy" /></svg>Copia ordine</button>
             </div>
@@ -373,7 +374,11 @@
             <path class="route" data-route d="M250 250 C300 200 330 150 390 140 C440 132 470 190 430 240 C395 285 330 300 300 350 C270 400 190 420 140 380 C95 345 110 280 160 250 C200 226 230 240 250 250" />
             <g class="map-label"><text x="250" y="60">Monte Mario</text><text x="420" y="260">Trionfale</text><text x="250" y="455">Balduina</text><text x="70" y="260">Medaglie d'Oro</text></g>
             <g class="map-pin"><circle cx="250" cy="250" r="9" /></g>
-            <g class="scooter" data-scooter><use href="#i-scooter" x="-24" y="-16" width="48" height="32" /></g>
+            <g class="scooter" data-scooter>
+              <use href="#i-scooter" x="-24" y="-16" width="48" height="32" />
+              <!-- Senza JavaScript lo scooter gira da solo (SVG puro); con JS lo guida lo scroll. -->
+              <animateMotion data-scooter-auto dur="12s" repeatCount="indefinite" path="M250 250 C300 200 330 150 390 140 C440 132 470 190 430 240 C395 285 330 300 300 350 C270 400 190 420 140 380 C95 345 110 280 160 250 C200 226 230 240 250 250" />
+            </g>
           </svg>
           <p class="delivery__center"><b>Pizza ART</b><br />P.za Giovenale 9</p>
         </div>
@@ -403,7 +408,7 @@
               <div class="calc__stack" data-calc-stack aria-hidden="true"></div>
               <p>Ti servono circa <b data-calc-trays>3</b> <span data-calc-word>teglie</span><small>Stima indicativa: ti consigliamo noi al telefono.</small></p>
             </div>
-            <a class="btn btn--red magnetic" data-calc-wa href="#" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-chat" /></svg>Chiedi su WhatsApp</a>
+            <a class="btn btn--red magnetic" data-calc-wa href="https://wa.me/393461830803" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-chat" /></svg>Chiedi su WhatsApp</a>
           </div>
         </div>
       </div>

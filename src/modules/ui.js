@@ -203,7 +203,7 @@ export function initMagnetic() {
 export function initMarquee(lenis, reduced) {
   const track = document.querySelector('[data-marquee-track]');
   if (!track) return;
-  track.innerHTML += track.innerHTML;
+  // Il testo è già doppio nell'HTML (serve anche all'animazione solo CSS).
   if (reduced) return;
   const loop = gsap.to(track, { xPercent: -50, duration: 28, ease: 'none', repeat: -1 });
   let skew = 0;

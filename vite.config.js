@@ -61,8 +61,11 @@ function staticContent() {
         const fritti = FRITTI.map((f) => `<li data-reveal><strong>${esc(f.name)}</strong><span>${esc(f.note)}</span></li>`).join('');
         html = html.replace(/(<ul class="fry__list"[^>]*>)(<\/ul>)/, `$1${fritti}$2`);
 
-        const ring = RING.map((r) => `<div class="ring3d__item">${img(mediaSrc(photos, r.photo, r.fallback), r.alt)}</div>`).join('');
-        html = html.replace(/(<div class="ring3d__spin"[^>]*>)(<\/div>)/, `$1${ring}$2`);
+        // --i / --n / --rf: posizioni dell'anello 3D anche solo con CSS (senza JS gira da solo).
+        const n = RING.length;
+        const rf = (1 / (2 * Math.tan(Math.PI / n))) * 1.08;
+        const ring = RING.map((r, i) => `<div class="ring3d__item" style="--i:${i}">${img(mediaSrc(photos, r.photo, r.fallback), r.alt)}</div>`).join('');
+        html = html.replace(/<div class="ring3d__spin"([^>]*)><\/div>/, `<div class="ring3d__spin"$1 style="--n:${n};--rf:${rf.toFixed(3)}">${ring}</div>`);
 
         const rows = [1, 2, 3, 4, 5, 6, 0].map((d) => {
           const h = HOURS[d]?.length ? HOURS[d].map(([a, b]) => `${a} – ${b}`).join(' · ') : 'Chiuso';
