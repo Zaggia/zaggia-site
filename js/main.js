@@ -27,8 +27,9 @@
   }
   function resolveImages() {
     const inline = window.__PHOTOS__ || {};
-    return Promise.all(Plates.keys.map(k => probe(inline[k] || S.photos[k]).then(src => {
-      IMG[k] = { src: src || Plates.src(k, 900, 1200), photo: src };
+    const keys = [...new Set([...Plates.keys, ...Object.keys(S.photos)])];
+    return Promise.all(keys.map(k => probe(inline[k] || S.photos[k]).then(src => {
+      IMG[k] = { src: src || Plates.src(S.fallback[k] || k, 900, 1200), photo: src };
     })));
   }
 
@@ -66,7 +67,7 @@
     track.innerHTML = S.rooms.map((r, i) => `
       <article class="room" data-room="${r.id}">
         <div class="room__card" tabindex="0" role="button" aria-label="Scegli ${r.name}, da ${r.price} euro a notte" data-cursor-label="Scegli">
-          <div class="room__media"><img src="${IMG[r.plate].src}" alt="${r.name}" loading="lazy" draggable="false"><div class="room__glare"></div></div>
+          <div class="room__media"><img src="${IMG[r.img].src}" alt="${r.name}" loading="lazy" decoding="async" draggable="false"><div class="room__glare"></div></div>
           <div class="room__price">da<strong>€ ${r.price}</strong>a notte</div>
           <div class="room__body">
             <div class="room__tag">${r.tag}</div>
@@ -82,6 +83,7 @@
 
     $$('.room', track).forEach(room => {
       const card = $('.room__card', room);
+      if (!RM && FINE && hasGsap) gsap.set(card, { transformPerspective: 1100 });
       const choose = () => { selectRoom(room.dataset.room); goTo('#prenota'); };
       card.addEventListener('click', choose);
       card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(); } });
@@ -91,7 +93,7 @@
         card.addEventListener('pointermove', e => {
           const b = card.getBoundingClientRect();
           const x = (e.clientX - b.left) / b.width, y = (e.clientY - b.top) / b.height;
-          rx((0.5 - y) * 12); ry((x - 0.5) * 14);
+          rx((0.5 - y) * 10); ry((x - 0.5) * 12);
           card.style.setProperty('--gx', x * 100 + '%'); card.style.setProperty('--gy', y * 100 + '%');
         });
         card.addEventListener('pointerleave', () => { rx(0); ry(0); });
@@ -123,7 +125,7 @@
   let lenis = null;
   function initScroll() {
     if (RM || !window.Lenis) return;
-    lenis = new Lenis({ lerp: 0.09, smoothWheel: true, wheelMultiplier: 0.95 });
+    lenis = new Lenis({ lerp: 0.12, smoothWheel: true, wheelMultiplier: 1, syncTouch: false });
     window.__lenis = lenis;
     if (hasGsap) {
       lenis.on('scroll', ScrollTrigger.update);
@@ -153,61 +155,81 @@
     }));
   }
 
-  /* ---------- Hero ---------- */
-  let hero3d = null;
+  /* ---------- Hero: arched slideshow of the rooms ---------- */
+  const hero = { i: 0, slides: [], dots: [], timer: null, visible: true };
+  const SLIDE_MS = 5600;
   function initHero() {
-    const works = [
-      ['terrazza', 'Terrazza', 'Camera doppia'], ['camera', 'Balcone', 'Camera doppia'], ['twin', 'Twin', 'Due letti'],
-      ['singola', 'Singola', 'Per un ospite'], ['bagno', 'Il bagno', 'Doccia a pioggia'], ['colazione', 'Colazione', 'Dietro l’angolo'],
-      ['dettaglio', 'Dettagli', 'Arredo su misura'], ['colonnato', 'San Pietro', '1,3 km a piedi'],
-      ['castel', 'Castel S. Angelo', '1,7 km a piedi'], ['cupola', 'La cupola', 'Vista da Prati']
-    ].map(([k, title, sub]) => workFor(k, title, sub));
-    const finale = workFor('facciata', 'Milizie 76', 'Viale delle Milizie');
-    $('.hero__fallback').style.backgroundImage = `url(${IMG.facciata.src})`;
-    try { hero3d = window.THREE ? Hero3D.create($('#heroGL'), works, finale) : null; } catch (e) { hero3d = null; }
-    if (!hero3d) { root.classList.add('no-webgl'); return; }
+    const box = $('#heroSlides'), dots = $('#heroDots');
+    box.innerHTML = S.hero.map((h, i) => `
+      <div class="arch__slide${i === 0 ? ' is-active' : ''}"><img src="${IMG[h.img].src}" alt="${h.cap}" style="object-position:${h.pos || '50% 50%'}" decoding="async" draggable="false"></div>`).join('');
+    dots.innerHTML = S.hero.map((h, i) => `<button type="button" class="hero__dot" aria-label="Mostra ${h.cap}"><i></i></button>`).join('');
+    hero.slides = $$('.arch__slide', box);
+    hero.dots = $$('.hero__dot', dots);
+    hero.dots.forEach((d, i) => d.addEventListener('click', () => showSlide(i, true)));
+    $('#heroCap').textContent = S.hero[0].cap;
+    hero.dots[0].classList.add('is-active');
 
-    window.addEventListener('pointermove', e => {
-      hero3d.setPointer((e.clientX / window.innerWidth) * 2 - 1, -((e.clientY / window.innerHeight) * 2 - 1));
-    }, { passive: true });
-
-    if (RM || !hasGsap) { hero3d.setProgress(0); hero3d.renderOnce(); return; }
-    hero3d.start();
-  }
-  function workFor(k, title, sub) {
-    const photo = IMG[k].photo;
-    const safePhoto = photo && (location.protocol !== 'file:' || photo.startsWith('data:')) ? photo : null;
-    return { canvas: Plates.canvas(k, 600, 800), photo: safePhoto, title, sub };
-  }
-
-  function heroScroll() {
     if (RM || !hasGsap) return;
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: '#hero', start: 'top top', end: () => '+=' + Math.round(window.innerHeight * 1.9), pin: true, scrub: 0.6,
-        onUpdate: s => { hero3d && hero3d.setProgress(s.progress); $('#hero').classList.toggle('is-deep', s.progress > 0.04); },
-        onLeave: () => hero3d && setTimeout(() => hero3d.stop(), 400),
-        onEnterBack: () => hero3d && hero3d.start()
+    new IntersectionObserver(([en]) => {
+      hero.visible = en.isIntersecting;
+      if (hero.timer) hero.visible ? hero.timer.play() : hero.timer.pause();
+    }).observe($('#hero'));
+
+    if (FINE) {
+      const px = gsap.quickTo('.arch__slides', 'x', { duration: 1.2, ease: 'power3.out' });
+      const py = gsap.quickTo('.arch__slides', 'y', { duration: 1.2, ease: 'power3.out' });
+      const sx = gsap.quickTo('.seal', 'x', { duration: 1.4, ease: 'power3.out' });
+      $('#hero').addEventListener('pointermove', e => {
+        const nx = e.clientX / window.innerWidth - 0.5, ny = e.clientY / window.innerHeight - 0.5;
+        px(nx * -18); py(ny * -14); sx(nx * 22);
+      });
+    }
+    gsap.to('.arch', { yPercent: 8, ease: 'none', scrollTrigger: { trigger: '#hero', start: 'top top', end: 'bottom top', scrub: true } });
+    gsap.to('.hero__content', { yPercent: -10, ease: 'none', scrollTrigger: { trigger: '#hero', start: 'top top', end: 'bottom top', scrub: true } });
+  }
+  function runTimer() {
+    if (RM || !hasGsap) return;
+    if (hero.timer) hero.timer.kill();
+    const bar = $('i', hero.dots[hero.i]);
+    hero.timer = gsap.fromTo(bar, { scaleX: 0 }, { scaleX: 1, duration: SLIDE_MS / 1000, ease: 'none', onComplete: () => showSlide(hero.i + 1) });
+    if (!hero.visible) hero.timer.pause();
+  }
+  function showSlide(n, user) {
+    n = (n + hero.slides.length) % hero.slides.length;
+    if (n === hero.i && !user) return;
+    const prev = hero.slides[hero.i], next = hero.slides[n];
+    hero.dots.forEach((d, i) => { d.classList.toggle('is-active', i === n); if (hasGsap) gsap.set($('i', d), { scaleX: 0 }); });
+    hero.i = n;
+    $('#heroCap').textContent = S.hero[n].cap;
+    if (next !== prev) {
+      if (RM || !hasGsap) { prev.classList.remove('is-active'); next.classList.add('is-active'); }
+      else {
+        hero.slides.forEach(s => s.style.zIndex = s === next ? 2 : s === prev ? 1 : 0);
+        next.classList.add('is-active');
+        gsap.fromTo(next, { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.4, ease: 'expo.inOut',
+          onComplete: () => { if (hero.slides[hero.i] !== prev) prev.classList.remove('is-active'); } });
+        gsap.fromTo($('img', next), { scale: 1.22 }, { scale: 1, duration: 7, ease: 'power2.out' });
+        gsap.fromTo('#heroCap', { y: 12, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, delay: 0.5, ease: 'power3.out' });
       }
-    });
-    tl.to('.hero__content', { y: -120, opacity: 0, ease: 'power2.in', duration: 0.26 }, 0)
-      .to('.hero__outro', { opacity: 1, duration: 0.12 }, 0.7)
-      .fromTo('.hero__outro p', { yPercent: 60, rotateX: -50 }, { yPercent: 0, rotateX: 0, stagger: 0.05, duration: 0.18, ease: 'power3.out' }, 0.7)
-      .to({}, { duration: 0.12 });
+    }
+    runTimer();
   }
 
   function heroIntro() {
     const chars = [];
     $$('.hero__line').forEach(l => chars.push(...split(l, 'chars')));
     if (RM || !hasGsap) return;
-    const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
-    tl.from(chars, { yPercent: 115, rotateX: -85, opacity: 0, duration: 1.5, stagger: 0.045 })
-      .from('.hero__eyebrow', { y: 20, opacity: 0, duration: 1 }, 0.3)
-      .from('.hero__lead', { y: 30, opacity: 0, duration: 1.2 }, 0.6)
-      .from('.hero__ctas > *', { y: 30, opacity: 0, duration: 1.1, stagger: 0.1 }, 0.75)
-      .from('.hero__meta > *', { x: 30, opacity: 0, duration: 1.1, stagger: 0.12 }, 0.8)
-      .from('.hero__scroll > *', { opacity: 0, y: -10, duration: 1 }, 1.1)
-      .from('.nav > *', { y: -30, opacity: 0, duration: 1.1, stagger: 0.08 }, 0.5);
+    const tl = gsap.timeline({ defaults: { ease: 'expo.out' }, onComplete: runTimer });
+    tl.from('.arch', { clipPath: 'inset(100% 0% 0% 0%)', duration: 1.6, ease: 'expo.inOut' }, 0)
+      .from('.arch__slide.is-active img', { scale: 1.35, duration: 2.6, ease: 'power3.out' }, 0.2)
+      .from(chars, { yPercent: 115, rotateX: -85, opacity: 0, duration: 1.5, stagger: 0.045 }, 0.35)
+      .from('.hero__eyebrow', { y: 20, opacity: 0, duration: 1 }, 0.6)
+      .from('.hero__lead', { y: 30, opacity: 0, duration: 1.2 }, 0.85)
+      .from('.hero__ctas > *, .hero__addr', { y: 30, opacity: 0, duration: 1.1, stagger: 0.1 }, 1)
+      .from('.seal', { scale: 0, rotate: -120, duration: 1.4 }, 1.1)
+      .from('.hero__slidebar', { y: 20, opacity: 0, duration: 1 }, 1.2)
+      .from('.hero__scroll > *', { opacity: 0, y: -10, duration: 1 }, 1.3)
+      .from('.nav > *', { y: -30, opacity: 0, duration: 1.1, stagger: 0.08 }, 0.6);
   }
 
   /* ---------- Reveals ---------- */
@@ -286,19 +308,11 @@
     mm.add('(min-width: 901px)', () => {
       const track = $('#roomsTrack');
       const dist = () => Math.max(0, track.scrollWidth - window.innerWidth);
-      const cards = $$('.room__card');
-      const tween = gsap.to(track, {
+      gsap.to(track, {
         x: () => -dist(), ease: 'none',
         scrollTrigger: {
-          trigger: '#camere', start: 'top top', end: () => '+=' + dist(), pin: true, scrub: 0.8, invalidateOnRefresh: true,
-          onUpdate: s => {
-            const v = gsap.utils.clamp(-14, 14, s.getVelocity() / -220);
-            gsap.to(cards, { rotateY: v, duration: 0.6, ease: 'power3.out', overwrite: 'auto' });
-          }
+          trigger: '#camere', start: 'top top', end: () => '+=' + dist(), pin: true, scrub: true, invalidateOnRefresh: true,
         }
-      });
-      $$('.room__media img').forEach(img => {
-        gsap.fromTo(img, { xPercent: 4 }, { xPercent: -4, ease: 'none', scrollTrigger: { trigger: img.closest('.room'), containerAnimation: tween, start: 'left right', end: 'right left', scrub: true } });
       });
       gsap.from('.room', { y: 80, opacity: 0, rotateY: -20, duration: 1.3, stagger: 0.1, ease: 'expo.out', scrollTrigger: { trigger: '#camere', start: 'top 70%', once: true } });
     });
@@ -310,7 +324,7 @@
     const spin = $('#ringSpin');
     ring.n = S.gallery.length; ring.step = 360 / ring.n;
     spin.innerHTML = S.gallery.map((g, i) => `
-      <div class="ring__item" data-i="${i}"><figure><img src="${IMG[g.plate].src}" alt="${g.cap}" draggable="false"><figcaption>${g.cap}</figcaption></figure></div>`).join('');
+      <div class="ring__item" data-i="${i}"><figure><img src="${IMG[g.img].src}" alt="${g.cap}" draggable="false"><figcaption>${g.cap}</figcaption></figure></div>`).join('');
     ring.items = $$('.ring__item', spin);
     $('#ring').insertAdjacentHTML('beforeend', '<div class="ring__floor" aria-hidden="true"></div>');
     $('#ring').dataset.cursorLabel = 'Trascina';
@@ -388,7 +402,7 @@
   function openLightbox(i) {
     lbIdx = (i + ring.n) % ring.n;
     const g = S.gallery[lbIdx];
-    $('#lbImg').src = IMG[g.plate].src; $('#lbImg').alt = g.cap; $('#lbCap').textContent = g.cap;
+    $('#lbImg').src = IMG[g.img].src; $('#lbImg').alt = g.cap; $('#lbCap').textContent = g.cap;
     const d = $('#lightbox');
     if (!d.open) {
       if (d.showModal) d.showModal(); else d.setAttribute('open', '');
@@ -587,13 +601,18 @@
   function initNav() {
     const nav = $('#nav');
     let lastY = 0;
+    let max = 1;
+    const measure = () => { max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight); };
+    measure();
+    window.addEventListener('resize', measure);
+    if (hasGsap) ScrollTrigger.addEventListener('refresh', measure);
+    const bar = $('#progressBar');
     const onScroll = y => {
       nav.classList.toggle('is-scrolled', y > 40);
       if (!document.body.classList.contains('menu-open')) nav.classList.toggle('is-hidden', y > window.innerHeight * 2.4 && y > lastY + 2);
       if (y < lastY - 2) nav.classList.remove('is-hidden');
       lastY = y;
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      $('#progressBar').style.transform = `scaleX(${max > 0 ? y / max : 0})`;
+      bar.style.transform = `scaleX(${Math.min(1, y / max)})`;
     };
     if (lenis) lenis.on('scroll', e => onScroll(e.scroll)); else window.addEventListener('scroll', () => onScroll(window.scrollY), { passive: true });
     onScroll(window.scrollY);
@@ -680,15 +699,16 @@
     ]).catch(() => {}) : Promise.resolve();
     await fonts;
     await resolveImages();
-    await new Promise(r => setTimeout(r, RM ? 0 : 700));
+    await new Promise(r => setTimeout(r, RM ? 0 : 250));
     if (hasGsap) gsap.killTweensOf(fake);
 
     buildRooms(); buildAmenities(); buildRing(); initLightbox(); initMap(); initDeck(); initBooking();
-    initScroll(); initHero(); heroScroll(); manifesto(); reveals(); counters(); roomsScroll();
+    initScroll(); initHero(); manifesto(); reveals(); counters(); roomsScroll();
     bindAnchors(); initNav(); initCursor(); initMagnetic();
     if (hasGsap) ScrollTrigger.refresh();
     await finishLoader();
     if (RM || !hasGsap) heroIntro();
+    else if (!hero.timer) runTimer();
     if (hasGsap) ScrollTrigger.refresh();
   }
 
