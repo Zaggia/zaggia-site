@@ -37,9 +37,12 @@ Gli script si lanciano da una cartella con dentro `models/` (i pesi) e `up/`
 5. **Fondo più definito**: `python applique.py` toglie l'applique della parete
    di fondo (`up/clean2.png`); da lì si ritagliano il corridoio lontano
    (px 170–430 × 70–265 della foto) e la parete di fondo (240–360 × 120–215) e si
-   ingrandiscono ancora 4× con `ingrandisci.py`.
+   ingrandiscono ancora 4× con `ingrandisci.py`. Lo stesso ritaglio del corridoio
+   si ingrandisce anche dalla foto con le vetrine (`up/swinir.png`): serve alle
+   vetrine lontane quando la camera ci passa accanto.
 6. **Dentro la pagina**: `python incorpora.py <cartella> ../../pecs23.html`,
-   con `foto.png`, `pulita.png`, `medio-4x.png`, `fondo.png`, `ids.png`.
+   con `foto.png`, `foto-medio-4x.png`, `pulita.png`, `medio-4x.png`,
+   `fondo.png`, `ids.png`.
 
 Se si spostano le vetrine in `sala.py` vanno aggiornate anche `VETRINE`, `CAM`
 e `ROOM` nello script della sala in `pecs23.html`: l'ordine delle vetrine deve

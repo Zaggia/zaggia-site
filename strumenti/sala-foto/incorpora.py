@@ -3,9 +3,11 @@ Rimette dentro pecs23.html le immagini della sala (l'oggetto FOTO_SALA).
 
     python incorpora.py lavoro/ ../../pecs23.html
 
-In `lavoro/` servono: foto.png (foto ingrandita 4x), pulita.png (senza vetrine),
-medio-4x.png (corridoio lontano, 16x: qui si riduce a 8x), fondo.png (parete di
-fondo, 16x) e ids.png (mappa delle vetrine, esce da idmap.py).
+In `lavoro/` servono: foto.png (foto ingrandita 4x), foto-medio-4x.png (lo
+stesso pezzo di corridoio lontano della foto, 16x: qui si riduce a 8x),
+pulita.png (senza vetrine), medio-4x.png (corridoio lontano senza vetrine, 16x),
+fondo.png (parete di fondo, 16x) e ids.png (mappa delle vetrine, esce da
+mappa_vetrine.py).
 """
 import base64
 import io
@@ -25,12 +27,14 @@ def data_uri(img, fmt, **kw):
 
 
 def main(cartella, pagina):
-    medio = Image.open(f'{cartella}/medio-4x.png')
-    medio = medio.resize((medio.width // 2, medio.height // 2), Image.LANCZOS)
+    def meta(nome):
+        im = Image.open(f'{cartella}/{nome}')
+        return im.resize((im.width // 2, im.height // 2), Image.LANCZOS)
     dati = {
         'foto': data_uri(Image.open(f'{cartella}/foto.png'), 'WEBP', quality=90, method=6),
+        'fotoMedio': data_uri(meta('foto-medio-4x.png'), 'WEBP', quality=86, method=6),
         'pulita': data_uri(Image.open(f'{cartella}/pulita.png'), 'WEBP', quality=88, method=6),
-        'medio': data_uri(medio, 'WEBP', quality=86, method=6),
+        'medio': data_uri(meta('medio-4x.png'), 'WEBP', quality=86, method=6),
         'fondo': data_uri(Image.open(f'{cartella}/fondo.png'), 'WEBP', quality=88, method=6),
         'ids': data_uri(Image.open(f'{cartella}/ids.png'), 'PNG'),
     }
