@@ -13,25 +13,42 @@
   const fmtNum = (v, dec) => v.toFixed(dec || 0).replace('.', ',');
   const euro = v => '€ ' + Math.round(v).toLocaleString('it-IT');
 
-  /* ---------- Images: real photo if present, otherwise illustrated plate ---------- */
-  const IMG = {};
-  function probe(src) {
-    return new Promise(res => {
-      if (!src) return res(null);
-      const im = new Image();
-      const t = setTimeout(() => res(null), 2500);
-      im.onload = () => { clearTimeout(t); res(im.naturalWidth > 0 ? src : null); };
-      im.onerror = () => { clearTimeout(t); res(null); };
-      im.src = src;
-    });
+  /* ---------- Images: real photo when available, illustration generated lazily otherwise ---------- */
+  const INLINE = window.__PHOTOS__ || {};
+  const BUNDLED = !!window.__PHOTOS_BUNDLED__;
+  const resolved = {};
+  const photoSrc = k => INLINE[k] || (BUNDLED ? null : S.photos[k]) || null;
+  const plateSrc = k => Plates.src(S.fallback[k] || k, 600, 800);
+  const srcOf = k => resolved[k] || photoSrc(k) || plateSrc(k);
+  function imgTag(k, alt, attrs) {
+    const src = photoSrc(k);
+    return `<img ${src ? `src="${src}"` : ''} data-k="${k}" alt="${alt}" decoding="async" draggable="false" ${attrs || ''}>`;
   }
-  function resolveImages() {
-    const inline = window.__PHOTOS__ || {};
-    const keys = [...new Set([...Plates.keys, ...Object.keys(S.photos)])];
-    return Promise.all(keys.map(k => probe(inline[k] || S.photos[k]).then(src => {
-      IMG[k] = { src: src || Plates.src(S.fallback[k] || k, 900, 1200), photo: src };
-    })));
+  const plateQueue = [];
+  let plateBusy = false;
+  const idle = window.requestIdleCallback || (fn => setTimeout(fn, 60));
+  function queuePlate(img) {
+    if (img.dataset.plate) return;
+    img.dataset.plate = '1';
+    plateQueue.push(img);
+    if (!plateBusy) { plateBusy = true; idle(drainPlates); }
   }
+  function drainPlates() {
+    const img = plateQueue.shift();
+    if (!img) { plateBusy = false; return; }
+    const k = img.dataset.k;
+    resolved[k] = resolved[k] || plateSrc(k);
+    $$(`img[data-k="${k}"]`).forEach(i => { if (!i.getAttribute('src') || i.dataset.plate) { i.dataset.plate = '1'; i.src = resolved[k]; } });
+    idle(drainPlates);
+  }
+  document.addEventListener('error', e => {
+    const img = e.target;
+    if (img.tagName !== 'IMG' || !img.dataset.k || img.dataset.plate) return;
+    const slide = img.closest('.arch__slide');
+    if (slide) { dropSlide(slide); return; }
+    queuePlate(img);
+  }, true);
+  function fillMissing() { $$('img[data-k]:not([src])').forEach(queuePlate); }
 
   /* ---------- Text splitting ---------- */
   function split(el, mode) {
@@ -67,7 +84,7 @@
     track.innerHTML = S.rooms.map((r, i) => `
       <article class="room" data-room="${r.id}">
         <div class="room__card" tabindex="0" role="button" aria-label="Scegli ${r.name}, da ${r.price} euro a notte" data-cursor-label="Scegli">
-          <div class="room__media"><img src="${IMG[r.img].src}" alt="${r.name}" loading="lazy" decoding="async" draggable="false"><div class="room__glare"></div></div>
+          <div class="room__media">${imgTag(r.img, r.name, 'loading="lazy"')}<div class="room__glare"></div></div>
           <div class="room__price">da<strong>€ ${r.price}</strong>a notte</div>
           <div class="room__body">
             <div class="room__tag">${r.tag}</div>
@@ -159,9 +176,10 @@
   const hero = { i: 0, slides: [], dots: [], timer: null, visible: true };
   const SLIDE_MS = 5600;
   function initHero() {
+    S.hero = S.hero.filter(h => !BUNDLED || photoSrc(h.img));
     const box = $('#heroSlides'), dots = $('#heroDots');
     box.innerHTML = S.hero.map((h, i) => `
-      <div class="arch__slide${i === 0 ? ' is-active' : ''}"><img src="${IMG[h.img].src}" alt="${h.cap}" style="object-position:${h.pos || '50% 50%'}" decoding="async" draggable="false"></div>`).join('');
+      <div class="arch__slide${i === 0 ? ' is-active' : ''}">${imgTag(h.img, h.cap, `style="object-position:${h.pos || '50% 50%'}"${i ? ' loading="lazy"' : ' fetchpriority="high"'}`)}</div>`).join('');
     dots.innerHTML = S.hero.map((h, i) => `<button type="button" class="hero__dot" aria-label="Mostra ${h.cap}"><i></i></button>`).join('');
     hero.slides = $$('.arch__slide', box);
     hero.dots = $$('.hero__dot', dots);
@@ -186,6 +204,13 @@
     }
     gsap.to('.arch', { yPercent: 8, ease: 'none', scrollTrigger: { trigger: '#hero', start: 'top top', end: 'bottom top', scrub: true } });
     gsap.to('.hero__content', { yPercent: -10, ease: 'none', scrollTrigger: { trigger: '#hero', start: 'top top', end: 'bottom top', scrub: true } });
+  }
+  function dropSlide(slide) {
+    const i = hero.slides.indexOf(slide);
+    if (i < 1) return;
+    hero.dots[i].remove(); slide.remove();
+    hero.slides.splice(i, 1); hero.dots.splice(i, 1); S.hero.splice(i, 1);
+    if (hero.i >= hero.slides.length) showSlide(0, true);
   }
   function runTimer() {
     if (RM || !hasGsap) return;
@@ -220,6 +245,7 @@
     $$('.hero__line').forEach(l => chars.push(...split(l, 'chars')));
     if (RM || !hasGsap) return;
     const tl = gsap.timeline({ defaults: { ease: 'expo.out' }, onComplete: runTimer });
+    tl.timeScale(1.25);
     tl.from('.arch', { clipPath: 'inset(100% 0% 0% 0%)', duration: 1.6, ease: 'expo.inOut' }, 0)
       .from('.arch__slide.is-active img', { scale: 1.35, duration: 2.6, ease: 'power3.out' }, 0.2)
       .from(chars, { yPercent: 115, rotateX: -85, opacity: 0, duration: 1.5, stagger: 0.045 }, 0.35)
@@ -324,7 +350,7 @@
     const spin = $('#ringSpin');
     ring.n = S.gallery.length; ring.step = 360 / ring.n;
     spin.innerHTML = S.gallery.map((g, i) => `
-      <div class="ring__item" data-i="${i}"><figure><img src="${IMG[g.img].src}" alt="${g.cap}" draggable="false"><figcaption>${g.cap}</figcaption></figure></div>`).join('');
+      <div class="ring__item" data-i="${i}"><figure>${imgTag(g.img, g.cap, 'loading="lazy"')}<figcaption>${g.cap}</figcaption></figure></div>`).join('');
     ring.items = $$('.ring__item', spin);
     $('#ring').insertAdjacentHTML('beforeend', '<div class="ring__floor" aria-hidden="true"></div>');
     $('#ring').dataset.cursorLabel = 'Trascina';
@@ -402,7 +428,7 @@
   function openLightbox(i) {
     lbIdx = (i + ring.n) % ring.n;
     const g = S.gallery[lbIdx];
-    $('#lbImg').src = IMG[g.img].src; $('#lbImg').alt = g.cap; $('#lbCap').textContent = g.cap;
+    $('#lbImg').src = srcOf(g.img); $('#lbImg').alt = g.cap; $('#lbCap').textContent = g.cap;
     const d = $('#lightbox');
     if (!d.open) {
       if (d.showModal) d.showModal(); else d.setAttribute('open', '');
@@ -670,46 +696,19 @@
     });
   }
 
-  /* ---------- Loader & boot ---------- */
-  function loaderTo(p) {
-    $('#loaderBar').style.transform = `scaleX(${p / 100})`;
-    $('#loaderCount').textContent = String(Math.round(p)).padStart(3, '0');
-  }
-  function finishLoader() {
-    return new Promise(res => {
-      const L = $('#loader');
-      const done = () => { L.classList.add('is-done'); document.body.classList.remove('is-loading'); res(); };
-      if (RM || !hasGsap) { loaderTo(100); done(); return; }
-      const o = { p: parseFloat($('#loaderCount').textContent) || 0 };
-      gsap.timeline({ onComplete: done })
-        .to(o, { p: 100, duration: 0.6, ease: 'power2.out', onUpdate: () => loaderTo(o.p) })
-        .to('.loader__inner', { opacity: 0, y: -20, duration: 0.5, ease: 'power2.in' }, '+=0.1')
-        .to('.loader__panel--top', { yPercent: -100, duration: 1.1, ease: 'expo.inOut' }, '-=0.1')
-        .to('.loader__panel--bottom', { yPercent: 100, duration: 1.1, ease: 'expo.inOut' }, '<')
-        .add(() => { document.body.classList.remove('is-loading'); heroIntro(); }, '-=0.75');
-    });
-  }
-
-  async function boot() {
-    let fake = { p: 0 };
-    if (hasGsap && !RM) gsap.to(fake, { p: 70, duration: 1.4, ease: 'power1.out', onUpdate: () => loaderTo(fake.p) });
-    const fonts = document.fonts ? Promise.race([
-      Promise.all(['400 20px "Bodoni Moda"', 'italic 400 20px "Bodoni Moda"', '500 20px "Bodoni Moda"', '600 20px "Instrument Sans"'].map(f => document.fonts.load(f))),
-      new Promise(r => setTimeout(r, 1500))
-    ]).catch(() => {}) : Promise.resolve();
-    await fonts;
-    await resolveImages();
-    await new Promise(r => setTimeout(r, RM ? 0 : 250));
-    if (hasGsap) gsap.killTweensOf(fake);
-
+  /* ---------- Boot ---------- */
+  function boot() {
     buildRooms(); buildAmenities(); buildRing(); initLightbox(); initMap(); initDeck(); initBooking();
     initScroll(); initHero(); manifesto(); reveals(); counters(); roomsScroll();
     bindAnchors(); initNav(); initCursor(); initMagnetic();
-    if (hasGsap) ScrollTrigger.refresh();
-    await finishLoader();
-    if (RM || !hasGsap) heroIntro();
-    else if (!hero.timer) runTimer();
-    if (hasGsap) ScrollTrigger.refresh();
+    root.classList.remove('intro');
+    heroIntro();
+    if (hasGsap) {
+      ScrollTrigger.refresh();
+      window.addEventListener('load', () => ScrollTrigger.refresh());
+      if (document.fonts) document.fonts.ready.then(() => ScrollTrigger.refresh());
+    }
+    fillMissing();
   }
 
   boot();

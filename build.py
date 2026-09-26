@@ -35,11 +35,9 @@ def photos_script() -> str:
         p = ROOT / rel
         if p.exists():
             found[key] = data_uri(p)
-    if not found:
-        return ""
     body = ",\n".join(f'  "{k}": "{v}"' for k, v in found.items())
-    print(f"Foto incluse: {', '.join(found)}")
-    return f"<script>\nwindow.__PHOTOS__ = {{\n{body}\n}};\n</script>\n"
+    print(f"Foto incluse: {', '.join(found) or 'nessuna'}")
+    return f"<script>\nwindow.__PHOTOS_BUNDLED__ = true;\nwindow.__PHOTOS__ = {{\n{body}\n}};\n</script>\n"
 
 
 def main() -> None:
