@@ -20,7 +20,7 @@ Landing page di anteprima per **Milizie 76 Gallery**, guest house in Viale delle
 
 ## Foto
 
-Le immagini attuali sono illustrazioni generate nel browser. Per le foto vere vedi `assets/photos/LEGGIMI.md`.
+Il sito usa le foto della struttura; dove una foto manca mostra un'illustrazione generata nel browser. Come aggiungerne: `assets/photos/LEGGIMI.md`.
 
 ## Struttura
 
@@ -29,9 +29,8 @@ index.html          pagina
 css/style.css       stile
 js/content.js       testi, camere, luoghi, recensioni (modificabili)
 js/plates.js        illustrazioni generate
-js/hero3d.js        scena 3D
 js/main.js          interazioni e animazioni
-vendor/             three.js, GSAP, ScrollTrigger, Lenis
+vendor/             GSAP, ScrollTrigger, Lenis
 fonts/              Bodoni Moda, Instrument Sans
 assets/photos/      foto originali (JPG)
 assets/img/         foto ottimizzate WebP generate da build.py
