@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Milizie 76 Gallery</title>
+<meta name="description" content="Milizie 76 Gallery: sei camere arredate una per una in Viale delle Milizie 76, quartiere Prati, a pochi passi dal Vaticano.">
+<meta name="theme-color" content="#142824">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="is-loading">
+
+<div class="loader" id="loader" aria-hidden="true">
+  <div class="loader__panel loader__panel--top"></div>
+  <div class="loader__panel loader__panel--bottom"></div>
+  <div class="loader__inner">
+    <div class="loader__mark"><span>M</span><em>76</em></div>
+    <div class="loader__line"><span id="loaderBar"></span></div>
+    <div class="loader__count"><span id="loaderCount">0</span></div>
+  </div>
+</div>
+
+<div class="cursor" aria-hidden="true"><div class="cursor__ring"><span class="cursor__label"></span></div><div class="cursor__dot"></div></div>
+<div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
+
+<header class="nav" id="nav">
+  <a class="nav__brand" href="#top" aria-label="Milizie 76 Gallery, torna all'inizio">
+    <svg class="nav__arch" viewBox="0 0 28 36" aria-hidden="true"><path d="M2 35V14a12 12 0 0 1 24 0v21" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 35V16a6 6 0 0 1 12 0v19" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+    <span class="nav__name">Milizie <em>76</em></span>
+  </a>
+  <nav class="nav__links" aria-label="Sezioni">
+    <a href="#camere">Camere</a>
+    <a href="#galleria">Galleria</a>
+    <a href="#servizi">Servizi</a>
+    <a href="#quartiere">Quartiere</a>
+    <a href="#recensioni">Recensioni</a>
+  </nav>
+  <a class="btn btn--gold btn--sm magnetic nav__cta" href="#prenota"><span>Prenota</span></a>
+  <button class="nav__burger" id="burger" aria-expanded="false" aria-controls="menu" aria-label="Apri il menu"><span></span><span></span></button>
+</header>
+
+<div class="menu" id="menu" hidden>
+  <nav aria-label="Menu mobile">
+    <a href="#camere"><small>Le</small> Camere</a>
+    <a href="#galleria"><small>La</small> Galleria</a>
+    <a href="#servizi"><small>I</small> Servizi</a>
+    <a href="#quartiere"><small>Il</small> Quartiere</a>
+    <a href="#recensioni"><small>Le</small> Recensioni</a>
+    <a href="#prenota" class="menu__cta">Verifica disponibilità</a>
+  </nav>
+  <p class="menu__addr">Viale delle Milizie, 76 · 00192 Roma</p>
+</div>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero" id="hero" aria-label="Benvenuti">
+    <canvas class="hero__gl" id="heroGL" aria-hidden="true"></canvas>
+    <div class="hero__fallback" aria-hidden="true"></div>
+    <div class="hero__shade" aria-hidden="true"></div>
+    <div class="hero__content">
+      <p class="eyebrow hero__eyebrow"><span class="dot"></span> Guest house · Prati, Roma</p>
+      <h1 class="hero__title">
+        <span class="hero__line" data-split>Milizie 76</span>
+        <span class="hero__line hero__line--it" data-split><em>Gallery</em></span>
+      </h1>
+      <p class="hero__lead">Sei camere arredate una per una nel quartiere Prati, a cinque minuti a piedi dalla metro Ottaviano e a pochi passi dal Vaticano.</p>
+      <div class="hero__ctas">
+        <a class="btn btn--gold magnetic" href="#prenota"><span>Verifica disponibilità</span></a>
+        <a class="btn btn--ghost magnetic" href="#camere"><span>Scopri le camere</span></a>
+      </div>
+    </div>
+    <div class="hero__meta">
+      <div><span class="label">Indirizzo</span>Viale delle Milizie, 76<br>00192 Roma</div>
+      <div class="hero__score"><span class="label">Booking.com</span><strong>8,5</strong> Ospiti recenti</div>
+    </div>
+    <div class="hero__scroll" aria-hidden="true"><span>Scorri per entrare</span><i></i></div>
+    <div class="hero__outro" aria-hidden="true">
+      <p class="hero__outro-k">Sei camere.</p>
+      <p class="hero__outro-v"><em>Una collezione.</em></p>
+    </div>
+  </section>
+
+  <!-- MANIFESTO -->
+  <section class="manifesto" id="manifesto">
+    <div class="wrap">
+      <p class="eyebrow">La casa</p>
+      <p class="manifesto__text" data-fill>Al civico 76 di Viale delle Milizie, in un palazzo d'epoca di Prati, abbiamo raccolto sei camere come si raccolgono le opere: una alla volta, ognuna con il suo carattere. Fuori c'è Roma. Dentro, silenzio, lenzuola stirate e una terrazza sui tetti.</p>
+      <dl class="facts">
+        <div><dt>Camere</dt><dd data-count="6">6</dd></div>
+        <div><dt>Metro Ottaviano</dt><dd><span data-count="5">5</span><small>min a piedi</small></dd></div>
+        <div><dt>Piazza San Pietro</dt><dd><span data-count="1.3" data-dec="1">1,3</span><small>km</small></dd></div>
+        <div><dt>Pulizia</dt><dd><span data-count="9.2" data-dec="1">9,2</span><small>/ 10</small></dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- CAMERE -->
+  <section class="rooms" id="camere">
+    <div class="rooms__pin">
+      <div class="rooms__head wrap">
+        <div>
+          <p class="eyebrow">Le camere</p>
+          <h2 class="h2" data-split>Quattro modi di <em>stare a Roma</em></h2>
+        </div>
+        <p class="rooms__hint">Ogni camera ha aria condizionata, Wi-Fi, Smart TV, minibar, cassaforte e bagno privato con doccia a pioggia. Scegline una per vedere il prezzo indicativo.</p>
+      </div>
+      <div class="rooms__track" id="roomsTrack"></div>
+    </div>
+  </section>
+
+  <!-- GALLERIA -->
+  <section class="gallery" id="galleria">
+    <div class="wrap gallery__head">
+      <p class="eyebrow">La galleria</p>
+      <h2 class="h2" data-split>Trascina per <em>girare la sala</em></h2>
+    </div>
+    <div class="ring" id="ring" tabindex="0" role="region" aria-roledescription="carosello" aria-label="Galleria fotografica. Usa le frecce sinistra e destra per ruotare, Invio per ingrandire.">
+      <div class="ring__stage"><div class="ring__spin" id="ringSpin"></div></div>
+    </div>
+    <div class="ring__ui wrap">
+      <button class="icon-btn magnetic" id="ringPrev" aria-label="Immagine precedente"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <p class="ring__caption" id="ringCaption" aria-live="polite"></p>
+      <button class="icon-btn magnetic" id="ringNext" aria-label="Immagine successiva"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+    </div>
+  </section>
+
+  <!-- SERVIZI -->
+  <section class="amen" id="servizi">
+    <div class="wrap">
+      <div class="amen__head">
+        <p class="eyebrow">Servizi</p>
+        <h2 class="h2" data-split>Le piccole cose <em>fatte bene</em></h2>
+      </div>
+      <ul class="amen__grid" id="amenGrid"></ul>
+      <div class="hours">
+        <div class="hours__item"><span class="label">Check-in</span><strong>12:00 – 20:30</strong></div>
+        <div class="hours__item"><span class="label">Check-out</span><strong>entro le 10:30</strong></div>
+        <div class="hours__item"><span class="label">Metro A · Ottaviano</span><strong>5 minuti a piedi</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUARTIERE -->
+  <section class="hood" id="quartiere">
+    <div class="wrap hood__wrap">
+      <div class="hood__side">
+        <p class="eyebrow">Il quartiere</p>
+        <h2 class="h2" data-split>Prati, <em>a piedi</em></h2>
+        <p class="hood__text">Strade larghe, palazzi d'epoca e botteghe. Il Vaticano da una parte, il Tevere dall'altra, la metro A sotto casa.</p>
+        <ul class="places" id="places" aria-label="Luoghi vicini"></ul>
+        <p class="hood__note">Tempi a piedi indicativi.</p>
+        <a class="link-arrow" href="https://maps.app.goo.gl/veaCue1FujgQ2hDf9" target="_blank" rel="noopener">Apri in Google Maps <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg></a>
+      </div>
+      <div class="map" id="map" aria-hidden="true">
+        <svg viewBox="0 0 800 640" id="mapSvg">
+          <defs>
+            <pattern id="gridP" width="46" height="46" patternUnits="userSpaceOnUse" patternTransform="rotate(-22)">
+              <path d="M46 0H0V46" fill="none" class="map__grid"/>
+            </pattern>
+            <radialGradient id="pinGlow"><stop offset="0" stop-color="#C8A15A" stop-opacity=".55"/><stop offset="1" stop-color="#C8A15A" stop-opacity="0"/></radialGradient>
+          </defs>
+          <rect width="800" height="640" fill="url(#gridP)"/>
+          <path class="map__vatican" d="M40 330 L120 262 L236 270 L262 350 L240 470 L150 500 L70 450 Z"/>
+          <text class="map__area" x="92" y="420">Città del Vaticano</text>
+          <path class="map__river" d="M640 -10 C 600 120, 690 220, 620 330 S 500 470, 540 560 S 520 650, 500 660"/>
+          <text class="map__area map__area--river" x="640" y="190" transform="rotate(74 640 190)">Tevere</text>
+          <text class="map__area" x="330" y="120">Prati</text>
+          <g id="routes"></g>
+          <g id="pins"></g>
+          <g class="home" transform="translate(400 300)">
+            <circle r="60" fill="url(#pinGlow)" class="home__glow"/>
+            <circle r="9" class="home__dot"/>
+            <circle r="18" class="home__ring"/>
+            <text y="-30" class="home__label">Milizie 76</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- RECENSIONI -->
+  <section class="reviews" id="recensioni">
+    <div class="wrap reviews__wrap">
+      <div class="scores">
+        <p class="eyebrow">Recensioni</p>
+        <div class="score-main">
+          <strong data-count="8.5" data-dec="1">8,5</strong>
+          <span>su 10 su Booking.com<br>dagli ospiti recenti</span>
+        </div>
+        <div class="gauges">
+          <figure class="gauge" data-value="9.2">
+            <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" class="gauge__track"/><circle cx="50" cy="50" r="44" class="gauge__bar"/></svg>
+            <figcaption><strong>9,2</strong><span>Pulizia</span></figcaption>
+          </figure>
+          <figure class="gauge" data-value="8.9">
+            <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" class="gauge__track"/><circle cx="50" cy="50" r="44" class="gauge__bar"/></svg>
+            <figcaption><strong>8,9</strong><span>lastminute.com<br>449 recensioni</span></figcaption>
+          </figure>
+        </div>
+      </div>
+      <div class="quotes">
+        <div class="deck" id="deck" aria-live="polite"></div>
+        <div class="deck__ui">
+          <button class="icon-btn magnetic" id="deckPrev" aria-label="Recensione precedente"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <span class="deck__count" id="deckCount">1 / 4</span>
+          <button class="icon-btn magnetic" id="deckNext" aria-label="Recensione successiva"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+        </div>
+        <p class="quotes__note">Estratti dalle recensioni online degli ospiti, tradotti in italiano.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRENOTA -->
+  <section class="book" id="prenota">
+    <div class="wrap book__wrap">
+      <div class="book__intro">
+        <p class="eyebrow">Prenota</p>
+        <h2 class="h2" data-split>La tua camera <em>ti aspetta</em></h2>
+        <p>Scegli le date e la camera: calcoliamo subito una stima del soggiorno. Per domande puoi chiamare o scrivere su WhatsApp.</p>
+        <div class="phone">
+          <span class="label">Telefono</span>
+          <span class="phone__num" id="phoneNum">+39 391 320 0466</span>
+          <button class="chip" id="copyPhone" type="button">Copia</button>
+        </div>
+        <a class="link-arrow" href="https://www.booking.com/hotel/it/xx-settembre-gallery.it.html" target="_blank" rel="noopener">Vedi la struttura su Booking.com <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg></a>
+      </div>
+      <form class="panel" id="bookForm" novalidate>
+        <div class="panel__row">
+          <label class="field"><span>Arrivo</span><input type="date" id="fIn" required></label>
+          <label class="field"><span>Partenza</span><input type="date" id="fOut" required></label>
+        </div>
+        <div class="panel__row">
+          <div class="field">
+            <span id="guestsLabel">Ospiti</span>
+            <div class="stepper" role="group" aria-labelledby="guestsLabel">
+              <button type="button" id="gMinus" aria-label="Un ospite in meno">−</button>
+              <output id="gVal" aria-live="polite">2</output>
+              <button type="button" id="gPlus" aria-label="Un ospite in più">+</button>
+            </div>
+          </div>
+          <label class="field"><span>Camera</span>
+            <select id="fRoom"></select>
+          </label>
+        </div>
+        <p class="panel__error" id="formError" role="alert" hidden></p>
+        <div class="panel__sum">
+          <div><span class="label">Notti</span><strong id="sNights">3</strong></div>
+          <div><span class="label">A notte</span><strong id="sRate">€ 150</strong></div>
+          <div class="panel__total"><span class="label">Stima soggiorno</span><strong id="sTotal">€ 450</strong></div>
+        </div>
+        <button class="btn btn--gold btn--block magnetic" type="submit"><span>Richiedi disponibilità</span></button>
+        <p class="panel__note">Prezzi indicativi per l'anteprima. La tariffa reale dipende da date e disponibilità.</p>
+        <div class="panel__done" id="formDone" hidden>
+          <svg viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24"/><path d="M15 27l7 7 15-15"/></svg>
+          <p class="panel__done-t">Richiesta pronta</p>
+          <p id="doneText"></p>
+          <button class="chip" type="button" id="formBack">Modifica</button>
+        </div>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot__grid">
+      <div><span class="label">Indirizzo</span>Viale delle Milizie, 76<br>00192 Roma · Prati</div>
+      <div><span class="label">Contatti</span>+39 391 320 0466</div>
+      <div><span class="label">Orari</span>Check-in 12:00 – 20:30<br>Check-out entro le 10:30</div>
+      <div><span class="label">Come arrivare</span>Metro A · Ottaviano<br>5 minuti a piedi</div>
+    </div>
+    <p class="foot__word" aria-hidden="true"><span data-split>Milizie</span> <em data-split>76</em></p>
+    <div class="foot__bottom">
+      <span>© Milizie 76 Gallery</span>
+      <span>Concept di sito · anteprima non ufficiale</span>
+      <a href="#top" class="link-top">Torna su ↑</a>
+    </div>
+  </div>
+</footer>
+
+<dialog class="lightbox" id="lightbox" aria-label="Immagine ingrandita">
+  <figure><img id="lbImg" alt=""><figcaption id="lbCap"></figcaption></figure>
+  <button class="lightbox__close icon-btn" id="lbClose" aria-label="Chiudi"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <button class="lightbox__nav lightbox__nav--prev icon-btn" id="lbPrev" aria-label="Precedente"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+  <button class="lightbox__nav lightbox__nav--next icon-btn" id="lbNext" aria-label="Successiva"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+</dialog>
+
+<script src="vendor/three.min.js"></script>
+<script src="vendor/gsap.min.js"></script>
+<script src="vendor/ScrollTrigger.min.js"></script>
+<script src="vendor/lenis.min.js"></script>
+<script src="js/plates.js"></script>
+<script src="js/hero3d.js"></script>
+<script src="js/content.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
