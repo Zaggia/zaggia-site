@@ -1,21 +1,21 @@
-/* Editable content. Photos live in assets/photos/; missing ones fall back to an illustration. */
+/* Editable content. Put JPGs in assets/photos/ and run build.py: it writes the optimized WebP files used here. */
 window.SITE = {
   photos: {
-    mose: 'assets/photos/camera-mose.jpg',
-    scala: 'assets/photos/camera-scala.jpg',
-    statua: 'assets/photos/camera-statua.jpg',
-    bagnoCamera: 'assets/photos/bagno-camera.jpg',
-    bagno: 'assets/photos/bagno.jpg',
-    twin: 'assets/photos/camera-twin.jpg',
-    lavabo: 'assets/photos/bagno-lavabo.jpg',
-    mensole: 'assets/photos/camera-mensole.jpg',
-    armadio: 'assets/photos/camera-armadio.jpg',
-    terrazza: 'assets/photos/terrazza.jpg',
-    singola: 'assets/photos/camera-singola.jpg',
-    colazione: 'assets/photos/colazione.jpg',
-    facciata: 'assets/photos/facciata.jpg',
-    colonnato: 'assets/photos/san-pietro.jpg',
-    castel: 'assets/photos/castel-santangelo.jpg'
+    mose: 'assets/img/camera-mose.webp',
+    scala: 'assets/img/camera-scala.webp',
+    statua: 'assets/img/camera-statua.webp',
+    bagnoCamera: 'assets/img/bagno-camera.webp',
+    bagno: 'assets/img/bagno.webp',
+    twin: 'assets/img/camera-twin.webp',
+    lavabo: 'assets/img/bagno-lavabo.webp',
+    mensole: 'assets/img/camera-mensole.webp',
+    armadio: 'assets/img/camera-armadio.webp',
+    terrazza: 'assets/img/terrazza.webp',
+    singola: 'assets/img/camera-singola.webp',
+    colazione: 'assets/img/colazione.webp',
+    facciata: 'assets/img/facciata.webp',
+    colonnato: 'assets/img/san-pietro.webp',
+    castel: 'assets/img/castel-santangelo.webp'
   },
   /* illustration used while a photo is missing */
   fallback: { mose: 'camera', scala: 'camera', statua: 'camera', bagnoCamera: 'bagno', lavabo: 'bagno', mensole: 'dettaglio', armadio: 'dettaglio' },

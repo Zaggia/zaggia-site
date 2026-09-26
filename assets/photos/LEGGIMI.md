@@ -1,7 +1,10 @@
 # Foto della struttura
 
-Le foto presenti in questa cartella vengono usate in automatico. Quelle mancanti vengono sostituite da un'illustrazione.
-Nomi dei file (JPG):
+Metti qui le foto originali (JPG) e lancia `python3 build.py` (richiede `pip install pillow`).
+Lo script crea in `assets/img/` le versioni WebP ottimizzate (max 1100 px) usate dal sito e rigenera il file unico.
+Le foto mancanti vengono sostituite da un'illustrazione.
+
+Nomi dei file:
 
 | File | Dove appare | Stato |
 | --- | --- | --- |
@@ -19,4 +22,3 @@ Nomi dei file (JPG):
 | `san-pietro.jpg`, `castel-santangelo.jpg` | Galleria | facoltative |
 
 Nomi, didascalie e ordine si cambiano in `js/content.js`.
-Dopo aver aggiunto le foto, rigenera il file unico con `python3 build.py`.

@@ -9,13 +9,14 @@ Landing page di anteprima per **Milizie 76 Gallery**, guest house in Viale delle
 
 ## Cosa c'è dentro
 
-- Corridoio di galleria in 3D (Three.js): scorrendo la pagina si cammina tra le camere appese come opere, fino alla facciata del civico 76.
+- Header con le camere in un arco romano, a dissolvenza con zoom lento.
 - Camere in scorrimento orizzontale con card inclinabili in 3D e prezzo indicativo; cliccando una camera la si seleziona nel modulo di prenotazione.
 - Galleria ad anello 3D da trascinare (mouse, touch o frecce) con lightbox.
 - Mappa interattiva del quartiere con i tempi a piedi verso i luoghi vicini.
 - Recensioni a mazzo di carte e punteggi animati.
 - Modulo di prenotazione con calcolo della stima del soggiorno.
 - Scroll fluido (Lenis), animazioni GSAP, cursore personalizzato, bottoni magnetici, supporto a `prefers-reduced-motion`.
+- Caricamento rapido: la prima foto è nell'HTML, niente schermata di attesa, illustrazioni generate solo se servono.
 
 ## Foto
 
@@ -32,7 +33,9 @@ js/hero3d.js        scena 3D
 js/main.js          interazioni e animazioni
 vendor/             three.js, GSAP, ScrollTrigger, Lenis
 fonts/              Bodoni Moda, Instrument Sans
-build.py            genera dist/milizie-76-anteprima.html
+assets/photos/      foto originali (JPG)
+assets/img/         foto ottimizzate WebP generate da build.py
+build.py            ottimizza le foto e genera dist/milizie-76-anteprima.html
 ```
 
 Concept non ufficiale: prezzi e tempi a piedi sono indicativi.
