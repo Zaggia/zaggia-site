@@ -63,7 +63,7 @@ em { font-style: italic; }
 .light .h2 em, .manifesto .h2 em, .amen .h2 em, .reviews .h2 em { color: var(--porpora); }
 
 .word { display: inline-block; overflow: hidden; vertical-align: top; padding: 0 .12em .1em 0; margin: 0 -.12em -.1em 0; }
-.word > span { display: inline-block; transform-origin: 50% 100%; will-change: transform; }
+.word > span { display: inline-block; transform-origin: 50% 100%; }
 
 /* Buttons */
 .btn {
@@ -115,7 +115,7 @@ em { font-style: italic; }
 @media (pointer: fine) { .has-cursor .cursor { display: block; } .has-cursor, .has-cursor a, .has-cursor button { cursor: none; } }
 
 .progress { position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 120; }
-.progress span { display: block; height: 100%; background: var(--gold); transform: scaleX(0); transform-origin: left; }
+.progress span { display: block; height: 100%; background: var(--gold); transform: scaleX(0); transform-origin: left; will-change: transform; }
 
 /* Nav */
 .nav {
@@ -167,10 +167,12 @@ em { font-style: italic; }
 .arch__slide.is-active { opacity: 1; }
 .arch__slide img { width: 100%; height: 100%; object-fit: cover; }
 .seal { position: absolute; left: -64px; bottom: 14%; width: 132px; height: 132px; border-radius: 50%; background: var(--gold); color: var(--ink); display: grid; place-items: center; z-index: 2; box-shadow: 0 20px 40px -18px rgba(0, 0, 0, .6); }
-.seal__ring { position: absolute; inset: 0; width: 100%; height: 100%; animation: spin 22s linear infinite; }
-.seal__ring text { font-family: var(--sans); font-size: 9.6px; font-weight: 700; letter-spacing: .18em; fill: var(--ink); }
+.seal__spin { position: absolute; inset: 0; animation: spin 22s linear infinite; will-change: transform; }
+.seal__ring { position: absolute; inset: 0; width: 100%; height: 100%; }
+.seal__ring text { font-family: var(--sans); font-size: 9.6px; font-weight: 700; fill: var(--ink); }
 .seal strong { font-family: var(--serif); font-weight: 400; font-size: 40px; line-height: 1; }
 @keyframes spin { to { transform: rotate(360deg); } }
+.hero.is-away .hero__scroll i, .hero.is-away .seal__spin { animation-play-state: paused; }
 .hero__slidebar { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 30px; }
 .hero__cap { margin: 0; font-family: var(--serif); font-style: italic; font-size: 17px; color: rgba(236, 229, 214, .9); }
 .hero__dots { display: flex; gap: 8px; flex: none; }
@@ -199,16 +201,19 @@ em { font-style: italic; }
 .facts dd small { font-family: var(--sans); font-size: 14px; margin-left: 8px; color: var(--ink-2); letter-spacing: 0; }
 
 /* Golden thread */
-.thread { position: absolute; left: 0; top: 0; width: 100%; pointer-events: none; z-index: 1; overflow: visible; will-change: transform; contain: layout style; }
-.thread__ghost { fill: none; stroke: rgba(200, 161, 90, .16); stroke-width: 1; }
-.thread__line polyline { fill: none; stroke: var(--gold); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-.thread__tip { fill: var(--gold-2); transition: opacity .3s; }
-.thread__halo { fill: rgba(224, 193, 132, .22); transition: opacity .3s; }
+.thread { position: absolute; left: 0; top: 0; width: 100%; pointer-events: none; z-index: 1; overflow: hidden; contain: strict; }
+.thread__svg { position: absolute; left: 0; top: 0; overflow: visible; }
+.thread__svg path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.thread__svg--ghost path { stroke: rgba(200, 161, 90, .16); stroke-width: 1; }
+.thread__svg--gold path { stroke: var(--gold); stroke-width: 1.6; }
+.thread__clip { position: absolute; left: 0; top: 0; width: 100%; overflow: hidden; will-change: transform; }
+.thread__inner { position: relative; width: 100%; will-change: transform; }
+.thread__tip { position: absolute; left: -4px; top: -4px; width: 8px; height: 8px; border-radius: 50%; background: var(--gold-2); box-shadow: 0 0 0 6px rgba(224, 193, 132, .2); will-change: transform; transition: opacity .3s; }
 
 /* Rooms */
 .rooms { background: var(--patina); position: relative; z-index: 2; }
 .rooms__rail { width: calc(100% - var(--gutter) * 2); max-width: var(--max); margin: clamp(22px, 3vh, 36px) auto 0; height: 1px; background: var(--line-d); }
-.rooms__rail span { display: block; height: 100%; background: var(--gold); transform: scaleX(0); transform-origin: left; }
+.rooms__rail span { display: block; height: 100%; background: var(--gold); transform: scaleX(0); transform-origin: left; will-change: transform; }
 .rooms__pin { padding-block: clamp(84px, 9vh, 110px) clamp(30px, 5vh, 60px); min-height: 100vh; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
 .rooms__head { display: flex; justify-content: space-between; align-items: flex-end; gap: 40px; width: 100%; margin-bottom: clamp(28px, 4vh, 52px); }
 .rooms .h2 { font-size: clamp(40px, min(5.4vw, 8.4vh), 88px); }
@@ -220,7 +225,7 @@ em { font-style: italic; }
   border: 1px solid var(--line-d); transition: border-color .5s; cursor: pointer; outline: none;
 }
 .room__card:focus-visible, .room.is-selected .room__card { border-color: rgba(200, 161, 90, .7); }
-.room__media { position: relative; aspect-ratio: 5 / 4; overflow: hidden; transform: translateZ(0); }
+.room__media { position: relative; aspect-ratio: 5 / 4; overflow: hidden; }
 .room__media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 1.2s var(--ease); }
 .room__glare { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: soft-light; opacity: 0; transition: opacity .4s;
   background: radial-gradient(circle at var(--gx, 50%) var(--gy, 50%), rgba(255, 240, 210, .75), rgba(255, 240, 210, 0) 55%); }
@@ -256,7 +261,7 @@ em { font-style: italic; }
 .ring__item figure { margin: 0; width: 100%; height: 100%; position: relative; background: var(--patina-2); }
 .ring__item img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
 img[data-k]:not([src]) { visibility: hidden; }
-.ring__item figure::after { content: ""; position: absolute; inset: 0; background: var(--deep); opacity: var(--dim, 0); transition: opacity .2s; pointer-events: none; }
+.ring__item figure::after { content: ""; position: absolute; inset: 0; background: var(--deep); opacity: var(--dim, 0); pointer-events: none; }
 .ring__item figcaption { position: absolute; left: 0; right: 0; bottom: -34px; text-align: center; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--on-dark-2); opacity: calc(1 - var(--dim, 0) * 3); }
 .ring__floor { position: absolute; left: 50%; bottom: 4%; width: 70%; height: 80px; transform: translateX(-50%); background: radial-gradient(ellipse, rgba(200, 161, 90, .16), transparent 70%); pointer-events: none; }
 .ring__ui { display: flex; align-items: center; justify-content: center; gap: 28px; margin-top: 50px; }
@@ -313,7 +318,8 @@ img[data-k]:not([src]) { visibility: hidden; }
 .pin.is-on .pin__walk { opacity: 1; }
 .pin { cursor: pointer; }
 .home__dot { fill: var(--gold); }
-.home__ring { fill: none; stroke: var(--gold); stroke-width: 1.2; transform-origin: center; animation: pulse 2.4s var(--ease) infinite; }
+.home__ring { fill: none; stroke: var(--gold); stroke-width: 1.2; transform-origin: center; }
+.map.is-live .home__ring { animation: pulse 2.4s var(--ease) infinite; }
 @keyframes pulse { 0% { transform: scale(.6); opacity: 1; } 100% { transform: scale(2.4); opacity: 0; } }
 .home__label { fill: var(--trav); font-family: var(--serif); font-size: 22px; text-anchor: middle; }
 .hood__note { font-size: 12.5px; color: var(--on-dark-2); margin: 12px 0 28px; }

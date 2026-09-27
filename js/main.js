@@ -193,6 +193,7 @@
     if (RM || !hasGsap) return;
     new IntersectionObserver(([en]) => {
       hero.visible = en.isIntersecting;
+      $('#hero').classList.toggle('is-away', !en.isIntersecting);
       if (hero.timer) hero.visible ? hero.timer.play() : hero.timer.pause();
     }).observe($('#hero'));
 
@@ -249,7 +250,7 @@
     if (RM || !hasGsap) return;
     const tl = gsap.timeline({ defaults: { ease: 'expo.out' }, onComplete: runTimer });
     tl.timeScale(1.25);
-    tl.from(chars, { yPercent: 115, rotateX: LITE ? 0 : -85, opacity: 0, duration: 1.2, stagger: 0.035 }, 0)
+    tl.from(chars, { yPercent: 115, rotateX: LITE ? 0 : -85, opacity: 0, duration: 1.2, stagger: 0.035, clearProps: 'transform' }, 0)
       .from('.hero__eyebrow', { y: 20, opacity: 0, duration: 1 }, 0.6)
       .from('.hero__lead', { y: 30, opacity: 0, duration: 1.2 }, 0.85)
       .from('.hero__ctas > *, .hero__addr', { y: 30, opacity: 0, duration: 1.1, stagger: 0.1 }, 1)
@@ -266,7 +267,7 @@
       const parts = split(el, el.closest('.foot__word') ? 'chars' : 'words');
       if (RM || !hasGsap) return;
       gsap.from(parts, {
-        yPercent: 110, rotateX: LITE ? 0 : -70, transformPerspective: 800, duration: LITE ? 0.9 : 1.2, ease: 'expo.out', stagger: el.closest('.foot__word') ? 0.04 : 0.07,
+        yPercent: 110, rotateX: LITE ? 0 : -70, transformPerspective: 800, duration: LITE ? 0.9 : 1.2, ease: 'expo.out', clearProps: 'transform', stagger: el.closest('.foot__word') ? 0.04 : 0.07,
         scrollTrigger: { trigger: el, start: 'top 88%', once: true }
       });
     });
@@ -275,16 +276,16 @@
     [['.rooms__hint', 0], ['.hood__text', 0], ['.book__intro > p:not(.eyebrow), .phone, .book__intro .link-arrow', 0.08], ['.quotes', 0], ['.hours__item', 0.1], ['.foot__grid > div', 0.08]]
       .forEach(([sel, st]) => {
         const els = $$(sel); if (!els.length) return;
-        gsap.from(els, { y: 40, opacity: 0, duration: 1.1, ease: 'power3.out', stagger: st, scrollTrigger: { trigger: els[0], start: 'top 90%', once: true } });
+        gsap.from(els, { y: 40, opacity: 0, duration: 1.1, ease: 'power3.out', clearProps: 'transform', stagger: st, scrollTrigger: { trigger: els[0], start: 'top 90%', once: true } });
       });
     gsap.from('.amen__item', {
-      rotateX: LITE ? 0 : -80, y: LITE ? 24 : 40, opacity: 0, transformOrigin: '50% 0%', transformPerspective: 900, duration: LITE ? 0.7 : 1, ease: 'expo.out',
+      rotateX: LITE ? 0 : -80, y: LITE ? 24 : 40, opacity: 0, transformOrigin: '50% 0%', transformPerspective: 900, duration: LITE ? 0.7 : 1, ease: 'expo.out', clearProps: 'transform',
       stagger: { each: 0.06, grid: 'auto', from: 'start' }, scrollTrigger: { trigger: '#amenGrid', start: 'top 85%', once: true }
     });
-    gsap.from('.place', { x: -30, opacity: 0, duration: 0.9, ease: 'power3.out', stagger: 0.07, scrollTrigger: { trigger: '#places', start: 'top 88%', once: true } });
+    gsap.from('.place', { x: -30, opacity: 0, duration: 0.9, ease: 'power3.out', clearProps: 'transform', stagger: 0.07, scrollTrigger: { trigger: '#places', start: 'top 88%', once: true } });
     gsap.from('.map', LITE ? { opacity: 0, y: 24, duration: 0.7, ease: 'power3.out', scrollTrigger: { trigger: '#map', start: 'top 95%', once: true } } : { clipPath: 'inset(0 0 100% 0)', duration: 1.1, ease: 'expo.inOut', scrollTrigger: { trigger: '#map', start: 'top 85%', once: true } });
-    gsap.from('.panel', { y: LITE ? 30 : 60, rotateX: LITE ? 0 : 12, transformPerspective: 1200, opacity: 0, duration: LITE ? 0.8 : 1.2, ease: 'expo.out', scrollTrigger: { trigger: '.panel', start: 'top 85%', once: true } });
-    gsap.from('.facts > div', { y: 40, opacity: 0, duration: 1, stagger: 0.1, ease: 'power3.out', scrollTrigger: { trigger: '.facts', start: 'top 88%', once: true } });
+    gsap.from('.panel', { y: LITE ? 30 : 60, rotateX: LITE ? 0 : 12, transformPerspective: 1200, opacity: 0, clearProps: 'transform', duration: LITE ? 0.8 : 1.2, ease: 'expo.out', scrollTrigger: { trigger: '.panel', start: 'top 85%', once: true } });
+    gsap.from('.facts > div', { y: 40, opacity: 0, duration: 1, stagger: 0.1, ease: 'power3.out', clearProps: 'transform', scrollTrigger: { trigger: '.facts', start: 'top 88%', once: true } });
   }
 
   /* ---------- Manifesto: words light up with scroll ---------- */
@@ -349,7 +350,7 @@
           onUpdate: s => { rail.style.transform = `scaleX(${s.progress})`; }
         }
       });
-      gsap.from('.room', { y: 80, opacity: 0, rotateY: -20, duration: 1.1, stagger: 0.1, ease: 'expo.out', scrollTrigger: { trigger: '#camere', start: 'top 70%', once: true } });
+      gsap.from('.room', { y: 80, opacity: 0, rotateY: -20, clearProps: 'transform', duration: 1.1, stagger: 0.1, ease: 'expo.out', scrollTrigger: { trigger: '#camere', start: 'top 70%', once: true } });
     });
   }
 
@@ -495,7 +496,12 @@
       const shift = Math.min(0, 792 - (px + w / 2)) + Math.max(0, 8 - (px - w / 2));
       texts.forEach(t => t.setAttribute('x', shift));
     }
-    let current = null;
+    let current = null, live = false;
+    new IntersectionObserver(([en]) => {
+      live = en.isIntersecting;
+      $('#map').classList.toggle('is-live', live);
+      if (walkTween) live ? walkTween.resume() : walkTween.pause();
+    }).observe($('#map'));
     function select(id) {
       if (id === current) return; current = id;
       $$('.place', list).forEach(b => b.setAttribute('aria-pressed', b.dataset.id === id ? 'true' : 'false'));
@@ -516,6 +522,7 @@
               const pt = r.getPointAtLength(o.t * L); walker.setAttribute('cx', pt.x); walker.setAttribute('cy', pt.y);
               walker.setAttribute('opacity', o.t < 0.05 ? o.t * 20 : o.t > 0.9 ? (1 - o.t) * 10 : 1);
             } });
+            if (!live) walkTween.pause();
           } else { const pt = r.getPointAtLength(L); walker.setAttribute('cx', pt.x); walker.setAttribute('cy', pt.y); }
         } else { r.style.strokeDasharray = ''; r.style.strokeDashoffset = ''; }
       });
@@ -714,21 +721,23 @@
     });
   }
 
-  /* ---------- Golden thread: one line drawn through the whole page as you scroll ---------- */
+  /* ---------- Golden thread: drawn once, revealed by moving two composited layers (no repaint while scrolling) ---------- */
   function initThread() {
     const NS = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(NS, 'svg');
-    svg.setAttribute('class', 'thread'); svg.setAttribute('aria-hidden', 'true');
-    svg.innerHTML = '<path class="thread__ghost"/><g class="thread__line"></g><circle class="thread__halo" r="9"/><circle class="thread__tip" r="3"/>';
-    document.body.prepend(svg);
-    const [ghost, group, halo, tip] = svg.children;
-    const STEP = 6, CHUNK = 120;
-    let px = [], py = [], ymax = [], chunks = [], lastIdx = -1, queued = false;
+    const wrap = document.createElement('div');
+    wrap.className = 'thread'; wrap.setAttribute('aria-hidden', 'true');
+    wrap.innerHTML = '<svg class="thread__svg thread__svg--ghost"><path/></svg><div class="thread__clip"><div class="thread__inner"><svg class="thread__svg thread__svg--gold"><path/></svg></div></div><div class="thread__tip"></div>';
+    document.body.prepend(wrap);
+    const ghostSvg = $('.thread__svg--ghost', wrap), goldSvg = $('.thread__svg--gold', wrap);
+    const ghost = $('path', ghostSvg), gold = $('path', goldSvg);
+    const clip = $('.thread__clip', wrap), inner = $('.thread__inner', wrap), tipEl = $('.thread__tip', wrap);
+    const STEP = 12;
+    let px = [], ymax = [], H = 0, cur = 0, tgt = 0, running = false;
     const docRect = el => { const r = el.getBoundingClientRect(); return { x: r.left + window.scrollX, y: r.top + window.scrollY, w: r.width, h: r.height }; };
 
     function build() {
-      const W = document.documentElement.clientWidth, H = document.documentElement.scrollHeight;
-      svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.style.height = H + 'px';
+      const W = document.documentElement.clientWidth;
+      H = document.documentElement.scrollHeight;
       const start = docRect($('.hero__eyebrow'));
       const contentX = docRect($('#manifesto .eyebrow')).x;
       const x0 = Math.max(6, Math.round(contentX * 0.45));
@@ -760,59 +769,52 @@
       });
       wander(end.y - 90);
       d += ` C${x0} ${end.y - 30} ${end.x - 30} ${end.y} ${end.x} ${end.y}`;
-      ghost.setAttribute('d', d);
+
+      const TW = Math.min(W, Math.ceil(Math.max(start.x, end.x, ...ties.map(t => t.x)) + 24));
+      wrap.style.width = TW + 'px';
+      wrap.style.height = clip.style.height = inner.style.height = H + 'px';
+      [ghostSvg, goldSvg].forEach(s => { s.setAttribute('viewBox', `0 0 ${TW} ${H}`); s.setAttribute('width', TW); s.setAttribute('height', H); });
+      ghost.setAttribute('d', d); gold.setAttribute('d', d);
 
       const total = ghost.getTotalLength();
-      px = []; py = []; ymax = [];
+      px = []; ymax = [];
       let m = -Infinity;
-      for (let l = 0; l <= total + STEP; l += STEP) {
-        const p = ghost.getPointAtLength(Math.min(l, total));
-        px.push(+p.x.toFixed(1)); py.push(+p.y.toFixed(1)); m = Math.max(m, p.y); ymax.push(m);
+      for (let l = 0; l <= total; l += STEP) {
+        const p = ghost.getPointAtLength(l);
+        px.push(p.x); m = Math.max(m, p.y); ymax.push(m);
       }
-      group.textContent = '';
-      chunks = [];
-      for (let i = 0; i < px.length - 1; i += CHUNK) {
-        const j = Math.min(px.length - 1, i + CHUNK);
-        const pl = document.createElementNS(NS, 'polyline');
-        let pts = '';
-        for (let k = i; k <= j; k++) pts += px[k] + ',' + py[k] + ' ';
-        pl.setAttribute('points', pts);
-        const len = (j - i) * STEP;
-        pl.style.strokeDasharray = len; pl.style.strokeDashoffset = len;
-        group.appendChild(pl);
-        chunks.push({ el: pl, from: i, to: j, len, state: 0 });
-      }
-      lastIdx = -1;
-      update();
+      tgt = targetY(); cur = tgt;
+      paint();
     }
 
-    function update() {
-      queued = false;
-      if (!chunks.length) return;
-      let idx = px.length - 1;
-      if (!RM) {
-        const vh = window.innerHeight, maxS = document.documentElement.scrollHeight - vh;
-        const tail = Math.min(1, Math.max(0, (window.scrollY - (maxS - vh)) / vh));
-        const target = window.scrollY + vh * (0.62 + 0.4 * tail);
-        let lo = 0, hi = ymax.length - 1;
-        while (lo < hi) { const mid = (lo + hi) >> 1; if (ymax[mid] < target) lo = mid + 1; else hi = mid; }
-        idx = lo;
-      }
-      if (idx === lastIdx) return;
-      lastIdx = idx;
-      chunks.forEach(c => {
-        if (idx >= c.to) { if (c.state !== 2) { c.el.style.strokeDashoffset = 0; c.state = 2; } }
-        else if (idx <= c.from) { if (c.state !== 0) { c.el.style.strokeDashoffset = c.len; c.state = 0; } }
-        else { c.el.style.strokeDashoffset = c.len - (idx - c.from) * STEP; c.state = 1; }
-      });
-      const show = !RM && idx > 0 && idx < px.length - 1;
-      tip.style.opacity = halo.style.opacity = show ? 1 : 0;
-      if (show) {
-        tip.setAttribute('cx', px[idx]); tip.setAttribute('cy', py[idx]);
-        halo.setAttribute('cx', px[idx]); halo.setAttribute('cy', py[idx]);
-      }
+    function targetY() {
+      if (RM) return H;
+      const vh = window.innerHeight, maxS = H - vh;
+      const tail = Math.min(1, Math.max(0, (window.scrollY - (maxS - vh)) / vh));
+      return window.scrollY + vh * (0.62 + 0.4 * tail);
     }
-    const onScroll = () => { if (!queued) { queued = true; requestAnimationFrame(update); } };
+    function xAt(y) {
+      let lo = 0, hi = ymax.length - 1;
+      while (lo < hi) { const mid = (lo + hi) >> 1; if (ymax[mid] < y) lo = mid + 1; else hi = mid; }
+      if (lo === 0) return px[0];
+      const y0 = ymax[lo - 1], y1 = ymax[lo], t = y1 > y0 ? (y - y0) / (y1 - y0) : 1;
+      return px[lo - 1] + (px[lo] - px[lo - 1]) * Math.min(1, Math.max(0, t));
+    }
+    function paint() {
+      const y = Math.min(H, Math.max(0, cur));
+      clip.style.transform = `translate3d(0, ${y - H}px, 0)`;
+      inner.style.transform = `translate3d(0, ${H - y}px, 0)`;
+      const done = y >= ymax[ymax.length - 1] - 1 || y <= ymax[0];
+      tipEl.style.opacity = done || RM ? 0 : 1;
+      tipEl.style.transform = `translate3d(${xAt(y)}px, ${y}px, 0)`;
+    }
+    function loop() {
+      const diff = tgt - cur;
+      cur += Math.abs(diff) < 0.4 ? diff : diff * 0.22;
+      paint();
+      if (cur !== tgt) requestAnimationFrame(loop); else running = false;
+    }
+    const onScroll = () => { tgt = targetY(); if (!running) { running = true; requestAnimationFrame(loop); } };
     if (lenis) lenis.on('scroll', onScroll); else window.addEventListener('scroll', onScroll, { passive: true });
     if (hasGsap) ScrollTrigger.addEventListener('refresh', build);
     else { window.addEventListener('resize', build); window.addEventListener('load', build); }
