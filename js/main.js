@@ -329,29 +329,20 @@
     });
   }
 
-  /* ---------- Rooms horizontal scroll ---------- */
+  /* ---------- Rooms horizontal scroll (same pinned scrollytelling at every width) ---------- */
   function roomsScroll() {
     if (RM || !hasGsap) return;
     const rail = $('.rooms__rail span');
-    const mm = gsap.matchMedia();
-    mm.add('(max-width: 900px)', () => {
-      const track = $('#roomsTrack');
-      const onS = () => { const m = track.scrollWidth - track.clientWidth; rail.style.transform = `scaleX(${m > 0 ? track.scrollLeft / m : 1})`; };
-      track.addEventListener('scroll', onS, { passive: true }); onS();
-      return () => track.removeEventListener('scroll', onS);
+    const track = $('#roomsTrack');
+    const dist = () => Math.max(0, track.scrollWidth - window.innerWidth);
+    gsap.to(track, {
+      x: () => -dist(), ease: 'none',
+      scrollTrigger: {
+        trigger: '#camere', start: 'top top', end: () => '+=' + dist(), pin: true, scrub: true, invalidateOnRefresh: true, anticipatePin: 1,
+        onUpdate: s => { rail.style.transform = `scaleX(${s.progress})`; }
+      }
     });
-    mm.add('(min-width: 901px)', () => {
-      const track = $('#roomsTrack');
-      const dist = () => Math.max(0, track.scrollWidth - window.innerWidth);
-      gsap.to(track, {
-        x: () => -dist(), ease: 'none',
-        scrollTrigger: {
-          trigger: '#camere', start: 'top top', end: () => '+=' + dist(), pin: true, scrub: true, invalidateOnRefresh: true,
-          onUpdate: s => { rail.style.transform = `scaleX(${s.progress})`; }
-        }
-      });
-      gsap.from('.room', { y: 80, opacity: 0, rotateY: -20, clearProps: 'transform', duration: 1.1, stagger: 0.1, ease: 'expo.out', scrollTrigger: { trigger: '#camere', start: 'top 70%', once: true } });
-    });
+    gsap.from('.room', { y: 80, opacity: 0, rotateY: -20, clearProps: 'transform', duration: 1.1, stagger: 0.1, ease: 'expo.out', scrollTrigger: { trigger: '#camere', start: 'top 70%', once: true } });
   }
 
   /* ---------- 3D ring gallery ---------- */
@@ -378,7 +369,7 @@
       if (!down) return;
       const now = performance.now();
       const dx = e.clientX - sx; moved = Math.max(moved, Math.abs(dx));
-      ring.angle = sa + dx * 0.28;
+      ring.angle = sa - dx * 0.28;
       vel = (e.clientX - lastX) / Math.max(1, now - lastT); lastX = e.clientX; lastT = now;
       applyRing();
     });
@@ -389,7 +380,7 @@
         if (item) { const i = +item.dataset.i; i === ring.idx ? openLightbox(i) : rotateTo(i); }
         return;
       }
-      const target = Math.round((ring.angle + vel * 260) / ring.step) * ring.step;
+      const target = Math.round((ring.angle - vel * 260) / ring.step) * ring.step;
       tweenAngle(target, 1.4);
     };
     el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
@@ -733,7 +724,14 @@
     const clip = $('.thread__clip', wrap), inner = $('.thread__inner', wrap), tipEl = $('.thread__tip', wrap);
     const STEP = 12;
     let px = [], ymax = [], H = 0, cur = 0, tgt = 0, running = false;
-    const docRect = el => { const r = el.getBoundingClientRect(); return { x: r.left + window.scrollX, y: r.top + window.scrollY, w: r.width, h: r.height }; };
+    // offsetLeft/offsetTop reflect the element's static layout position, unaffected by any
+    // CSS `transform` an intro/reveal animation may have applied — getBoundingClientRect would
+    // report the animated (in-flight) position instead, throwing the thread off if measured mid-tween.
+    const docRect = el => {
+      let x = 0, y = 0, node = el;
+      while (node) { x += node.offsetLeft; y += node.offsetTop; node = node.offsetParent; }
+      return { x, y, w: el.offsetWidth, h: el.offsetHeight };
+    };
 
     function build() {
       const W = document.documentElement.clientWidth;
@@ -791,7 +789,10 @@
       if (RM) return H;
       const vh = window.innerHeight, maxS = H - vh;
       const tail = Math.min(1, Math.max(0, (window.scrollY - (maxS - vh)) / vh));
-      return window.scrollY + vh * (0.62 + 0.4 * tail);
+      // The "lead" is capped by how far the page has actually been scrolled, so on a fresh
+      // load (scrollY 0) the thread starts fully undrawn at the dash instead of jumping ahead.
+      const lead = Math.min(window.scrollY, vh * (0.62 + 0.4 * tail));
+      return window.scrollY + lead;
     }
     function xAt(y) {
       let lo = 0, hi = ymax.length - 1;
