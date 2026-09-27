@@ -331,7 +331,14 @@
   /* ---------- Rooms horizontal scroll ---------- */
   function roomsScroll() {
     if (RM || !hasGsap) return;
+    const rail = $('.rooms__rail span');
     const mm = gsap.matchMedia();
+    mm.add('(max-width: 900px)', () => {
+      const track = $('#roomsTrack');
+      const onS = () => { const m = track.scrollWidth - track.clientWidth; rail.style.transform = `scaleX(${m > 0 ? track.scrollLeft / m : 1})`; };
+      track.addEventListener('scroll', onS, { passive: true }); onS();
+      return () => track.removeEventListener('scroll', onS);
+    });
     mm.add('(min-width: 901px)', () => {
       const track = $('#roomsTrack');
       const dist = () => Math.max(0, track.scrollWidth - window.innerWidth);
@@ -339,6 +346,7 @@
         x: () => -dist(), ease: 'none',
         scrollTrigger: {
           trigger: '#camere', start: 'top top', end: () => '+=' + dist(), pin: true, scrub: true, invalidateOnRefresh: true,
+          onUpdate: s => { rail.style.transform = `scaleX(${s.progress})`; }
         }
       });
       gsap.from('.room', { y: 80, opacity: 0, rotateY: -20, duration: 1.1, stagger: 0.1, ease: 'expo.out', scrollTrigger: { trigger: '#camere', start: 'top 70%', once: true } });
@@ -706,11 +714,116 @@
     });
   }
 
+  /* ---------- Golden thread: one line drawn through the whole page as you scroll ---------- */
+  function initThread() {
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('class', 'thread'); svg.setAttribute('aria-hidden', 'true');
+    svg.innerHTML = '<path class="thread__ghost"/><g class="thread__line"></g><circle class="thread__halo" r="9"/><circle class="thread__tip" r="3"/>';
+    document.body.prepend(svg);
+    const [ghost, group, halo, tip] = svg.children;
+    const STEP = 6, CHUNK = 120;
+    let px = [], py = [], ymax = [], chunks = [], lastIdx = -1, queued = false;
+    const docRect = el => { const r = el.getBoundingClientRect(); return { x: r.left + window.scrollX, y: r.top + window.scrollY, w: r.width, h: r.height }; };
+
+    function build() {
+      const W = document.documentElement.clientWidth, H = document.documentElement.scrollHeight;
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.style.height = H + 'px';
+      const start = docRect($('.hero__eyebrow'));
+      const contentX = docRect($('#manifesto .eyebrow')).x;
+      const x0 = Math.max(6, Math.round(contentX * 0.45));
+      const amp = Math.min(22, x0 * 0.45);
+      const ties = ['#manifesto', '#servizi', '#quartiere', '#recensioni', '#prenota']
+        .map(id => docRect($(id + ' .eyebrow'))).map(r => ({ x: r.x, y: r.y + r.h / 2 }));
+      const endEl = docRect($('.foot__bottom'));
+      const end = { x: endEl.x, y: endEl.y };
+
+      let y = start.y + start.h / 2, flip = 1;
+      let d = `M${start.x} ${y} C${start.x - 30} ${y} ${x0} ${y + 10} ${x0} ${y + 90}`;
+      y += 90;
+      const wander = toY => {
+        const dist = toY - y;
+        if (dist <= 0) return;
+        const n = Math.max(1, Math.round(dist / 420)), seg = dist / n;
+        for (let i = 0; i < n; i++) {
+          const a = y + seg * i, b = a + seg;
+          d += ` C${x0 + amp * flip} ${a + seg * 0.33} ${x0 + amp * flip} ${a + seg * 0.66} ${x0} ${b}`;
+          flip = -flip;
+        }
+        y = toY;
+      };
+      ties.forEach(t => {
+        wander(t.y - 110);
+        d += ` C${x0} ${t.y - 50} ${t.x - 34} ${t.y} ${t.x} ${t.y}`;
+        d += ` C${t.x - 26} ${t.y + 4} ${x0} ${t.y + 44} ${x0} ${t.y + 110}`;
+        y = t.y + 110;
+      });
+      wander(end.y - 90);
+      d += ` C${x0} ${end.y - 30} ${end.x - 30} ${end.y} ${end.x} ${end.y}`;
+      ghost.setAttribute('d', d);
+
+      const total = ghost.getTotalLength();
+      px = []; py = []; ymax = [];
+      let m = -Infinity;
+      for (let l = 0; l <= total + STEP; l += STEP) {
+        const p = ghost.getPointAtLength(Math.min(l, total));
+        px.push(+p.x.toFixed(1)); py.push(+p.y.toFixed(1)); m = Math.max(m, p.y); ymax.push(m);
+      }
+      group.textContent = '';
+      chunks = [];
+      for (let i = 0; i < px.length - 1; i += CHUNK) {
+        const j = Math.min(px.length - 1, i + CHUNK);
+        const pl = document.createElementNS(NS, 'polyline');
+        let pts = '';
+        for (let k = i; k <= j; k++) pts += px[k] + ',' + py[k] + ' ';
+        pl.setAttribute('points', pts);
+        const len = (j - i) * STEP;
+        pl.style.strokeDasharray = len; pl.style.strokeDashoffset = len;
+        group.appendChild(pl);
+        chunks.push({ el: pl, from: i, to: j, len, state: 0 });
+      }
+      lastIdx = -1;
+      update();
+    }
+
+    function update() {
+      queued = false;
+      if (!chunks.length) return;
+      let idx = px.length - 1;
+      if (!RM) {
+        const vh = window.innerHeight, maxS = document.documentElement.scrollHeight - vh;
+        const tail = Math.min(1, Math.max(0, (window.scrollY - (maxS - vh)) / vh));
+        const target = window.scrollY + vh * (0.62 + 0.4 * tail);
+        let lo = 0, hi = ymax.length - 1;
+        while (lo < hi) { const mid = (lo + hi) >> 1; if (ymax[mid] < target) lo = mid + 1; else hi = mid; }
+        idx = lo;
+      }
+      if (idx === lastIdx) return;
+      lastIdx = idx;
+      chunks.forEach(c => {
+        if (idx >= c.to) { if (c.state !== 2) { c.el.style.strokeDashoffset = 0; c.state = 2; } }
+        else if (idx <= c.from) { if (c.state !== 0) { c.el.style.strokeDashoffset = c.len; c.state = 0; } }
+        else { c.el.style.strokeDashoffset = c.len - (idx - c.from) * STEP; c.state = 1; }
+      });
+      const show = !RM && idx > 0 && idx < px.length - 1;
+      tip.style.opacity = halo.style.opacity = show ? 1 : 0;
+      if (show) {
+        tip.setAttribute('cx', px[idx]); tip.setAttribute('cy', py[idx]);
+        halo.setAttribute('cx', px[idx]); halo.setAttribute('cy', py[idx]);
+      }
+    }
+    const onScroll = () => { if (!queued) { queued = true; requestAnimationFrame(update); } };
+    if (lenis) lenis.on('scroll', onScroll); else window.addEventListener('scroll', onScroll, { passive: true });
+    if (hasGsap) ScrollTrigger.addEventListener('refresh', build);
+    else { window.addEventListener('resize', build); window.addEventListener('load', build); }
+    build();
+  }
+
   /* ---------- Boot ---------- */
   function boot() {
     buildRooms(); buildAmenities(); buildRing(); initLightbox(); initMap(); initDeck(); initBooking();
     initScroll(); initHero(); manifesto(); reveals(); counters(); roomsScroll();
-    bindAnchors(); initNav(); initCursor(); initMagnetic();
+    bindAnchors(); initNav(); initCursor(); initMagnetic(); initThread();
     root.classList.remove('intro');
     heroIntro();
     if (hasGsap) {

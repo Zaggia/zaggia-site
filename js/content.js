@@ -61,15 +61,9 @@ window.SITE = {
     ['ac', 'Aria condizionata', 'In ogni camera, regolabile'],
     ['wifi', 'Wi-Fi gratuito', 'Veloce in tutta la casa'],
     ['terrace', 'Terrazza', 'Per il sole e le sere d’estate'],
-    ['lift', 'Ascensore', 'Anche con le valigie grandi'],
+    ['shower', 'Bagno privato', 'Doccia a pioggia e asciugacapelli'],
     ['clean', 'Pulizia giornaliera', 'Camere rifatte ogni giorno'],
-    ['shower', 'Doccia a pioggia', 'Bagno privato e asciugacapelli'],
-    ['fridge', 'Minibar e bollitore', 'Tè e caffè quando vuoi'],
-    ['safe', 'Cassaforte', 'Per documenti e oggetti di valore'],
-    ['tv', 'Smart TV', 'Schermo piatto in camera'],
-    ['laundry', 'Lavanderia', 'Lavaggio e stiratura su richiesta'],
-    ['ticket', 'Tour e biglietti', 'Ti aiutiamo a prenotare i Musei Vaticani'],
-    ['key', 'Check-in rapido', 'Arrivo e partenza senza attese']
+    ['ticket', 'Tour e biglietti', 'Ti aiutiamo a prenotare i Musei Vaticani']
   ],
 
   places: [

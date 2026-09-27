@@ -13,10 +13,10 @@ Nomi dei file:
 | `camera-statua.jpg` | Header, Camera Doppia, galleria | presente |
 | `bagno-camera.jpg` | Galleria | presente |
 | `bagno.jpg` | Galleria | presente |
-| `camera-twin.jpg` | Header, Camera Twin, galleria | da aggiungere |
-| `bagno-lavabo.jpg` | Galleria | da aggiungere |
-| `camera-armadio.jpg` | Galleria | da aggiungere |
-| `camera-mensole.jpg` | Galleria | da aggiungere |
+| `camera-twin.jpg` | Header, Camera Twin, galleria | presente |
+| `bagno-lavabo.jpg` | Galleria | presente |
+| `camera-armadio.jpg` | Galleria | presente |
+| `camera-mensole.jpg` | Galleria | presente |
 | `terrazza.jpg` | Camera con Terrazza, galleria | da aggiungere |
 | `camera-singola.jpg` | Camera Singola | da aggiungere |
 | `san-pietro.jpg`, `castel-santangelo.jpg` | Galleria | facoltative |
