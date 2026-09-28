@@ -2,7 +2,7 @@
 
 Sito vetrina per **Residenza**, affittacamere in Viale delle Provincie 116 (interno 1, primo piano), 00162 Roma — quartiere Nomentano, a 5 minuti a piedi dalla metro B Bologna.
 
-Sito statico, senza build: `index.html` + `css/style.css` + `js/main.js`. Basta aprire `index.html` nel browser o pubblicare la cartella (GitHub Pages, Netlify, Vercel…).
+Sito statico in **un unico file**: `index.html` contiene HTML, CSS e JavaScript. Basta aprirlo nel browser o pubblicarlo così com'è (GitHub Pages, Netlify, Vercel…). Da internet carica solo i font Google, Lenis (smooth scroll, facoltativo) e le immagini dimostrative.
 
 ## Esperienza
 
