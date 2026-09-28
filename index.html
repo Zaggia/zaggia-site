@@ -264,6 +264,7 @@ html.lenis, html.lenis body { height: auto; }
   content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0;
   transition: opacity 1.9s var(--ease-io);
 }
+.door > * { -webkit-backface-visibility: hidden; backface-visibility: hidden; }
 .door--l { transform-origin: 0 50%; box-shadow: inset -1px 0 0 var(--line); }
 .door--r { transform-origin: 100% 50%; }
 .door--l::after { background: linear-gradient(90deg, rgba(30, 20, 10, 0), rgba(30, 20, 10, .22)); }
@@ -389,7 +390,7 @@ html.lenis, html.lenis body { height: auto; }
   font-size: clamp(66px, 17.4vw, 300px); line-height: .8; letter-spacing: -.035em;
   perspective: 900px;
 }
-.hero-title .ch, .foot-word .ch { display: inline-block; transform-origin: 50% 100%; }
+.hero-title .ch { display: inline-block; transform-origin: 50% 100%; }
 .js .hero-title .ch { opacity: 0; transform: translate3d(0, 40%, 0) rotateX(-90deg); }
 .is-ready .hero-title .ch {
   opacity: 1; transform: none;
@@ -546,38 +547,23 @@ html.lenis, html.lenis body { height: auto; }
 .rc-title { font-family: var(--serif); font-weight: 400; font-size: clamp(24px, 2.2vw, 34px); line-height: 1.1; }
 .rc-desc { margin-top: 6px; font-size: 14.5px; line-height: 1.55; color: var(--ink-2); max-width: 40ch; }
 .ring-ctrl { display: flex; align-items: center; gap: 10px; pointer-events: auto; }
-.rdots { display: flex; gap: 8px; margin-right: 12px; }
-.rdot { width: 8px; height: 8px; border-radius: 50%; background: var(--line-2); transition: background .4s, transform .4s var(--ease); }
-.rdot.is-active { background: var(--accent); transform: scale(1.5); }
+.rnums { display: flex; gap: 2px; margin-right: 10px; }
+.rnum {
+  min-width: 44px; height: 44px; padding: 0 6px; border-radius: 22px 22px 6px 6px;
+  font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--muted);
+  transition: background .4s var(--ease), color .4s;
+}
+.rnum:hover { color: var(--ink); background: rgba(21, 20, 19, .05); }
+.rnum.is-active { background: var(--ink); color: #fff; }
+.rc-open {
+  display: inline-flex; align-items: center; gap: 10px; margin-top: 14px; min-height: 44px; padding: 0 18px 0 20px;
+  border-radius: 999px; border: 1px solid var(--line-2); background: #fff; pointer-events: auto;
+  font-size: 13.5px; font-weight: 600; transition: background .4s var(--ease), color .4s, border-color .4s;
+}
+.rc-open:hover, .rc-open:focus-visible { background: var(--ink); color: #fff; border-color: var(--ink); }
+.rc-open svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.rcard { cursor: pointer; }
 
-/* ---------- Servizi ---------- */
-.amen { background: var(--paper); padding: clamp(40px, 6vw, 90px) 0 clamp(100px, 13vw, 180px); }
-.amen-head { display: flex; justify-content: space-between; align-items: baseline; gap: 20px; flex-wrap: wrap; margin-bottom: clamp(30px, 4vw, 56px); }
-.amen-head h3 { font-family: var(--serif); font-weight: 400; font-size: clamp(30px, 3.6vw, 56px); letter-spacing: -.02em; line-height: 1.05; }
-.amen-head h3 em { color: var(--accent); }
-.amen-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(10px, 1.2vw, 16px); }
-.amen-item {
-  --gx: 50%; --gy: 50%;
-  position: relative; overflow: hidden;
-  display: flex; flex-direction: column; justify-content: space-between; gap: 34px;
-  min-height: clamp(150px, 13vw, 190px); padding: clamp(18px, 1.8vw, 26px);
-  background: #fff; border: 1px solid var(--line); border-radius: 20px;
-  font-size: 14.5px; font-weight: 500;
-  transition: transform .8s var(--ease), box-shadow .6s var(--ease);
-}
-.amen-item::after {
-  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .5s;
-  background: radial-gradient(260px circle at var(--gx) var(--gy), rgba(164, 65, 42, .09), transparent 60%);
-}
-.amen-item:hover { box-shadow: 0 40px 60px -40px rgba(40, 28, 16, .45); }
-.amen-item:hover::after { opacity: 1; }
-.amen-item svg {
-  width: 38px; height: 38px; fill: none; stroke: var(--ink); stroke-width: 1.3;
-  stroke-linecap: round; stroke-linejoin: round;
-}
-.amen-item svg path { stroke-dasharray: 1; stroke-dashoffset: 0; transition: stroke-dashoffset 1.8s var(--ease) calc(var(--i) * .07s + .25s); }
-.amen-item svg path.dot { stroke-width: 2.6; }
-.js .amen-grid:not(.is-in) .amen-item svg path { stroke-dashoffset: 1; }
 .tilt.is-tilting { transition: transform .15s linear, box-shadow .6s var(--ease); }
 
 /* ---------- III · Il quartiere ---------- */
@@ -651,23 +637,14 @@ html.lenis, html.lenis body { height: auto; }
 .st.is-minor.on .st-in { transform: translate3d(0, -50%, 0); }
 .st.is-minor .st-in::after { display: none; }
 .st.is-minor .st-in b { font-family: var(--sans); font-size: 11.5px; font-weight: 600; color: var(--ink-2); }
+.st.is-major:not(.is-home) .st-in { left: auto; right: 0; bottom: auto; top: 0; padding: 0 18px 0 0; text-align: right; transform: translate3d(0, -50%, 0); }
+.st.is-major:not(.is-home).on .st-in { transform: translate3d(0, -50%, 0); }
+.st.is-major:not(.is-home) .st-in::after { display: none; }
+.st.is-major.is-right .st-in { right: auto; left: 0; padding: 0 0 0 18px; text-align: left; }
 .metro-cap { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 8px; font-size: 14.5px; color: var(--ink-2); text-align: center; }
 .metro-cap b { font-weight: 600; color: var(--ink); }
 .metro-b { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; }
 
-.map-card {
-  position: relative; margin-top: clamp(50px, 7vw, 100px); height: clamp(360px, 38vw, 520px);
-  border-radius: clamp(20px, 2.4vw, 34px); overflow: hidden; background: var(--stone);
-  border: 1px solid var(--line);
-}
-.map-card iframe { width: 100%; height: 100%; border: 0; filter: grayscale(1) contrast(1.04) brightness(1.03); }
-.map-pill {
-  position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);
-  display: flex; align-items: center; gap: 16px; padding: 7px 7px 7px 20px; max-width: calc(100% - 28px);
-  background: rgba(255, 255, 255, .88); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
-  border-radius: 999px; box-shadow: 0 20px 40px -24px rgba(40, 28, 16, .5); font-size: 13.5px;
-}
-.map-pill > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ---------- IV · Gli ospiti ---------- */
 .guests { background: var(--paper); padding: clamp(100px, 13vw, 190px) 0 clamp(70px, 9vw, 120px); overflow: hidden; }
@@ -720,12 +697,12 @@ html.lenis, html.lenis body { height: auto; }
 .info-list li::before { content: ""; position: absolute; left: 0; top: .55em; width: 7px; height: 7px; border-radius: 4px 4px 1px 1px; background: var(--accent); }
 
 /* ---------- VI · La chiave ---------- */
-.key { background: var(--paper); padding: clamp(100px, 12vw, 170px) 0; overflow: hidden; }
-.key-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: clamp(20px, 4vw, 70px); align-items: center; }
+.key { background: var(--paper); padding: clamp(100px, 12vw, 170px) 0; overflow: hidden; overflow: clip; }
+.key-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: clamp(20px, 4vw, 70px); align-items: start; }
 .key-text { max-width: 40ch; font-size: clamp(16px, 1.3vw, 19px); line-height: 1.6; color: var(--ink-2); }
 .cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: clamp(28px, 3.5vw, 44px); }
 
-.fob-scene { position: relative; height: clamp(470px, 46vw, 620px); perspective: 1100px; touch-action: pan-y; }
+.fob-scene { position: sticky; top: 10vh; align-self: start; height: clamp(460px, 42vw, 540px); perspective: 1100px; touch-action: pan-y; }
 .fob-nail {
   position: absolute; top: 5%; left: 50%; z-index: 3; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%;
   background: radial-gradient(circle at 35% 35%, #f6e7bd, #b39258 60%, #6d5328);
@@ -780,7 +757,121 @@ html.lenis, html.lenis body { height: auto; }
   border: 4px solid var(--brass); transform: translateZ(1.2px);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .3), 0 2px 4px rgba(40, 20, 10, .3);
 }
-.fob-hint { position: absolute; left: 0; right: 0; bottom: 0; text-align: center; font-family: var(--serif); font-style: italic; font-size: 14px; color: var(--muted); }
+.fob-hint { position: absolute; left: 0; right: 0; top: calc(5% + 370px); text-align: center; font-family: var(--serif); font-style: italic; font-size: 14px; color: var(--muted); }
+
+/* ---------- Pulsante Google Maps (quartiere) ---------- */
+.place-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: clamp(26px, 3vw, 40px); }
+.btn svg { width: 18px; height: 18px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- Modulo di prenotazione (WhatsApp) ---------- */
+.book {
+  margin-top: clamp(28px, 3.5vw, 44px); padding: clamp(22px, 3vw, 40px);
+  background: #fff; border: 1px solid var(--line); border-radius: clamp(20px, 2.4vw, 30px);
+  box-shadow: 0 50px 80px -60px rgba(40, 28, 16, .5);
+}
+.book-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 18px; }
+.field { display: grid; gap: 8px; min-width: 0; align-content: start; }
+.field--full { grid-column: 1 / -1; }
+.field label { font-size: 12px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.field label .opt { font-weight: 500; letter-spacing: .02em; text-transform: none; }
+.field input, .field select, .field textarea {
+  width: 100%; min-height: 52px; padding: 13px 15px;
+  border: 1px solid var(--line-2); border-radius: 14px; background: var(--paper); color: var(--ink);
+  font: 500 16px/1.4 var(--sans);
+  -webkit-appearance: none; appearance: none;
+  transition: border-color .3s var(--ease), background .3s, box-shadow .3s;
+}
+.field input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+.field select {
+  padding-right: 44px; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23151413' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 15px center; background-size: 16px;
+}
+.field textarea { min-height: 96px; resize: vertical; }
+.field input:focus, .field select:focus, .field textarea:focus {
+  outline: none; border-color: var(--ink); background: #fff; box-shadow: 0 0 0 4px rgba(164, 65, 42, .14);
+}
+.field [aria-invalid="true"] { border-color: #b3261e; background: #fff8f7; }
+.field-err { font-size: 13.5px; line-height: 1.4; color: #b3261e; }
+.field-err:empty { display: none; }
+.book-nights { grid-column: 1 / -1; min-height: 1.4em; margin-top: -6px; font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--accent); }
+.book-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; margin-top: 24px; }
+.book-help { max-width: 40ch; font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+.book-alt { margin-top: 18px; font-size: 13.5px; color: var(--muted); }
+.book-alt a { color: var(--ink); border-bottom: 1px solid var(--line-2); transition: color .3s, border-color .3s; }
+.book-alt a:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ---------- Visore della camera (galleria) ---------- */
+.rv { position: fixed; inset: 0; z-index: 180; display: none; }
+.rv.is-mounted { display: block; }
+.rv-open, .rv-open body { overflow: hidden; }
+.rv-backdrop {
+  position: absolute; inset: 0; background: rgba(21, 20, 19, .5); opacity: 0;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  transition: opacity .6s var(--ease);
+}
+.rv.is-open .rv-backdrop { opacity: 1; }
+.rv-panel {
+  position: absolute; inset: clamp(0px, 1.8vw, 26px); overflow: hidden;
+  display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(320px, 1fr);
+  background: var(--white); border-radius: clamp(0px, 2vw, 30px);
+  box-shadow: 0 60px 120px -40px rgba(20, 14, 8, .5);
+  opacity: 0; transform-origin: 50% 100%;
+  transform: perspective(1600px) translate3d(0, 50px, 0) rotateX(9deg) scale(.96);
+  transition: transform .9s var(--ease), opacity .5s var(--ease);
+}
+.rv.is-open .rv-panel { opacity: 1; transform: none; }
+.rv-media { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 12px; min-height: 0; padding: 12px; background: var(--stone); }
+.rv-stage { position: relative; min-height: 0; overflow: hidden; border-radius: clamp(12px, 1.4vw, 20px); background: var(--stone-2); touch-action: pan-y; }
+.rv-photo { position: absolute; inset: 0; transition: opacity .55s var(--ease), transform .8s var(--ease); }
+.rv-photo.is-swap {
+  opacity: 0;
+  transform: perspective(1400px) translate3d(calc(var(--dir, 1) * 50px), 0, 0) rotateY(calc(var(--dir, 1) * -7deg)) scale(1.03);
+}
+.rv-nav {
+  position: absolute; top: 50%; z-index: 2; display: grid; place-items: center;
+  width: 52px; height: 52px; margin-top: -26px; border-radius: 50%;
+  background: rgba(255, 255, 255, .9); color: var(--ink);
+  box-shadow: 0 10px 30px -12px rgba(20, 14, 8, .45);
+  transition: transform .4s var(--ease), background .3s;
+}
+.rv-nav:hover { background: #fff; transform: scale(1.08); }
+.rv-nav svg, .rv-close svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.rv-prev { left: 14px; }
+.rv-next { right: 14px; }
+.rv-count {
+  position: absolute; left: 14px; bottom: 14px; z-index: 2; padding: 7px 13px; border-radius: 999px;
+  background: rgba(255, 255, 255, .9); font-size: 12.5px; font-weight: 600; letter-spacing: .06em;
+}
+.rv-thumbs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.rv-thumbs::-webkit-scrollbar { display: none; }
+.rv-thumb {
+  position: relative; flex: 0 0 auto; width: 88px; height: 62px; overflow: hidden; border-radius: 10px;
+  opacity: .55; transition: opacity .3s, box-shadow .3s;
+}
+.rv-thumb .media { position: absolute; inset: 0; }
+.rv-thumb .media::before { font-size: 15px; }
+.rv-thumb:hover, .rv-thumb.is-active { opacity: 1; }
+.rv-thumb.is-active { box-shadow: inset 0 0 0 2px var(--ink); }
+.rv-thumb.is-active .media { box-shadow: inset 0 0 0 2px var(--ink); }
+.rv-info { display: flex; flex-direction: column; gap: 16px; min-height: 0; overflow-y: auto; padding: clamp(28px, 3.4vw, 56px); padding-top: clamp(40px, 5vw, 72px); }
+.rv-num { font-family: var(--serif); font-style: italic; font-size: 22px; color: var(--accent); }
+.rv-title { font-family: var(--serif); font-weight: 400; font-size: clamp(40px, 4.2vw, 66px); line-height: .95; letter-spacing: -.025em; }
+.rv-sub { font-size: 15.5px; line-height: 1.55; color: var(--ink-2); }
+.rv-feat { display: grid; gap: 13px; padding: 20px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.rv-feat li { display: flex; align-items: center; gap: 14px; font-size: 14.5px; line-height: 1.4; }
+.rv-feat svg { flex: 0 0 26px; width: 26px; height: 26px; fill: none; stroke: var(--ink); stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
+.rv-actions { display: grid; gap: 16px; margin-top: auto; padding-top: 8px; }
+.rv-actions .btn { width: 100%; }
+.rv-rooms { display: flex; justify-content: space-between; gap: 10px; }
+.rv-rooms button { min-height: 44px; padding: 0 4px; font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--ink-2); transition: color .3s; }
+.rv-rooms button:hover { color: var(--accent); }
+.rv-close {
+  position: absolute; top: 14px; right: 14px; z-index: 3; display: grid; place-items: center;
+  width: 48px; height: 48px; border-radius: 50%; background: #fff; border: 1px solid var(--line-2); color: var(--ink);
+  transition: background .3s, color .3s, transform .4s var(--ease);
+}
+.rv-close:hover { background: var(--ink); color: #fff; transform: rotate(90deg); }
 
 /* ---------- Footer ---------- */
 .foot { background: var(--ink); color: #efe9e1; padding: clamp(80px, 10vw, 140px) 0 28px; overflow: hidden; }
@@ -795,16 +886,6 @@ html.lenis, html.lenis body { height: auto; }
 .foot-cols p { margin-top: 12px; font-size: 14.5px; line-height: 1.7; color: rgba(239, 233, 225, .82); }
 .foot-cols a { border-bottom: 1px solid rgba(239, 233, 225, .25); transition: color .3s, border-color .3s; }
 .foot-cols a:hover { color: #fff; border-color: #e0a58d; }
-.foot-word {
-  margin-top: clamp(40px, 6vw, 90px); text-align: center; white-space: nowrap;
-  font-family: var(--serif); font-size: clamp(64px, 18.5vw, 320px); line-height: .82; letter-spacing: -.04em;
-  perspective: 900px; color: #fff;
-}
-.js .foot-word .ch {
-  --k: clamp(0, calc(var(--p, 1) * 1.9 - var(--i) * .09), 1);
-  opacity: var(--k);
-  transform: translate3d(0, calc((1 - var(--k)) * 50%), 0) rotateX(calc((1 - var(--k)) * -90deg));
-}
 .foot-bottom {
   display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
   margin-top: 26px; padding-top: 20px; border-top: 1px solid rgba(239, 233, 225, .14);
@@ -828,7 +909,7 @@ html.lenis, html.lenis body { height: auto; }
 @media (max-width: 1100px) {
   .rail { display: none; }
   .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .amen-grid, .info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 860px) {
   .nav-links { display: none; }
@@ -840,20 +921,26 @@ html.lenis, html.lenis body { height: auto; }
   .rooms-lede { display: none; }
   .rooms-bottom { flex-direction: column; align-items: stretch; }
   .ring-ctrl { justify-content: space-between; }
-  .rdots { margin-right: auto; }
+  .rnums { margin-right: auto; }
   .deck { height: clamp(320px, 88vw, 420px); }
   .foot-cols { grid-template-columns: minmax(0, 1fr); }
+  .fob-scene { position: relative; top: auto; height: 440px; }
+  .rv-panel { inset: 0; border-radius: 0; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; overflow-y: auto; }
+  .rv-media { padding: 0 0 10px; }
+  .rv-stage { aspect-ratio: 4 / 3.3; border-radius: 0; }
+  .rv-thumbs { padding: 0 12px; }
+  .rv-info { overflow: visible; padding: 26px 20px 44px; }
+  .rv-close { position: fixed; }
 }
 @media (max-width: 560px) {
   .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .stat:last-child { grid-column: 1 / -1; }
-  .amen-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .amen-item { min-height: 132px; gap: 20px; font-size: 13.5px; }
   .info-grid { grid-template-columns: minmax(0, 1fr); }
   .info-card { min-height: 0; }
   .btn { height: 54px; padding: 0 22px; }
-  .map-pill > span { display: none; }
-  .map-pill { padding: 6px; }
+  .book-grid { grid-template-columns: minmax(0, 1fr); }
+  .ring-ctrl .round-btn { display: none; }
+  .book-foot .btn { width: 100%; }
   .rc-desc { font-size: 13.5px; }
   .hero-foot { font-size: 10px; letter-spacing: .16em; }
 }
@@ -970,7 +1057,7 @@ html.lenis, html.lenis body { height: auto; }
     <a href="#info"><span data-t="Info">Info</span></a>
   </nav>
   <div class="nav-actions">
-    <a class="btn btn--ink btn--sm magnetic" href="https://www.booking.com/hotel/it/residenza-roma1.it.html" target="_blank" rel="noopener">Prenota</a>
+    <a class="btn btn--ink btn--sm magnetic" href="#prenota">Prenota</a>
     <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="menu">
       <span class="sr-only">Apri il menu</span><i></i><i></i>
     </button>
@@ -998,7 +1085,7 @@ html.lenis, html.lenis body { height: auto; }
   <a href="#prenota" data-for="prenota" tabindex="-1">VI</a>
 </nav>
 
-<div class="cursor" id="cursor" aria-hidden="true">
+<div class="cursor is-out" id="cursor" aria-hidden="true">
   <div class="cursor-dot"></div>
   <div class="cursor-ring"><span class="cursor-label"></span></div>
 </div>
@@ -1127,50 +1214,50 @@ html.lenis, html.lenis body { height: auto; }
           <span class="line" style="--li:1"><span><em>Nessun rumore.</em></span></span>
         </h2>
       </header>
-      <p class="rooms-lede" data-reveal>Tutte matrimoniali, tutte con bagno privato, tutte rinnovate di recente. Scorrete o trascinate la ruota per scoprire cosa vi aspetta.</p>
+      <p class="rooms-lede" data-reveal>Tutte matrimoniali, con bagno privato e rinnovate di recente; alcune affacciano sulla città. Scegliete una camera e guardatela da vicino, foto per foto.</p>
     </div>
 
     <div class="ring-stage" id="ringStage" data-cursor="Trascina">
       <div class="ring" id="ring">
-        <article class="rcard" data-title="Il riposo" data-desc="Letti matrimoniali, lenzuola e asciugamani inclusi. Camere tranquille e silenziose, anche di notte.">
+        <article class="rcard" data-photos="img/camera-1-1.jpg|https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&amp;fit=crop&amp;w=1400&amp;q=80 img/camera-1-2.jpg|https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&amp;fit=crop&amp;w=1400&amp;q=80 img/camera-1-3.jpg|https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&amp;fit=crop&amp;w=1400&amp;q=80 img/camera-1-4.jpg|https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&amp;fit=crop&amp;w=1400&amp;q=80">
           <div class="rcard-face rcard-front">
-            <div class="media" data-label="I"><img data-src="img/camera-1.jpg|https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&amp;fit=crop&amp;w=900&amp;q=80" alt="Camera matrimoniale"></div>
-            <span class="rcard-num">I</span><span class="rcard-title">Il riposo</span><span class="rcard-shade"></span>
+            <div class="media" data-label="I"><img data-src="img/camera-1-1.jpg|https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&amp;fit=crop&amp;w=1400&amp;q=80" alt="Camera I"></div>
+            <span class="rcard-num">I</span><span class="rcard-title">Camera I</span><span class="rcard-shade"></span>
           </div>
           <div class="rcard-face rcard-back"><span>I</span></div>
         </article>
-        <article class="rcard" data-title="La vista" data-desc="Camere rinnovate di recente e curate nei dettagli; alcune affacciano sulla città.">
+        <article class="rcard" data-photos="img/camera-2-1.jpg|https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&amp;fit=crop&amp;w=1400&amp;q=80 img/camera-2-2.jpg|https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&amp;fit=crop&amp;w=1400&amp;q=80 img/camera-2-3.jpg|https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&amp;fit=crop&amp;w=1400&amp;q=80 img/camera-2-4.jpg|https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&amp;fit=crop&amp;w=1400&amp;q=80">
           <div class="rcard-face rcard-front">
-            <div class="media" data-label="II"><img data-src="img/camera-2.jpg|https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&amp;fit=crop&amp;w=900&amp;q=80" alt="Camera con vista sulla città"></div>
-            <span class="rcard-num">II</span><span class="rcard-title">La vista</span><span class="rcard-shade"></span>
+            <div class="media" data-label="II"><img data-src="img/camera-2-1.jpg|https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&amp;fit=crop&amp;w=1400&amp;q=80" alt="Camera II"></div>
+            <span class="rcard-num">II</span><span class="rcard-title">Camera II</span><span class="rcard-shade"></span>
           </div>
           <div class="rcard-face rcard-back"><span>II</span></div>
         </article>
-        <article class="rcard" data-title="Il bagno" data-desc="Bagno privato in ogni camera, con doccia, bidet, asciugacapelli e set di cortesia.">
+        <article class="rcard" data-photos="img/camera-3-1.jpg|https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&amp;fit=crop&amp;w=1400&amp;q=80 img/camera-3-2.jpg|https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&amp;fit=crop&amp;w=1400&amp;q=80 img/camera-3-3.jpg|https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&amp;fit=crop&amp;w=1400&amp;q=80 img/camera-3-4.jpg|https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&amp;fit=crop&amp;w=1400&amp;q=80">
           <div class="rcard-face rcard-front">
-            <div class="media" data-label="III"><img data-src="img/camera-3.jpg|https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&amp;fit=crop&amp;w=900&amp;q=80" alt="Bagno privato"></div>
-            <span class="rcard-num">III</span><span class="rcard-title">Il bagno</span><span class="rcard-shade"></span>
+            <div class="media" data-label="III"><img data-src="img/camera-3-1.jpg|https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&amp;fit=crop&amp;w=1400&amp;q=80" alt="Camera III"></div>
+            <span class="rcard-num">III</span><span class="rcard-title">Camera III</span><span class="rcard-shade"></span>
           </div>
           <div class="rcard-face rcard-back"><span>III</span></div>
         </article>
-        <article class="rcard" data-title="Il clima" data-desc="Aria condizionata d'estate, riscaldamento d'inverno: il comfort giusto in ogni stagione.">
+        <article class="rcard" data-photos="img/camera-4-1.jpg|https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&amp;fit=crop&amp;w=1400&amp;q=80 img/camera-4-2.jpg|https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&amp;fit=crop&amp;w=1400&amp;q=80 img/camera-4-3.jpg|https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&amp;fit=crop&amp;w=1400&amp;q=80 img/camera-4-4.jpg|https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&amp;fit=crop&amp;w=1400&amp;q=80">
           <div class="rcard-face rcard-front">
-            <div class="media" data-label="IV"><img data-src="img/camera-4.jpg|https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&amp;fit=crop&amp;w=900&amp;q=80" alt="Camera climatizzata"></div>
-            <span class="rcard-num">IV</span><span class="rcard-title">Il clima</span><span class="rcard-shade"></span>
+            <div class="media" data-label="IV"><img data-src="img/camera-4-1.jpg|https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&amp;fit=crop&amp;w=1400&amp;q=80" alt="Camera IV"></div>
+            <span class="rcard-num">IV</span><span class="rcard-title">Camera IV</span><span class="rcard-shade"></span>
           </div>
           <div class="rcard-face rcard-back"><span>IV</span></div>
         </article>
-        <article class="rcard" data-title="La pausa" data-desc="Bollitore elettrico e frigorifero in camera: un tè caldo o una bottiglia fresca, al rientro.">
+        <article class="rcard" data-photos="img/camera-5-1.jpg|https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&amp;fit=crop&amp;w=1400&amp;q=80 img/camera-5-2.jpg|https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&amp;fit=crop&amp;w=1400&amp;q=80 img/camera-5-3.jpg|https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&amp;fit=crop&amp;w=1400&amp;q=80 img/camera-5-4.jpg|https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&amp;fit=crop&amp;w=1400&amp;q=80">
           <div class="rcard-face rcard-front">
-            <div class="media" data-label="V"><img data-src="img/camera-5.jpg|https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&amp;fit=crop&amp;w=900&amp;q=80" alt="Dettaglio della camera"></div>
-            <span class="rcard-num">V</span><span class="rcard-title">La pausa</span><span class="rcard-shade"></span>
+            <div class="media" data-label="V"><img data-src="img/camera-5-1.jpg|https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&amp;fit=crop&amp;w=1400&amp;q=80" alt="Camera V"></div>
+            <span class="rcard-num">V</span><span class="rcard-title">Camera V</span><span class="rcard-shade"></span>
           </div>
           <div class="rcard-face rcard-back"><span>V</span></div>
         </article>
-        <article class="rcard" data-title="Il tempo" data-desc="Scrivania, TV a schermo piatto con canali satellitari e Wi‑Fi gratuito in tutta la struttura.">
+        <article class="rcard" data-photos="img/camera-6-1.jpg|https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&amp;fit=crop&amp;w=1400&amp;q=80 img/camera-6-2.jpg|https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&amp;fit=crop&amp;w=1400&amp;q=80 img/camera-6-3.jpg|https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&amp;fit=crop&amp;w=1400&amp;q=80 img/camera-6-4.jpg|https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&amp;fit=crop&amp;w=1400&amp;q=80">
           <div class="rcard-face rcard-front">
-            <div class="media" data-label="VI"><img data-src="img/camera-6.jpg|https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&amp;fit=crop&amp;w=900&amp;q=80" alt="Scrivania e TV in camera"></div>
-            <span class="rcard-num">VI</span><span class="rcard-title">Il tempo</span><span class="rcard-shade"></span>
+            <div class="media" data-label="VI"><img data-src="img/camera-6-1.jpg|https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&amp;fit=crop&amp;w=1400&amp;q=80" alt="Camera VI"></div>
+            <span class="rcard-num">VI</span><span class="rcard-title">Camera VI</span><span class="rcard-shade"></span>
           </div>
           <div class="rcard-face rcard-back"><span>VI</span></div>
         </article>
@@ -1181,47 +1268,24 @@ html.lenis, html.lenis body { height: auto; }
       <div class="rooms-caption" id="rcCap" aria-live="polite">
         <span class="rc-num" id="rcNum">I</span>
         <div>
-          <h3 class="rc-title" id="rcTitle">Il riposo</h3>
-          <p class="rc-desc" id="rcDesc">Letti matrimoniali, lenzuola e asciugamani inclusi. Camere tranquille e silenziose, anche di notte.</p>
+          <h3 class="rc-title" id="rcTitle">Camera I</h3>
+          <p class="rc-desc">Matrimoniale con bagno privato, aria condizionata, TV e Wi‑Fi gratuito.</p>
+          <button class="rc-open" id="rcOpen" type="button">Guarda la camera<svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg></button>
         </div>
       </div>
       <div class="ring-ctrl">
-        <div class="rdots" role="group" aria-label="Scegli la camera">
-          <button class="rdot is-active" type="button" aria-label="Camera I"></button>
-          <button class="rdot" type="button" aria-label="Camera II"></button>
-          <button class="rdot" type="button" aria-label="Camera III"></button>
-          <button class="rdot" type="button" aria-label="Camera IV"></button>
-          <button class="rdot" type="button" aria-label="Camera V"></button>
-          <button class="rdot" type="button" aria-label="Camera VI"></button>
+        <div class="rnums" role="group" aria-label="Scegli la camera">
+          <button class="rnum is-active" type="button" aria-label="Camera I">I</button>
+          <button class="rnum" type="button" aria-label="Camera II">II</button>
+          <button class="rnum" type="button" aria-label="Camera III">III</button>
+          <button class="rnum" type="button" aria-label="Camera IV">IV</button>
+          <button class="rnum" type="button" aria-label="Camera V">V</button>
+          <button class="rnum" type="button" aria-label="Camera VI">VI</button>
         </div>
         <button class="round-btn" id="ringPrev" type="button" aria-label="Camera precedente"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
         <button class="round-btn" id="ringNext" type="button" aria-label="Camera successiva"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
       </div>
     </div>
-  </div>
-</section>
-
-<!-- ============ Servizi in camera ============ -->
-<section class="amen" aria-labelledby="amen-t">
-  <div class="wrap">
-    <div class="amen-head" data-reveal>
-      <span class="eyebrow">In ogni camera</span>
-      <h3 id="amen-t">I dettagli, <em>già pensati.</em></h3>
-    </div>
-    <ul class="amen-grid" data-reveal>
-      <li class="amen-item tilt" style="--i:0"><svg viewBox="0 0 24 24"><path pathLength="1" d="M12 2.5v19"/><path pathLength="1" d="M3.8 7.25l16.4 9.5"/><path pathLength="1" d="M3.8 16.75l16.4-9.5"/><path pathLength="1" d="M9.6 4.1 12 6.4l2.4-2.3M9.6 19.9l2.4-2.3 2.4 2.3"/></svg><span>Aria condizionata</span></li>
-      <li class="amen-item tilt" style="--i:1"><svg viewBox="0 0 24 24"><path pathLength="1" d="M10 13.8V5a2 2 0 0 1 4 0v8.8a4 4 0 1 1-4 0Z"/><path pathLength="1" d="M12 9.5v6.5"/><path pathLength="1" d="M17 5h2.5M17 8h2.5M17 11h2.5"/></svg><span>Riscaldamento</span></li>
-      <li class="amen-item tilt" style="--i:2"><svg viewBox="0 0 24 24"><path pathLength="1" d="M2.5 9.2a14 14 0 0 1 19 0"/><path pathLength="1" d="M5.6 12.6a9.6 9.6 0 0 1 12.8 0"/><path pathLength="1" d="M8.7 16a5 5 0 0 1 6.6 0"/><path class="dot" pathLength="1" d="M12 19.6h.01"/></svg><span>Wi‑Fi gratuito</span></li>
-      <li class="amen-item tilt" style="--i:3"><svg viewBox="0 0 24 24"><path pathLength="1" d="M4 4.5h16a1.5 1.5 0 0 1 1.5 1.5v9.5A1.5 1.5 0 0 1 20 17H4a1.5 1.5 0 0 1-1.5-1.5V6A1.5 1.5 0 0 1 4 4.5Z"/><path pathLength="1" d="M8 20.5h8M12 17v3.5"/></svg><span>TV a schermo piatto</span></li>
-      <li class="amen-item tilt" style="--i:4"><svg viewBox="0 0 24 24"><path pathLength="1" d="M5 21V7.5A4.5 4.5 0 0 1 14 7.5"/><path pathLength="1" d="M10.5 7.5h7l-1.2 3h-4.6Z"/><path pathLength="1" d="M12 13.5v.8M15.5 13.5v.8M13.7 16.2v.8M10.5 16.2v.8M17 16.2v.8M12 19v.8M15.5 19v.8"/></svg><span>Bagno privato con doccia</span></li>
-      <li class="amen-item tilt" style="--i:5"><svg viewBox="0 0 24 24"><path pathLength="1" d="M15 5.5H8.5a4.5 4.5 0 0 0 0 9H15l6-2.5v-4Z"/><path pathLength="1" d="M9.5 14.5 11 21h2.6l-1-6.5"/><path pathLength="1" d="M8.5 8.4a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 1 0 0-3.2Z"/></svg><span>Asciugacapelli</span></li>
-      <li class="amen-item tilt" style="--i:6"><svg viewBox="0 0 24 24"><path pathLength="1" d="M9.5 2.5h5M10.5 2.5v3M13.5 2.5v3"/><path pathLength="1" d="M9.5 5.5h5A2.5 2.5 0 0 1 17 8v11a2.5 2.5 0 0 1-2.5 2.5h-5A2.5 2.5 0 0 1 7 19V8a2.5 2.5 0 0 1 2.5-2.5Z"/><path pathLength="1" d="M7 11h10M7 16h10"/></svg><span>Set di cortesia</span></li>
-      <li class="amen-item tilt" style="--i:7"><svg viewBox="0 0 24 24"><path pathLength="1" d="M6.5 20.5H17L16 11a4.5 4.5 0 0 0-4.5-4h-.5A4.5 4.5 0 0 0 6.5 11Z"/><path pathLength="1" d="M9.3 7.3V6a2.2 2.2 0 0 1 4.4 0v1.3"/><path pathLength="1" d="M16.3 11.5 20 9.8v4.7l-3.4 2.6"/></svg><span>Bollitore elettrico</span></li>
-      <li class="amen-item tilt" style="--i:8"><svg viewBox="0 0 24 24"><path pathLength="1" d="M8 2.5h8a2 2 0 0 1 2 2v15a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-15a2 2 0 0 1 2-2Z"/><path pathLength="1" d="M6 10h12"/><path pathLength="1" d="M9 5.5v2M9 12.5v3"/></svg><span>Frigorifero</span></li>
-      <li class="amen-item tilt" style="--i:9"><svg viewBox="0 0 24 24"><path pathLength="1" d="M2.5 10h19"/><path pathLength="1" d="M4.5 10v10.5M19.5 10v10.5"/><path pathLength="1" d="M13 10v6h6.5M13 13h6.5"/><path pathLength="1" d="M6.5 10V5.5h6V10"/></svg><span>Scrivania</span></li>
-      <li class="amen-item tilt" style="--i:10"><svg viewBox="0 0 24 24"><path pathLength="1" d="M5 13h14a1.5 1.5 0 0 1 1.5 1.5v3A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5v-3A1.5 1.5 0 0 1 5 13Z"/><path pathLength="1" d="M7 7h10a1.5 1.5 0 0 1 1.5 1.5V13h-13V8.5A1.5 1.5 0 0 1 7 7Z"/><path pathLength="1" d="M9.5 7v12"/></svg><span>Lenzuola e asciugamani</span></li>
-      <li class="amen-item tilt" style="--i:11"><svg viewBox="0 0 24 24"><path pathLength="1" d="M12 2.5a9.5 9.5 0 1 0 0 19 9.5 9.5 0 1 0 0-19Z"/><path pathLength="1" d="M5.3 5.3l13.4 13.4"/><path pathLength="1" d="M6.5 12H16v2.5H6.5Z"/><path pathLength="1" d="M17.5 12v2.5"/></svg><span>Struttura non fumatori</span></li>
-    </ul>
   </div>
 </section>
 
@@ -1246,6 +1310,9 @@ html.lenis, html.lenis body { height: auto; }
         <li style="--i:4"><span>Stazione Roma Termini</span><b>2,1 km</b></li>
         <li style="--i:5"><span>Aeroporto di Ciampino</span><b>24 km</b></li>
       </ul>
+      <div class="place-actions" data-reveal>
+        <a class="btn btn--ink magnetic" href="https://maps.app.goo.gl/EQ8xVYwSJT9c3mvT9" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z"/><path d="M12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/></svg>Apri in Google Maps</a>
+      </div>
     </div>
 
     <div class="metro" id="metro">
@@ -1260,15 +1327,6 @@ html.lenis, html.lenis body { height: auto; }
     </div>
   </div>
 
-  <div class="wrap">
-    <div class="map-card" data-reveal>
-      <iframe title="Mappa: Residenza, Viale delle Provincie 116, Roma" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=Viale%20delle%20Provincie%20116%2C%2000162%20Roma&amp;z=15&amp;output=embed"></iframe>
-      <div class="map-pill">
-        <span><b>Residenza</b> · Viale delle Provincie 116, 00162 Roma</span>
-        <a class="btn btn--ink btn--sm magnetic" href="https://maps.app.goo.gl/EQ8xVYwSJT9c3mvT9" target="_blank" rel="noopener">Apri in Google Maps</a>
-      </div>
-    </div>
-  </div>
 </section>
 
 <!-- ============ IV · Gli ospiti ============ -->
@@ -1377,11 +1435,66 @@ html.lenis, html.lenis body { height: auto; }
           <span class="line" style="--li:1"><span>per <em>Roma.</em></span></span>
         </h2>
       </header>
-      <p class="key-text" data-reveal>Scegliete le date e prenotate la vostra camera su Booking.com. Al vostro arrivo vi aspettiamo al primo piano, interno 1.</p>
-      <div class="cta-row" data-reveal>
-        <a class="btn btn--ink magnetic" href="https://www.booking.com/hotel/it/residenza-roma1.it.html" target="_blank" rel="noopener">Prenota su Booking.com <span class="btn-arrow" aria-hidden="true">↗</span></a>
-        <a class="btn btn--line magnetic" href="https://maps.app.goo.gl/EQ8xVYwSJT9c3mvT9" target="_blank" rel="noopener">Come arrivare</a>
-      </div>
+      <p class="key-text" data-reveal>Scriveteci direttamente, senza intermediari: compilate il modulo e la richiesta arriva su WhatsApp, già scritta. Vi rispondiamo in chat.</p>
+      <!-- Numero WhatsApp della struttura in data-whatsapp: prefisso internazionale senza "+" né spazi, es. 393331234567 -->
+      <form class="book" id="bookForm" data-reveal novalidate data-whatsapp="">
+        <div class="book-grid">
+          <div class="field field--full">
+            <label for="bkName">Nome e cognome</label>
+            <input id="bkName" name="name" type="text" autocomplete="name" required aria-describedby="bkNameErr">
+            <p class="field-err" id="bkNameErr" role="alert"></p>
+          </div>
+          <div class="field">
+            <label for="bkIn">Arrivo</label>
+            <input id="bkIn" name="checkin" type="date" required aria-describedby="bkInErr">
+            <p class="field-err" id="bkInErr" role="alert"></p>
+          </div>
+          <div class="field">
+            <label for="bkOut">Partenza</label>
+            <input id="bkOut" name="checkout" type="date" required aria-describedby="bkOutErr">
+            <p class="field-err" id="bkOutErr" role="alert"></p>
+          </div>
+          <p class="book-nights" id="bkNights" aria-live="polite"></p>
+          <div class="field">
+            <label for="bkGuests">Ospiti</label>
+            <select id="bkGuests" name="guests">
+              <option value="1">1 ospite</option>
+              <option value="2" selected>2 ospiti</option>
+              <option value="3">3 ospiti</option>
+              <option value="4">4 ospiti</option>
+              <option value="5">5 ospiti</option>
+              <option value="6">6 ospiti</option>
+              <option value="7">7 ospiti</option>
+              <option value="8">8 ospiti</option>
+              <option value="9">9 ospiti</option>
+              <option value="10">10 ospiti</option>
+              <option value="11">11 ospiti</option>
+              <option value="12">12 ospiti</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="bkRoom">Camera</label>
+            <select id="bkRoom" name="room">
+              <option value="">Nessuna preferenza</option>
+              <option value="Camera I">Camera I</option>
+              <option value="Camera II">Camera II</option>
+              <option value="Camera III">Camera III</option>
+              <option value="Camera IV">Camera IV</option>
+              <option value="Camera V">Camera V</option>
+              <option value="Camera VI">Camera VI</option>
+            </select>
+          </div>
+          <div class="field field--full">
+            <label for="bkNote">Note <span class="opt">(facoltativo)</span></label>
+            <textarea id="bkNote" name="note" rows="3" placeholder="Orario di arrivo, richieste particolari…"></textarea>
+          </div>
+        </div>
+        <div class="book-foot">
+          <button class="btn btn--ink magnetic" type="submit"><svg viewBox="0 0 24 24"><path d="M20.5 11.6a8.6 8.6 0 0 1-12.7 7.6L3.5 20.5l1.3-4.2a8.6 8.6 0 1 1 15.7-4.7Z"/><path d="M9 9.2c.2 2.6 3 5.4 5.6 5.6l1.1-1.3-1.7-1-.8.7c-.9-.4-1.7-1.2-2.1-2.1l.7-.8-1-1.7Z"/></svg>Invia la richiesta su WhatsApp</button>
+          <p class="book-help">Si apre WhatsApp con il messaggio pronto: basta premere invio.</p>
+        </div>
+      </form>
+      <p class="book-alt" data-reveal>Preferite prenotare online? <a href="https://www.booking.com/hotel/it/residenza-roma1.it.html" target="_blank" rel="noopener">Prenotate su Booking.com</a></p>
     </div>
 
     <div class="fob-scene" id="fobScene" data-cursor="Muovi" aria-hidden="true">
@@ -1422,13 +1535,50 @@ html.lenis, html.lenis body { height: auto; }
       <div><span class="eyebrow">Orari</span><p>Check-in 12:30 – 21:00<br>Check-out entro le 10:30</p></div>
       <div><span class="eyebrow">Link</span><p><a href="https://www.booking.com/hotel/it/residenza-roma1.it.html" target="_blank" rel="noopener">Booking.com</a><br><a href="https://www.tripadvisor.it/Hotel_Review-g187791-d26612960-Reviews-Affittacamere_Residenza-Rome_Lazio.html" target="_blank" rel="noopener">Tripadvisor</a><br><a href="https://maps.app.goo.gl/EQ8xVYwSJT9c3mvT9" target="_blank" rel="noopener">Google Maps</a></p></div>
     </div>
-    <div class="foot-word" data-scrub aria-hidden="true"><span class="split">Residenza</span></div>
     <div class="foot-bottom">
       <span>© 2026 Residenza · Affittacamere · Roma</span>
       <span>Anteprima del sito · immagini dimostrative</span>
     </div>
   </div>
 </footer>
+
+<!-- Visore della camera: galleria a tutto schermo -->
+<div class="rv" id="roomViewer" role="dialog" aria-modal="true" aria-labelledby="rvTitle" hidden>
+  <div class="rv-backdrop" data-rv-close></div>
+  <div class="rv-panel" data-lenis-prevent>
+    <button class="rv-close" type="button" data-rv-close aria-label="Chiudi"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <div class="rv-media">
+      <div class="rv-stage" id="rvStage">
+        <div class="rv-photo media" id="rvPhoto" data-label=""><img id="rvImg" alt=""></div>
+        <button class="rv-nav rv-prev" id="rvPrev" type="button" aria-label="Foto precedente"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <button class="rv-nav rv-next" id="rvNext" type="button" aria-label="Foto successiva"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+        <span class="rv-count" id="rvCount" aria-live="polite">1 / 4</span>
+      </div>
+      <div class="rv-thumbs" id="rvThumbs" role="group" aria-label="Foto della camera"></div>
+    </div>
+    <div class="rv-info">
+      <span class="rv-num" id="rvNum">I</span>
+      <h3 class="rv-title" id="rvTitle">Camera I</h3>
+      <p class="rv-sub">Camera matrimoniale con bagno privato, rinnovata di recente.</p>
+      <ul class="rv-feat">
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13h14a1.5 1.5 0 0 1 1.5 1.5v3A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5v-3A1.5 1.5 0 0 1 5 13Z"/><path d="M7 7h10a1.5 1.5 0 0 1 1.5 1.5V13h-13V8.5A1.5 1.5 0 0 1 7 7Z"/><path d="M9.5 7v12"/></svg>Letto matrimoniale, lenzuola e asciugamani</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V7.5A4.5 4.5 0 0 1 14 7.5"/><path d="M10.5 7.5h7l-1.2 3h-4.6Z"/><path d="M12 13.5v.8M15.5 13.5v.8M13.7 16.2v.8M10.5 16.2v.8M17 16.2v.8M12 19v.8M15.5 19v.8"/></svg>Bagno privato con doccia e bidet</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5.5H8.5a4.5 4.5 0 0 0 0 9H15l6-2.5v-4Z"/><path d="M9.5 14.5 11 21h2.6l-1-6.5"/><path d="M8.5 8.4a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 1 0 0-3.2Z"/></svg>Asciugacapelli e set di cortesia</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5v19"/><path d="M3.8 7.25l16.4 9.5"/><path d="M3.8 16.75l16.4-9.5"/><path d="M9.6 4.1 12 6.4l2.4-2.3M9.6 19.9l2.4-2.3 2.4 2.3"/></svg>Aria condizionata e riscaldamento</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4.5h16a1.5 1.5 0 0 1 1.5 1.5v9.5A1.5 1.5 0 0 1 20 17H4a1.5 1.5 0 0 1-1.5-1.5V6A1.5 1.5 0 0 1 4 4.5Z"/><path d="M8 20.5h8M12 17v3.5"/></svg>TV a schermo piatto con canali satellitari</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 20.5H17L16 11a4.5 4.5 0 0 0-4.5-4h-.5A4.5 4.5 0 0 0 6.5 11Z"/><path d="M9.3 7.3V6a2.2 2.2 0 0 1 4.4 0v1.3"/><path d="M16.3 11.5 20 9.8v4.7l-3.4 2.6"/></svg>Bollitore elettrico e frigorifero</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 9.2a14 14 0 0 1 19 0"/><path d="M5.6 12.6a9.6 9.6 0 0 1 12.8 0"/><path d="M8.7 16a5 5 0 0 1 6.6 0"/><path d="M12 19.6h.01"/></svg>Scrivania e Wi‑Fi gratuito</li>
+      </ul>
+      <div class="rv-actions">
+        <button class="btn btn--ink" id="rvBook" type="button">Richiedi questa camera</button>
+        <div class="rv-rooms">
+          <button id="rvPrevRoom" type="button">← Camera VI</button>
+          <button id="rvNextRoom" type="button">Camera II →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="grain" aria-hidden="true"></div>
 
@@ -1578,7 +1728,6 @@ document.addEventListener('DOMContentLoaded', function () {
     return out;
   }
   splitChars($('.hero-title .split'));
-  splitChars($('.foot-word .split'));
 
   /* ---------- Preloader: il portone si apre ---------- */
   var doors = $('#doors');
@@ -1590,8 +1739,8 @@ document.addEventListener('DOMContentLoaded', function () {
   function openDoors() {
     doors.classList.add('is-open');
     setTimeout(startSite, 380);
-    setTimeout(function () { doors.classList.add('is-gone'); }, 1500);
-    setTimeout(function () { if (doors.parentNode) doors.parentNode.removeChild(doors); }, 2400);
+    setTimeout(function () { doors.classList.add('is-gone'); }, 1150);
+    setTimeout(function () { if (doors.parentNode) doors.parentNode.removeChild(doors); }, 2000);
   }
   window.scrollTo(0, 0);
   if (!doors || reduced) {
@@ -1600,17 +1749,18 @@ document.addEventListener('DOMContentLoaded', function () {
   } else {
     if (lenis) lenis.stop();
     var countEl = $('#doorsCount');
-    var t0 = performance.now(), loaded = document.readyState === 'complete', val = 0;
+    var t0 = performance.now(), last = t0, loaded = document.readyState === 'complete', val = 0;
     var MIN = 1500, MAX = 4500;
     window.addEventListener('load', function () { loaded = true; });
     (function tick(now) {
-      var el = now - t0;
-      var cap = (loaded || el > MAX) ? 100 : 88;
-      var target = Math.min(cap, (el / MIN) * 100);
-      val += (target - val) * 0.16;
-      if (target >= 100 && val > 99.3) val = 100;
+      var el = now - t0, dt = Math.max(0, now - last);
+      last = now;
+      var ready = loaded || el > MAX;
+      var target = Math.min(1, el / MIN) * (ready ? 100 : 88);
+      // Avanza col tempo trascorso, non coi frame: niente ritardi su dispositivi lenti.
+      val = Math.min(target, val + dt * 0.12);
       if (countEl) countEl.textContent = toRoman(Math.max(1, Math.round(val)));
-      if (val >= 100) { openDoors(); return; }
+      if (ready && val >= 99.5) { openDoors(); return; }
       requestAnimationFrame(tick);
     })(t0);
   }
@@ -1770,16 +1920,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
   /* ---------- Variabile --p legata allo scroll ---------- */
   (function () {
-    var items = $$('[data-scrub]').map(function (el) {
-      return { el: el, foot: el.classList.contains('foot-word'), top: 0, h: 0, last: -1 };
-    });
+    var items = $$('[data-scrub]').map(function (el) { return { el: el, top: 0, h: 0, last: -1 }; });
     if (!items.length) return;
     function measure() { items.forEach(function (it) { it.top = offTop(it.el); it.h = it.el.offsetHeight; it.last = -1; }); }
     function update(y) {
       items.forEach(function (it) {
         if (y + VH < it.top - 100 || y > it.top + it.h + 100) return;
-        var p = it.foot ? clamp((y + VH - it.top) / (it.h + 40)) : clamp((y + VH - it.top) / (VH * 0.85));
-        if (reduced) p = 1;
+        var p = reduced ? 1 : clamp((y + VH - it.top) / (VH * 0.85));
         p = Math.round(p * 1000) / 1000;
         if (p !== it.last) { it.last = p; it.el.style.setProperty('--p', p); }
       });
@@ -1787,17 +1934,247 @@ document.addEventListener('DOMContentLoaded', function () {
     modules.push({ measure: measure, update: update });
   })();
 
-  /* ---------- Le camere: anello 3D (scroll + trascinamento) ---------- */
+  /* ---------- Immagini con catena di alternative (riutilizzabile) ---------- */
+  function setImgList(img, list, box, done) {
+    var token = (img._token || 0) + 1, i = 0, finished = false;
+    img._token = token;
+    function finish() { if (finished) return; finished = true; if (done) done(); }
+    if (box) box.classList.remove('is-loaded', 'is-fallback');
+    img.style.display = '';
+    img.onload = function () {
+      if (img._token !== token) return;
+      if (box) box.classList.add('is-loaded');
+      finish();
+    };
+    img.onerror = function () {
+      if (img._token !== token) return;
+      if (i < list.length) { img.src = list[i++]; return; }
+      img.onerror = null;
+      if (box) box.classList.add('is-fallback');
+      img.removeAttribute('src');
+      img.style.display = 'none';
+      finish();
+    };
+    if (!list.length) { img.onerror(); return; }
+    img.src = list[i++];
+    if (img.complete && img.naturalWidth) img.onload();
+  }
+
+  /* ---------- Prenotazione diretta su WhatsApp ---------- */
+  var booking = (function () {
+    var form = $('#bookForm');
+    if (!form) return null;
+    var fName = $('#bkName'), fIn = $('#bkIn'), fOut = $('#bkOut'), fGuests = $('#bkGuests'), fRoom = $('#bkRoom'), fNote = $('#bkNote');
+    var nightsEl = $('#bkNights'), tried = false;
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+    function iso(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+    function parse(v) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; }
+    function addDays(d, n) { var x = new Date(d.getTime()); x.setDate(x.getDate() + n); return x; }
+    function today() { var t = new Date(); t.setHours(0, 0, 0, 0); return t; }
+    function nights() {
+      var a = parse(fIn.value), b = parse(fOut.value);
+      return a && b && b > a ? Math.round((b - a) / 864e5) : 0;
+    }
+    function nightsLabel(n) { return n === 1 ? '1 notte' : n + ' notti'; }
+    function setErr(el, msg) {
+      var box = document.getElementById(el.getAttribute('aria-describedby'));
+      if (box && box.textContent !== msg) box.textContent = msg;
+      el.setAttribute('aria-invalid', msg ? 'true' : 'false');
+      return msg ? el : null;
+    }
+    function validate() {
+      var a = parse(fIn.value), b = parse(fOut.value);
+      var bad = [
+        setErr(fName, fName.value.trim().length < 2 ? 'Scrivete il vostro nome e cognome.' : ''),
+        setErr(fIn, !a ? 'Scegliete la data di arrivo.' : a < today() ? 'La data di arrivo è già passata.' : ''),
+        setErr(fOut, !b ? 'Scegliete la data di partenza.' : a && b <= a ? 'La partenza deve essere dopo l’arrivo.' : '')
+      ].filter(Boolean);
+      return bad[0] || null;
+    }
+    function refresh() {
+      var a = parse(fIn.value), n = nights();
+      fIn.min = iso(today());
+      fOut.min = iso(addDays(a || today(), 1));
+      nightsEl.textContent = n ? nightsLabel(n) : '';
+      if (tried) validate();
+    }
+    function fmt(d) { return d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); }
+    function message() {
+      var lines = [
+        '*Richiesta di prenotazione – Residenza*',
+        '',
+        'Nome: ' + fName.value.trim(),
+        'Arrivo: ' + fmt(parse(fIn.value)),
+        'Partenza: ' + fmt(parse(fOut.value)) + ' (' + nightsLabel(nights()) + ')',
+        'Ospiti: ' + fGuests.value,
+        'Camera: ' + (fRoom.value || 'nessuna preferenza')
+      ];
+      var note = fNote.value.trim();
+      if (note) lines.push('Note: ' + note);
+      lines.push('', 'Grazie!');
+      return lines.join('\n');
+    }
+    fIn.addEventListener('change', function () {
+      var a = parse(fIn.value), b = parse(fOut.value);
+      if (a && (!b || b <= a)) fOut.value = iso(addDays(a, 1));
+      refresh();
+    });
+    fOut.addEventListener('change', refresh);
+    fName.addEventListener('input', function () { if (tried) validate(); });
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      tried = true;
+      var bad = validate();
+      if (bad) { bad.focus(); return; }
+      var num = (form.getAttribute('data-whatsapp') || '').replace(/\D/g, '');
+      var text = encodeURIComponent(message());
+      var url = num ? 'https://wa.me/' + num + '?text=' + text : 'https://api.whatsapp.com/send?text=' + text;
+      var w = window.open(url, '_blank');
+      if (w) { try { w.opener = null; } catch (err) {} } else { window.location.href = url; }
+    });
+    refresh();
+    return {
+      chooseRoom: function (name) {
+        fRoom.value = name;
+        scrollToEl(document.getElementById('prenota') || form);
+        setTimeout(function () { try { fName.focus({ preventScroll: true }); } catch (err) { fName.focus(); } }, reduced ? 50 : 1500);
+      }
+    };
+  })();
+
+  /* ---------- Visore della camera: tutte le foto, camera per camera ---------- */
+  var roomViewer = (function () {
+    var root = $('#roomViewer'), cards = $$('#ring .rcard');
+    if (!root || !cards.length) return null;
+    var panel = $('.rv-panel', root), stage = $('#rvStage'), photo = $('#rvPhoto'), img = $('#rvImg'), thumbs = $('#rvThumbs');
+    var count = $('#rvCount'), num = $('#rvNum'), title = $('#rvTitle');
+    var prevRoomBtn = $('#rvPrevRoom'), nextRoomBtn = $('#rvNextRoom'), bookBtn = $('#rvBook');
+    var rooms = cards.map(function (c, i) {
+      var photos = (c.getAttribute('data-photos') || '').trim().split(/\s+/).filter(Boolean).map(function (p) { return p.split('|'); });
+      return { roman: toRoman(i + 1), name: 'Camera ' + toRoman(i + 1), photos: photos };
+    });
+    var room = 0, pic = 0, isOpen = false, lastFocus = null, closeT = null, swapT = null;
+
+    function buildThumbs() {
+      thumbs.innerHTML = '';
+      rooms[room].photos.forEach(function (list, k) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'rv-thumb';
+        b.setAttribute('aria-label', 'Foto ' + (k + 1) + ' di ' + rooms[room].photos.length);
+        var m = document.createElement('div');
+        m.className = 'media';
+        m.setAttribute('data-label', String(k + 1));
+        var im = document.createElement('img');
+        im.alt = '';
+        m.appendChild(im);
+        b.appendChild(m);
+        thumbs.appendChild(b);
+        setImgList(im, list, m);
+        b.addEventListener('click', function () { showPic(k, k >= pic ? 1 : -1); });
+      });
+    }
+    function showPic(k, dir) {
+      var list = rooms[room].photos, n = list.length;
+      if (!n) return;
+      pic = (k + n) % n;
+      count.textContent = (pic + 1) + ' / ' + n;
+      $$('.rv-thumb', thumbs).forEach(function (t, i) {
+        t.classList.toggle('is-active', i === pic);
+        t.setAttribute('aria-current', i === pic ? 'true' : 'false');
+      });
+      photo.style.setProperty('--dir', dir < 0 ? -1 : 1);
+      photo.setAttribute('data-label', rooms[room].name);
+      img.alt = rooms[room].name + ', foto ' + (pic + 1) + ' di ' + n;
+      photo.classList.add('is-swap');
+      clearTimeout(swapT);
+      swapT = setTimeout(function () {
+        setImgList(img, list[pic], photo, function () {
+          requestAnimationFrame(function () { photo.classList.remove('is-swap'); });
+        });
+      }, reduced ? 0 : 230);
+    }
+    function showRoom(r) {
+      room = (r + rooms.length) % rooms.length;
+      var cur = rooms[room];
+      num.textContent = cur.roman;
+      title.textContent = cur.name;
+      bookBtn.textContent = 'Richiedi la ' + cur.name;
+      prevRoomBtn.textContent = '← ' + rooms[(room + rooms.length - 1) % rooms.length].name;
+      nextRoomBtn.textContent = rooms[(room + 1) % rooms.length].name + ' →';
+      buildThumbs();
+      showPic(0, 1);
+    }
+    function focusables() {
+      return $$('button, [href], input, select, textarea', panel).filter(function (el) { return !el.disabled && el.getClientRects().length; });
+    }
+    function open(r) {
+      clearTimeout(closeT);
+      lastFocus = document.activeElement;
+      showRoom(r);
+      root.hidden = false;
+      root.classList.add('is-mounted');
+      doc.classList.add('rv-open');
+      if (lenis) lenis.stop();
+      isOpen = true;
+      requestAnimationFrame(function () { requestAnimationFrame(function () { root.classList.add('is-open'); }); });
+      setTimeout(function () { var c = $('.rv-close', root); if (c) c.focus(); }, 60);
+    }
+    function close() {
+      if (!isOpen) return;
+      isOpen = false;
+      root.classList.remove('is-open');
+      doc.classList.remove('rv-open');
+      if (lenis) lenis.start();
+      closeT = setTimeout(function () { root.classList.remove('is-mounted'); root.hidden = true; }, reduced ? 0 : 650);
+      if (lastFocus && lastFocus.focus) { try { lastFocus.focus({ preventScroll: true }); } catch (err) { lastFocus.focus(); } }
+    }
+    $$('[data-rv-close]', root).forEach(function (el) { el.addEventListener('click', close); });
+    $('#rvPrev').addEventListener('click', function () { showPic(pic - 1, -1); });
+    $('#rvNext').addEventListener('click', function () { showPic(pic + 1, 1); });
+    prevRoomBtn.addEventListener('click', function () { showRoom(room - 1); });
+    nextRoomBtn.addEventListener('click', function () { showRoom(room + 1); });
+    bookBtn.addEventListener('click', function () {
+      var name = rooms[room].name;
+      close();
+      if (booking) booking.chooseRoom(name);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (!isOpen) return;
+      if (e.key === 'Escape') { e.preventDefault(); close(); }
+      else if (e.key === 'ArrowRight') showPic(pic + 1, 1);
+      else if (e.key === 'ArrowLeft') showPic(pic - 1, -1);
+      else if (e.key === 'Tab') {
+        var f = focusables();
+        if (!f.length) return;
+        var first = f[0], last = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    });
+    var sx = null;
+    stage.addEventListener('pointerdown', function (e) { sx = e.clientX; });
+    stage.addEventListener('pointerup', function (e) {
+      if (sx === null) return;
+      var dx = e.clientX - sx;
+      sx = null;
+      if (Math.abs(dx) > 40) showPic(pic + (dx < 0 ? 1 : -1), dx < 0 ? 1 : -1);
+    });
+    stage.addEventListener('pointercancel', function () { sx = null; });
+    return { open: open };
+  })();
+
+  /* ---------- Le camere: anello 3D (scroll + trascinamento, clic = foto) ---------- */
   (function () {
     var sec = $('#camere'), stage = $('#ringStage'), ring = $('#ring');
     if (!sec || !stage || !ring) return;
     var cards = $$('.rcard', ring), n = cards.length, step = 360 / n;
     if (!n) return;
     var shades = cards.map(function (c) { return $('.rcard-shade', c); });
-    var cap = $('#rcCap'), cNum = $('#rcNum'), cTitle = $('#rcTitle'), cDesc = $('#rcDesc');
-    var dots = $$('.rdot', sec);
+    var cap = $('#rcCap'), cNum = $('#rcNum'), cTitle = $('#rcTitle'), openBtn = $('#rcOpen');
+    var nums = $$('.rnum', sec);
     var top = 0, H = 0, sh = 0, R = 300, rot = 0, drag = 0, base = 0, idx = -1;
-    var dragging = false, px = 0;
+    var dragging = false, px = 0, moved = 0, downCard = null;
     function mod(k) { return ((k % n) + n) % n; }
 
     function measure() {
@@ -1816,18 +2193,24 @@ document.addEventListener('DOMContentLoaded', function () {
       drag = -(cur + d) * step - base;
     }
     function setCaption(i) {
-      var c = cards[i];
+      var name = 'Camera ' + toRoman(i + 1);
       if (cNum) cNum.textContent = toRoman(i + 1);
-      if (cTitle) cTitle.textContent = c.getAttribute('data-title');
-      if (cDesc) cDesc.textContent = c.getAttribute('data-desc');
+      if (cTitle) cTitle.textContent = name;
+      if (openBtn) openBtn.setAttribute('aria-label', 'Guarda le foto della ' + name);
       if (cap) { cap.classList.remove('rc-anim'); void cap.offsetWidth; cap.classList.add('rc-anim'); }
-      dots.forEach(function (d, k) { d.classList.toggle('is-active', k === i); });
+      nums.forEach(function (b, k) {
+        b.classList.toggle('is-active', k === i);
+        b.setAttribute('aria-pressed', k === i ? 'true' : 'false');
+      });
     }
+    function openRoom(k) { if (roomViewer) roomViewer.open(k); }
 
     stage.addEventListener('pointerdown', function (e) {
       if (e.button !== undefined && e.button !== 0) return;
       dragging = true;
+      moved = 0;
       px = e.clientX;
+      downCard = e.target && e.target.closest ? e.target.closest('.rcard') : null;
       stage.classList.add('is-drag');
       try { stage.setPointerCapture(e.pointerId); } catch (err) {}
     });
@@ -1835,13 +2218,30 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!dragging) return;
       var dx = e.clientX - px;
       px = e.clientX;
+      moved += Math.abs(dx);
       drag += dx * 0.32;
     });
-    function endDrag() {
+    function endDrag(e) {
       if (!dragging) return;
       dragging = false;
       stage.classList.remove('is-drag');
       snap();
+      // Un tocco senza trascinare: la carta frontale apre le foto, una laterale viene portata davanti.
+      if (e && e.type === 'pointerup' && moved < 6 && downCard) tapAt(e.clientX, e.clientY);
+      downCard = null;
+    }
+    function tapAt(x, y) {
+      // Si sceglie la carta rivolta verso chi guarda che contiene il punto: il browser
+      // registrerebbe il clic anche sulle carte girate di spalle.
+      var best = -1, bestCos = 0.05;
+      cards.forEach(function (c, i) {
+        var cs = Math.cos((i * step + rot) * Math.PI / 180);
+        if (cs <= bestCos) return;
+        var r = c.getBoundingClientRect();
+        if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) { best = i; bestCos = cs; }
+      });
+      if (best < 0) return;
+      if (best === idx) openRoom(best); else go(best);
     }
     stage.addEventListener('pointerup', endDrag);
     stage.addEventListener('pointercancel', endDrag);
@@ -1849,7 +2249,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var prev = $('#ringPrev'), next = $('#ringNext');
     if (prev) prev.addEventListener('click', function () { go(mod(idx - 1)); });
     if (next) next.addEventListener('click', function () { go(mod(idx + 1)); });
-    dots.forEach(function (d, k) { d.addEventListener('click', function () { go(k); }); });
+    nums.forEach(function (b, k) { b.addEventListener('click', function () { go(k); }); });
+    if (openBtn) openBtn.addEventListener('click', function () { openRoom(Math.max(0, idx)); });
 
     function update(y) {
       var s = y - top;
@@ -1880,7 +2281,7 @@ document.addEventListener('DOMContentLoaded', function () {
       { n: 'Bologna', s: 'Metro B · 5 min a piedi', x: 660, y: 290, major: true },
       { n: 'Policlinico', x: 580, y: 370 },
       { n: 'Castro Pretorio', x: 580, y: 480 },
-      { n: 'Termini', s: '3ª fermata', x: 480, y: 580, major: true },
+      { n: 'Termini', s: '3ª fermata', x: 480, y: 580, major: true, right: true },
       { n: 'Cavour', x: 340, y: 580 },
       { n: 'Colosseo', s: '5ª fermata · senza cambi', x: 340, y: 710, major: true },
       { n: 'Circo Massimo', x: 240, y: 810 }
@@ -1914,7 +2315,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var dotEls = $$('.m-dot', svg), walk = $('.m-walk', svg), ln = $('.m-line', svg);
     var labels = P.map(function (p) {
       var st = document.createElement('div');
-      st.className = 'st' + (p.home || p.major ? ' is-major' : ' is-minor') + (p.home ? ' is-home' : '');
+      st.className = 'st' + (p.home || p.major ? ' is-major' : ' is-minor') + (p.home ? ' is-home' : '') + (p.right ? ' is-right' : '');
       st.style.left = (p.x / 10) + '%';
       st.style.top = (p.y / 10) + '%';
       var bill = document.createElement('div');
@@ -2097,6 +2498,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var x = -100, y = -100, rx = -100, ry = -100;
     window.addEventListener('pointermove', function (e) { x = e.clientX; y = e.clientY; cur.classList.remove('is-out'); }, { passive: true });
     doc.addEventListener('mouseleave', function () { cur.classList.add('is-out'); });
+    document.addEventListener('mouseout', function (e) { if (!e.relatedTarget) cur.classList.add('is-out'); });
     $$('iframe').forEach(function (f) { f.addEventListener('mouseenter', function () { cur.classList.add('is-out'); }); });
     document.addEventListener('pointerover', function (e) {
       var t = e.target && e.target.closest ? e.target : null;
