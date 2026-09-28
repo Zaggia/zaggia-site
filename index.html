@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="it" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Residenza — Affittacamere a Roma, Piazza Bologna</title>
+<meta name="description" content="Residenza è un affittacamere con sei camere matrimoniali rinnovate in Viale delle Provincie 116, Roma, a 5 minuti a piedi dalla metro B Bologna. Bagno privato, aria condizionata, Wi‑Fi gratuito.">
+<!-- Anteprima: rimuovere noindex al momento della pubblicazione ufficiale -->
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#ffffff">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="it_IT">
+<meta property="og:title" content="Residenza — Affittacamere a Roma">
+<meta property="og:description" content="Sei camere matrimoniali a cinque minuti dalla metro B Bologna. La Roma vera, fuori dai percorsi più affollati.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M4 64V30a28 28 0 0 1 56 0v34z' fill='%23a4412a'/%3E%3Ctext x='32' y='50' font-family='Georgia,serif' font-style='italic' font-size='30' text-anchor='middle' fill='%23fff'%3ER%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=Manrope:wght@300..700&display=swap">
+<link rel="stylesheet" href="css/style.css">
+<script>
+  (function (d) {
+    d.className = d.className.replace('no-js', 'js is-loading');
+    try { if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) d.className += ' reduced'; } catch (e) {}
+    // Rete di sicurezza: se lo script principale non parte, la pagina non resta bloccata.
+    setTimeout(function () {
+      if (window.__residenzaReady) return;
+      d.classList.remove('is-loading', 'js');
+      d.classList.add('no-js');
+      var x = document.getElementById('doors');
+      if (x) x.parentNode.removeChild(x);
+    }, 6000);
+  })(document.documentElement);
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "LodgingBusiness",
+  "name": "Residenza",
+  "description": "Affittacamere con sei camere matrimoniali rinnovate, a 5 minuti a piedi dalla metro B Bologna.",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Viale delle Provincie 116, interno 1, primo piano",
+    "addressLocality": "Roma",
+    "postalCode": "00162",
+    "addressRegion": "RM",
+    "addressCountry": "IT"
+  },
+  "numberOfRooms": 6,
+  "checkinTime": "12:30",
+  "checkoutTime": "10:30",
+  "smokingAllowed": false,
+  "amenityFeature": [
+    { "@type": "LocationFeatureSpecification", "name": "Wi-Fi gratuito", "value": true },
+    { "@type": "LocationFeatureSpecification", "name": "Aria condizionata", "value": true },
+    { "@type": "LocationFeatureSpecification", "name": "Riscaldamento", "value": true },
+    { "@type": "LocationFeatureSpecification", "name": "Bagno privato", "value": true },
+    { "@type": "LocationFeatureSpecification", "name": "TV a schermo piatto", "value": true },
+    { "@type": "LocationFeatureSpecification", "name": "Parcheggio", "value": false }
+  ]
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js" defer></script>
+<script src="js/main.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#casa">Salta al contenuto</a>
+
+<!-- Definizioni SVG condivise -->
+<svg class="defs" width="0" height="0" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="archShadow" x="-30%" y="-20%" width="160%" height="150%">
+      <feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#4a3522" flood-opacity=".15"/>
+    </filter>
+    <g id="arch">
+      <path fill="#fff" fill-rule="evenodd" d="M0 560V200A200 200 0 0 1 400 200V560ZM38 560V200A162 162 0 0 1 362 200V560Z"/>
+      <path fill="none" stroke="rgba(21,20,19,.16)" stroke-width="1.2" d="M38 560V200A162 162 0 0 1 362 200V560"/>
+      <path fill="none" stroke="rgba(21,20,19,.08)" stroke-width="1" d="M54 560V204A146 146 0 0 1 346 204V560"/>
+      <path fill="none" stroke="rgba(21,20,19,.1)" stroke-width="1.2" d="M0 200H38M362 200H400M0 522H38M362 522H400"/>
+      <path fill="#f3eee6" d="M186 0h28l-4 38h-20z"/>
+    </g>
+    <linearGradient id="brass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f1dca6"/>
+      <stop offset=".45" stop-color="#c3a266"/>
+      <stop offset="1" stop-color="#7f6232"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<!-- Preloader: il portone -->
+<div class="doors" id="doors" aria-hidden="true">
+  <div class="doors-stage">
+    <div class="door door--l">
+      <div class="door-frame"><span class="door-panel"></span><span class="door-panel"></span></div>
+      <div class="door-word">Residenza</div>
+      <span class="door-handle"></span>
+    </div>
+    <div class="door door--r">
+      <div class="door-frame"><span class="door-panel"></span><span class="door-panel"></span></div>
+      <div class="door-word">Residenza</div>
+      <span class="door-handle"></span>
+    </div>
+  </div>
+  <p class="doors-top">Affittacamere · Roma</p>
+  <p class="doors-meta"><span class="doors-count" id="doorsCount">I</span><span>/</span><span>C</span></p>
+</div>
+
+<!-- Navigazione -->
+<header class="nav" id="nav">
+  <a class="brand" href="#top" aria-label="Residenza, torna all'inizio">
+    <span class="brand-mark" aria-hidden="true">R</span>
+    <span class="brand-name">Residenza</span>
+  </a>
+  <nav class="nav-links" aria-label="Sezioni">
+    <a href="#camere"><span data-t="Camere">Camere</span></a>
+    <a href="#quartiere"><span data-t="Quartiere">Quartiere</span></a>
+    <a href="#ospiti"><span data-t="Ospiti">Ospiti</span></a>
+    <a href="#info"><span data-t="Info">Info</span></a>
+  </nav>
+  <div class="nav-actions">
+    <a class="btn btn--ink btn--sm magnetic" href="https://www.booking.com/hotel/it/residenza-roma1.it.html" target="_blank" rel="noopener">Prenota</a>
+    <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="menu">
+      <span class="sr-only">Apri il menu</span><i></i><i></i>
+    </button>
+  </div>
+</header>
+
+<div class="menu" id="menu" inert>
+  <nav aria-label="Menu">
+    <a href="#casa" style="--i:0"><i>I</i>La casa</a>
+    <a href="#camere" style="--i:1"><i>II</i>Le camere</a>
+    <a href="#quartiere" style="--i:2"><i>III</i>Il quartiere</a>
+    <a href="#ospiti" style="--i:3"><i>IV</i>Gli ospiti</a>
+    <a href="#info" style="--i:4"><i>V</i>Informazioni</a>
+    <a href="#prenota" style="--i:5"><i>VI</i>Prenota</a>
+  </nav>
+  <p class="menu-foot">Viale delle Provincie 116 · 00162 Roma</p>
+</div>
+
+<nav class="rail" id="rail" aria-hidden="true">
+  <a href="#casa" data-for="casa" tabindex="-1">I</a>
+  <a href="#camere" data-for="camere" tabindex="-1">II</a>
+  <a href="#quartiere" data-for="quartiere" tabindex="-1">III</a>
+  <a href="#ospiti" data-for="ospiti" tabindex="-1">IV</a>
+  <a href="#info" data-for="info" tabindex="-1">V</a>
+  <a href="#prenota" data-for="prenota" tabindex="-1">VI</a>
+</nav>
+
+<div class="cursor" id="cursor" aria-hidden="true">
+  <div class="cursor-dot"></div>
+  <div class="cursor-ring"><span class="cursor-label"></span></div>
+</div>
+
+<main id="main">
+<!-- ============ Ingresso: il tunnel di archi ============ -->
+<section class="hero" id="top" aria-label="Ingresso">
+  <div class="hero-sticky" id="heroSticky">
+    <div class="tunnel" id="tunnel" aria-hidden="true">
+      <div class="floor" id="floor"><div class="floor-tiles" id="floorTiles"></div></div>
+      <div class="tunnel-cam" id="tunnelCam">
+        <div class="tunnel-end" id="tunnelEnd">
+          <div class="media" data-label="Benvenuti">
+            <img data-eager data-src="img/hero.jpg|https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&amp;fit=crop&amp;w=1920&amp;q=80" alt="">
+          </div>
+        </div>
+        <div class="arch" data-i="6"><svg viewBox="0 0 400 560"><use href="#arch" filter="url(#archShadow)"/></svg><span class="arch-num">VI</span></div>
+        <div class="arch" data-i="5"><svg viewBox="0 0 400 560"><use href="#arch" filter="url(#archShadow)"/></svg><span class="arch-num">V</span></div>
+        <div class="arch" data-i="4"><svg viewBox="0 0 400 560"><use href="#arch" filter="url(#archShadow)"/></svg><span class="arch-num">IV</span></div>
+        <div class="arch" data-i="3"><svg viewBox="0 0 400 560"><use href="#arch" filter="url(#archShadow)"/></svg><span class="arch-num">III</span></div>
+        <div class="arch" data-i="2"><svg viewBox="0 0 400 560"><use href="#arch" filter="url(#archShadow)"/></svg><span class="arch-num">II</span></div>
+        <div class="arch" data-i="1"><svg viewBox="0 0 400 560"><use href="#arch" filter="url(#archShadow)"/></svg><span class="arch-num">I</span></div>
+      </div>
+    </div>
+
+    <div class="hero-reveal" id="heroReveal" aria-hidden="true">
+      <div class="media" data-label="Benvenuti">
+        <img data-eager data-src="img/hero.jpg|https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&amp;fit=crop&amp;w=1920&amp;q=80" alt="">
+      </div>
+      <div class="hero-shade" id="heroShade"></div>
+      <p class="hero-reveal-text" id="heroRevealText">Benvenuti.</p>
+    </div>
+
+    <div class="hero-copy" id="heroCopy">
+      <div class="hero-top">
+        <p class="eyebrow">Affittacamere · Roma · Nomentano</p>
+        <p class="hero-sub">Sei camere matrimoniali a cinque minuti a piedi dalla metro B. <em>La Roma vera</em>, fuori dai percorsi più affollati.</p>
+      </div>
+      <div class="hero-spacer"></div>
+      <h1 class="hero-title" aria-label="Residenza"><span class="split" aria-hidden="true">Residenza</span></h1>
+      <div class="hero-foot">
+        <span>Viale delle Provincie 116</span>
+        <span class="scroll-cue"><i></i>Scorri per entrare</span>
+        <span>Metro B · Bologna</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ I · La casa ============ -->
+<section class="intro" id="casa" aria-labelledby="casa-t">
+  <div class="wrap">
+    <header class="sec-head" data-reveal="head">
+      <span class="sec-num">I</span>
+      <span class="sec-kicker">La casa</span>
+      <h2 class="sec-title" id="casa-t">
+        <span class="line" style="--li:0"><span>Una porta al primo piano,</span></span>
+        <span class="line" style="--li:1"><span><em>tutta Roma</em> fuori.</span></span>
+      </h2>
+    </header>
+
+    <p class="statement" id="statement">Al primo piano di un palazzo in Viale delle Provincie, Residenza apre le sue porte: sei camere matrimoniali <em>rinnovate di recente</em>, ciascuna con il proprio bagno. Piazza Bologna è a due passi, la metro B a cinque minuti. Il centro è vicino; il rumore, invece, resta fuori.</p>
+
+    <div class="stats" data-reveal>
+      <button class="stat" type="button" aria-label="6 camere matrimoniali con bagno privato">
+        <span class="stat-inner">
+          <span class="stat-face stat-front"><span class="stat-roman">VI</span><span class="stat-cap">Camere</span></span>
+          <span class="stat-face stat-back"><span class="stat-arabic">6</span><span class="stat-cap">camere matrimoniali, tutte con bagno privato</span></span>
+        </span>
+      </button>
+      <button class="stat" type="button" aria-label="500 metri dalla metro B Bologna">
+        <span class="stat-inner">
+          <span class="stat-face stat-front"><span class="stat-roman">D</span><span class="stat-cap">Metri dalla metro</span></span>
+          <span class="stat-face stat-back"><span class="stat-arabic">500 m</span><span class="stat-cap">dalla stazione Bologna, linea B</span></span>
+        </span>
+      </button>
+      <button class="stat" type="button" aria-label="Voto 8 su 10 su Booking.com">
+        <span class="stat-inner">
+          <span class="stat-face stat-front"><span class="stat-roman">VIII<small>/X</small></span><span class="stat-cap">Booking.com</span></span>
+          <span class="stat-face stat-back"><span class="stat-arabic">8/10</span><span class="stat-cap">il voto degli ospiti recenti su Booking.com</span></span>
+        </span>
+      </button>
+      <button class="stat" type="button" aria-label="Valutazione 5 su 5 su Tripadvisor">
+        <span class="stat-inner">
+          <span class="stat-face stat-front"><span class="stat-roman">V<small>/V</small></span><span class="stat-cap">Tripadvisor</span></span>
+          <span class="stat-face stat-back"><span class="stat-arabic">5/5</span><span class="stat-cap">la valutazione degli ospiti su Tripadvisor</span></span>
+        </span>
+      </button>
+      <button class="stat" type="button" aria-label="Check-in dalle 12:30">
+        <span class="stat-inner">
+          <span class="stat-face stat-front"><span class="stat-roman">XII<small>·XXX</small></span><span class="stat-cap">Check-in</span></span>
+          <span class="stat-face stat-back"><span class="stat-arabic">12:30</span><span class="stat-cap">check-in dalle 12:30 alle 21:00</span></span>
+        </span>
+      </button>
+    </div>
+    <p class="stats-hint"><span class="hint-fine">Numeri romani, naturalmente. Passate sopra per tradurli.</span><span class="hint-touch">Numeri romani, naturalmente. Toccateli per tradurli.</span></p>
+
+    <figure class="intro-figure" data-scrub>
+      <div class="media" data-label="Residenza">
+        <img data-src="img/residenza.jpg|https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&amp;fit=crop&amp;w=1600&amp;q=80" alt="Una camera di Residenza">
+      </div>
+      <figcaption>
+        <span class="eyebrow">Viale delle Provincie 116</span>
+        <p>Primo piano, interno 1. Sei porte, sei camere: tranquille e silenziose di notte, con Wi‑Fi gratuito in tutta la struttura.</p>
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track" id="marqueeTrack">
+    <span>Nomentano</span><i>✦</i><span><em>Piazza Bologna</em></span><i>✦</i><span>Metro B</span><i>✦</i><span><em>Roma</em></span><i>✦</i><span>Sei camere</span><i>✦</i>
+    <span>Nomentano</span><i>✦</i><span><em>Piazza Bologna</em></span><i>✦</i><span>Metro B</span><i>✦</i><span><em>Roma</em></span><i>✦</i><span>Sei camere</span><i>✦</i>
+  </div>
+</div>
+
+<!-- ============ II · Le camere (anello 3D) ============ -->
+<section class="rooms" id="camere" aria-labelledby="camere-t">
+  <div class="rooms-sticky">
+    <div class="rooms-head wrap">
+      <header class="sec-head" data-reveal="head">
+        <span class="sec-num">II</span>
+        <span class="sec-kicker">Le camere</span>
+        <h2 class="sec-title" id="camere-t">
+          <span class="line" style="--li:0"><span>Sei camere.</span></span>
+          <span class="line" style="--li:1"><span><em>Nessun rumore.</em></span></span>
+        </h2>
+      </header>
+      <p class="rooms-lede" data-reveal>Tutte matrimoniali, tutte con bagno privato, tutte rinnovate di recente. Scorrete o trascinate la ruota per scoprire cosa vi aspetta.</p>
+    </div>
+
+    <div class="ring-stage" id="ringStage" data-cursor="Trascina">
+      <div class="ring" id="ring">
+        <article class="rcard" data-title="Il riposo" data-desc="Letti matrimoniali, lenzuola e asciugamani inclusi. Camere tranquille e silenziose, anche di notte.">
+          <div class="rcard-face rcard-front">
+            <div class="media" data-label="I"><img data-src="img/camera-1.jpg|https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&amp;fit=crop&amp;w=900&amp;q=80" alt="Camera matrimoniale"></div>
+            <span class="rcard-num">I</span><span class="rcard-title">Il riposo</span><span class="rcard-shade"></span>
+          </div>
+          <div class="rcard-face rcard-back"><span>I</span></div>
+        </article>
+        <article class="rcard" data-title="La vista" data-desc="Camere rinnovate di recente e curate nei dettagli; alcune affacciano sulla città.">
+          <div class="rcard-face rcard-front">
+            <div class="media" data-label="II"><img data-src="img/camera-2.jpg|https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&amp;fit=crop&amp;w=900&amp;q=80" alt="Camera con vista sulla città"></div>
+            <span class="rcard-num">II</span><span class="rcard-title">La vista</span><span class="rcard-shade"></span>
+          </div>
+          <div class="rcard-face rcard-back"><span>II</span></div>
+        </article>
+        <article class="rcard" data-title="Il bagno" data-desc="Bagno privato in ogni camera, con doccia, bidet, asciugacapelli e set di cortesia.">
+          <div class="rcard-face rcard-front">
+            <div class="media" data-label="III"><img data-src="img/camera-3.jpg|https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&amp;fit=crop&amp;w=900&amp;q=80" alt="Bagno privato"></div>
+            <span class="rcard-num">III</span><span class="rcard-title">Il bagno</span><span class="rcard-shade"></span>
+          </div>
+          <div class="rcard-face rcard-back"><span>III</span></div>
+        </article>
+        <article class="rcard" data-title="Il clima" data-desc="Aria condizionata d'estate, riscaldamento d'inverno: il comfort giusto in ogni stagione.">
+          <div class="rcard-face rcard-front">
+            <div class="media" data-label="IV"><img data-src="img/camera-4.jpg|https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&amp;fit=crop&amp;w=900&amp;q=80" alt="Camera climatizzata"></div>
+            <span class="rcard-num">IV</span><span class="rcard-title">Il clima</span><span class="rcard-shade"></span>
+          </div>
+          <div class="rcard-face rcard-back"><span>IV</span></div>
+        </article>
+        <article class="rcard" data-title="La pausa" data-desc="Bollitore elettrico e frigorifero in camera: un tè caldo o una bottiglia fresca, al rientro.">
+          <div class="rcard-face rcard-front">
+            <div class="media" data-label="V"><img data-src="img/camera-5.jpg|https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&amp;fit=crop&amp;w=900&amp;q=80" alt="Dettaglio della camera"></div>
+            <span class="rcard-num">V</span><span class="rcard-title">La pausa</span><span class="rcard-shade"></span>
+          </div>
+          <div class="rcard-face rcard-back"><span>V</span></div>
+        </article>
+        <article class="rcard" data-title="Il tempo" data-desc="Scrivania, TV a schermo piatto con canali satellitari e Wi‑Fi gratuito in tutta la struttura.">
+          <div class="rcard-face rcard-front">
+            <div class="media" data-label="VI"><img data-src="img/camera-6.jpg|https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&amp;fit=crop&amp;w=900&amp;q=80" alt="Scrivania e TV in camera"></div>
+            <span class="rcard-num">VI</span><span class="rcard-title">Il tempo</span><span class="rcard-shade"></span>
+          </div>
+          <div class="rcard-face rcard-back"><span>VI</span></div>
+        </article>
+      </div>
+    </div>
+
+    <div class="rooms-bottom wrap">
+      <div class="rooms-caption" id="rcCap" aria-live="polite">
+        <span class="rc-num" id="rcNum">I</span>
+        <div>
+          <h3 class="rc-title" id="rcTitle">Il riposo</h3>
+          <p class="rc-desc" id="rcDesc">Letti matrimoniali, lenzuola e asciugamani inclusi. Camere tranquille e silenziose, anche di notte.</p>
+        </div>
+      </div>
+      <div class="ring-ctrl">
+        <div class="rdots" role="group" aria-label="Scegli la camera">
+          <button class="rdot is-active" type="button" aria-label="Camera I"></button>
+          <button class="rdot" type="button" aria-label="Camera II"></button>
+          <button class="rdot" type="button" aria-label="Camera III"></button>
+          <button class="rdot" type="button" aria-label="Camera IV"></button>
+          <button class="rdot" type="button" aria-label="Camera V"></button>
+          <button class="rdot" type="button" aria-label="Camera VI"></button>
+        </div>
+        <button class="round-btn" id="ringPrev" type="button" aria-label="Camera precedente"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <button class="round-btn" id="ringNext" type="button" aria-label="Camera successiva"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Servizi in camera ============ -->
+<section class="amen" aria-labelledby="amen-t">
+  <div class="wrap">
+    <div class="amen-head" data-reveal>
+      <span class="eyebrow">In ogni camera</span>
+      <h3 id="amen-t">I dettagli, <em>già pensati.</em></h3>
+    </div>
+    <ul class="amen-grid" data-reveal>
+      <li class="amen-item tilt" style="--i:0"><svg viewBox="0 0 24 24"><path pathLength="1" d="M12 2.5v19"/><path pathLength="1" d="M3.8 7.25l16.4 9.5"/><path pathLength="1" d="M3.8 16.75l16.4-9.5"/><path pathLength="1" d="M9.6 4.1 12 6.4l2.4-2.3M9.6 19.9l2.4-2.3 2.4 2.3"/></svg><span>Aria condizionata</span></li>
+      <li class="amen-item tilt" style="--i:1"><svg viewBox="0 0 24 24"><path pathLength="1" d="M10 13.8V5a2 2 0 0 1 4 0v8.8a4 4 0 1 1-4 0Z"/><path pathLength="1" d="M12 9.5v6.5"/><path pathLength="1" d="M17 5h2.5M17 8h2.5M17 11h2.5"/></svg><span>Riscaldamento</span></li>
+      <li class="amen-item tilt" style="--i:2"><svg viewBox="0 0 24 24"><path pathLength="1" d="M2.5 9.2a14 14 0 0 1 19 0"/><path pathLength="1" d="M5.6 12.6a9.6 9.6 0 0 1 12.8 0"/><path pathLength="1" d="M8.7 16a5 5 0 0 1 6.6 0"/><path class="dot" pathLength="1" d="M12 19.6h.01"/></svg><span>Wi‑Fi gratuito</span></li>
+      <li class="amen-item tilt" style="--i:3"><svg viewBox="0 0 24 24"><path pathLength="1" d="M4 4.5h16a1.5 1.5 0 0 1 1.5 1.5v9.5A1.5 1.5 0 0 1 20 17H4a1.5 1.5 0 0 1-1.5-1.5V6A1.5 1.5 0 0 1 4 4.5Z"/><path pathLength="1" d="M8 20.5h8M12 17v3.5"/></svg><span>TV a schermo piatto</span></li>
+      <li class="amen-item tilt" style="--i:4"><svg viewBox="0 0 24 24"><path pathLength="1" d="M5 21V7.5A4.5 4.5 0 0 1 14 7.5"/><path pathLength="1" d="M10.5 7.5h7l-1.2 3h-4.6Z"/><path pathLength="1" d="M12 13.5v.8M15.5 13.5v.8M13.7 16.2v.8M10.5 16.2v.8M17 16.2v.8M12 19v.8M15.5 19v.8"/></svg><span>Bagno privato con doccia</span></li>
+      <li class="amen-item tilt" style="--i:5"><svg viewBox="0 0 24 24"><path pathLength="1" d="M15 5.5H8.5a4.5 4.5 0 0 0 0 9H15l6-2.5v-4Z"/><path pathLength="1" d="M9.5 14.5 11 21h2.6l-1-6.5"/><path pathLength="1" d="M8.5 8.4a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 1 0 0-3.2Z"/></svg><span>Asciugacapelli</span></li>
+      <li class="amen-item tilt" style="--i:6"><svg viewBox="0 0 24 24"><path pathLength="1" d="M9.5 2.5h5M10.5 2.5v3M13.5 2.5v3"/><path pathLength="1" d="M9.5 5.5h5A2.5 2.5 0 0 1 17 8v11a2.5 2.5 0 0 1-2.5 2.5h-5A2.5 2.5 0 0 1 7 19V8a2.5 2.5 0 0 1 2.5-2.5Z"/><path pathLength="1" d="M7 11h10M7 16h10"/></svg><span>Set di cortesia</span></li>
+      <li class="amen-item tilt" style="--i:7"><svg viewBox="0 0 24 24"><path pathLength="1" d="M6.5 20.5H17L16 11a4.5 4.5 0 0 0-4.5-4h-.5A4.5 4.5 0 0 0 6.5 11Z"/><path pathLength="1" d="M9.3 7.3V6a2.2 2.2 0 0 1 4.4 0v1.3"/><path pathLength="1" d="M16.3 11.5 20 9.8v4.7l-3.4 2.6"/></svg><span>Bollitore elettrico</span></li>
+      <li class="amen-item tilt" style="--i:8"><svg viewBox="0 0 24 24"><path pathLength="1" d="M8 2.5h8a2 2 0 0 1 2 2v15a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-15a2 2 0 0 1 2-2Z"/><path pathLength="1" d="M6 10h12"/><path pathLength="1" d="M9 5.5v2M9 12.5v3"/></svg><span>Frigorifero</span></li>
+      <li class="amen-item tilt" style="--i:9"><svg viewBox="0 0 24 24"><path pathLength="1" d="M2.5 10h19"/><path pathLength="1" d="M4.5 10v10.5M19.5 10v10.5"/><path pathLength="1" d="M13 10v6h6.5M13 13h6.5"/><path pathLength="1" d="M6.5 10V5.5h6V10"/></svg><span>Scrivania</span></li>
+      <li class="amen-item tilt" style="--i:10"><svg viewBox="0 0 24 24"><path pathLength="1" d="M5 13h14a1.5 1.5 0 0 1 1.5 1.5v3A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5v-3A1.5 1.5 0 0 1 5 13Z"/><path pathLength="1" d="M7 7h10a1.5 1.5 0 0 1 1.5 1.5V13h-13V8.5A1.5 1.5 0 0 1 7 7Z"/><path pathLength="1" d="M9.5 7v12"/></svg><span>Lenzuola e asciugamani</span></li>
+      <li class="amen-item tilt" style="--i:11"><svg viewBox="0 0 24 24"><path pathLength="1" d="M12 2.5a9.5 9.5 0 1 0 0 19 9.5 9.5 0 1 0 0-19Z"/><path pathLength="1" d="M5.3 5.3l13.4 13.4"/><path pathLength="1" d="M6.5 12H16v2.5H6.5Z"/><path pathLength="1" d="M17.5 12v2.5"/></svg><span>Struttura non fumatori</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ III · Il quartiere ============ -->
+<section class="place" id="quartiere" aria-labelledby="quartiere-t">
+  <div class="wrap place-grid">
+    <div class="place-copy">
+      <header class="sec-head" data-reveal="head">
+        <span class="sec-num">III</span>
+        <span class="sec-kicker">Il quartiere</span>
+        <h2 class="sec-title" id="quartiere-t">
+          <span class="line" style="--li:0"><span>Nomentano.</span></span>
+          <span class="line" style="--li:1"><span><em>La Roma vera.</em></span></span>
+        </h2>
+      </header>
+      <p class="place-text" data-reveal>Lontano dalle rotte più affollate, Nomentano è la Roma di chi la vive ogni giorno: i palazzi del primo Novecento intorno a Piazza Bologna, i bar di quartiere, i ritmi veri della città. Dalla metro B Bologna, a cinque minuti a piedi, Termini e il Colosseo sono a poche fermate, senza cambi.</p>
+      <ul class="dist" data-reveal>
+        <li style="--i:0"><span>Metro B · Bologna</span><b>5 min a piedi</b></li>
+        <li style="--i:1"><span>Metro B · Tiburtina</span><b>12 min a piedi</b></li>
+        <li style="--i:2"><span>Stazione Roma Tiburtina</span><b>1,1 km</b></li>
+        <li style="--i:3"><span>Università La Sapienza</span><b>17 min a piedi</b></li>
+        <li style="--i:4"><span>Stazione Roma Termini</span><b>2,1 km</b></li>
+        <li style="--i:5"><span>Aeroporto di Ciampino</span><b>24 km</b></li>
+      </ul>
+    </div>
+
+    <div class="metro" id="metro">
+      <div class="metro-stage">
+        <div class="metro-plane" id="metroPlane"><div class="metro-grid"></div></div>
+      </div>
+      <p class="metro-cap"><span class="metro-b">B</span>Da Bologna al Colosseo: <b>5 fermate, senza cambi.</b></p>
+      <ol class="sr-only">
+        <li>Residenza, Viale delle Provincie 116: 5 minuti a piedi fino alla metro Bologna</li>
+        <li>Linea B: Bologna, Policlinico, Castro Pretorio, Termini, Cavour, Colosseo, Circo Massimo</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="map-card" data-reveal>
+      <iframe title="Mappa: Residenza, Viale delle Provincie 116, Roma" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=Viale%20delle%20Provincie%20116%2C%2000162%20Roma&amp;z=15&amp;output=embed"></iframe>
+      <div class="map-pill">
+        <span><b>Residenza</b> · Viale delle Provincie 116, 00162 Roma</span>
+        <a class="btn btn--ink btn--sm magnetic" href="https://maps.app.goo.gl/EQ8xVYwSJT9c3mvT9" target="_blank" rel="noopener">Apri in Google Maps</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ IV · Gli ospiti ============ -->
+<section class="guests" id="ospiti" aria-labelledby="ospiti-t">
+  <div class="wrap guests-grid">
+    <div class="guests-side">
+      <header class="sec-head" data-reveal="head">
+        <span class="sec-num">IV</span>
+        <span class="sec-kicker">Gli ospiti</span>
+        <h2 class="sec-title" id="ospiti-t">
+          <span class="line" style="--li:0"><span>Parola di chi</span></span>
+          <span class="line" style="--li:1"><span><em>c'è stato.</em></span></span>
+        </h2>
+      </header>
+      <div class="scores" data-reveal>
+        <div class="score"><b>8</b><span>/10</span><small>Booking.com<br>ospiti recenti</small></div>
+        <div class="score"><b>5</b><span>/5</span><small>Tripadvisor<br>valutazione</small></div>
+      </div>
+      <div class="deck-ctrl" data-reveal>
+        <button class="round-btn" id="deckPrev" type="button" aria-label="Recensione precedente"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <span class="deck-count" id="deckCount">I / VI</span>
+        <button class="round-btn" id="deckNext" type="button" aria-label="Recensione successiva"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+      </div>
+    </div>
+
+    <div class="deck" id="deck" data-cursor="Scorri" aria-live="polite">
+      <figure class="qcard">
+        <blockquote>«Posizione fantastica: la Roma vera, non la solita zona turistica.»</blockquote>
+        <figcaption><span class="q-mark">“</span>Ospite · Booking.com</figcaption>
+      </figure>
+      <figure class="qcard">
+        <blockquote>«Camera molto accogliente e pulita, tranquilla e silenziosa di notte, con un buon Wi‑Fi. La posizione è ottima, vicino alla metro.»</blockquote>
+        <figcaption><span class="q-mark">“</span>Ospite · Booking.com</figcaption>
+      </figure>
+      <figure class="qcard">
+        <blockquote>«Un posto molto pulito, comodo e gradevole accanto a Piazza Bologna. I proprietari sono molto simpatici e cordiali.»</blockquote>
+        <figcaption><span class="q-mark">“</span>Ospite · Booking.com</figcaption>
+      </figure>
+      <figure class="qcard">
+        <blockquote>«Staff super gentile: ci hanno tenuto i bagagli dopo il check-out. A pochi minuti dalla metro Bologna, linea B, comodissima per visitare Roma.»</blockquote>
+        <figcaption><span class="q-mark">“</span>Ospite · Tripadvisor</figcaption>
+      </figure>
+      <figure class="qcard">
+        <blockquote>«Il proprietario e tutto lo staff sono stati accoglienti e disponibili a ogni richiesta. Qualità della struttura, servizio eccellente, posizione strategica.»</blockquote>
+        <figcaption><span class="q-mark">“</span>Ospite · Tripadvisor</figcaption>
+      </figure>
+      <figure class="qcard">
+        <blockquote>«Personale gentilissimo e disponibile, camera pulita, buona posizione.»</blockquote>
+        <figcaption><span class="q-mark">“</span>Ospite · Booking.com</figcaption>
+      </figure>
+    </div>
+  </div>
+  <p class="wrap fine">Estratti da recensioni pubbliche su Booking.com e Tripadvisor, tradotti e adattati.</p>
+</section>
+
+<!-- ============ V · Informazioni ============ -->
+<section class="info" id="info" aria-labelledby="info-t">
+  <div class="wrap">
+    <header class="sec-head" data-reveal="head">
+      <span class="sec-num">V</span>
+      <span class="sec-kicker">Informazioni</span>
+      <h2 class="sec-title" id="info-t">
+        <span class="line" style="--li:0"><span>Tutto chiaro,</span></span>
+        <span class="line" style="--li:1"><span><em>fin dall'arrivo.</em></span></span>
+      </h2>
+    </header>
+    <div class="info-grid" data-reveal>
+      <article class="info-card tilt">
+        <span class="eyebrow">Check-in</span>
+        <b class="info-time">12:30</b>
+        <span class="info-roman">XII · XXX</span>
+        <p>dalle 12:30 alle 21:00</p>
+      </article>
+      <article class="info-card tilt">
+        <span class="eyebrow">Check-out</span>
+        <b class="info-time">10:30</b>
+        <span class="info-roman">X · XXX</span>
+        <p>entro le 10:30</p>
+      </article>
+      <article class="info-card tilt">
+        <span class="eyebrow">Indirizzo</span>
+        <p class="info-addr">Viale delle Provincie 116<br>Interno 1, primo piano<br>00162 Roma</p>
+        <a class="info-link" href="https://maps.app.goo.gl/EQ8xVYwSJT9c3mvT9" target="_blank" rel="noopener">Indicazioni →</a>
+      </article>
+      <article class="info-card tilt">
+        <span class="eyebrow">Da sapere</span>
+        <ul class="info-list">
+          <li>Wi‑Fi gratuito in tutta la struttura</li>
+          <li>Struttura interamente non fumatori</li>
+          <li>Parcheggio non disponibile in struttura</li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ VI · La chiave (prenotazione) ============ -->
+<section class="key" id="prenota" aria-labelledby="prenota-t">
+  <div class="wrap key-grid">
+    <div class="key-copy">
+      <header class="sec-head" data-reveal="head">
+        <span class="sec-num">VI</span>
+        <span class="sec-kicker">La chiave</span>
+        <h2 class="sec-title" id="prenota-t">
+          <span class="line" style="--li:0"><span>La vostra chiave</span></span>
+          <span class="line" style="--li:1"><span>per <em>Roma.</em></span></span>
+        </h2>
+      </header>
+      <p class="key-text" data-reveal>Scegliete le date e prenotate la vostra camera su Booking.com. Al vostro arrivo vi aspettiamo al primo piano, interno 1.</p>
+      <div class="cta-row" data-reveal>
+        <a class="btn btn--ink magnetic" href="https://www.booking.com/hotel/it/residenza-roma1.it.html" target="_blank" rel="noopener">Prenota su Booking.com <span class="btn-arrow" aria-hidden="true">↗</span></a>
+        <a class="btn btn--line magnetic" href="https://maps.app.goo.gl/EQ8xVYwSJT9c3mvT9" target="_blank" rel="noopener">Come arrivare</a>
+      </div>
+    </div>
+
+    <div class="fob-scene" id="fobScene" data-cursor="Muovi" aria-hidden="true">
+      <span class="fob-nail"></span>
+      <div class="fob-pivot" id="fob">
+        <span class="fob-ring"></span>
+        <svg class="fob-key" viewBox="0 0 60 180"><path fill="none" stroke="url(#brass)" stroke-width="7" d="M30 8a20 20 0 1 0 0 40 20 20 0 1 0 0-40Z"/><path fill="url(#brass)" d="M26 46h8v112h-8zM34 126h18v10h-9v7h9v11H34z"/></svg>
+        <div class="fob-tag">
+          <span class="fob-slab" style="--z:1"></span><span class="fob-slab" style="--z:2"></span><span class="fob-slab" style="--z:3"></span>
+          <span class="fob-slab" style="--z:4"></span><span class="fob-slab" style="--z:5"></span><span class="fob-slab" style="--z:6"></span>
+          <span class="fob-slab" style="--z:7"></span><span class="fob-slab" style="--z:8"></span><span class="fob-slab" style="--z:9"></span>
+          <span class="fob-slab" style="--z:10"></span><span class="fob-slab" style="--z:11"></span>
+          <div class="fob-face fob-front">
+            <span class="fob-small">Residenza</span>
+            <span class="fob-big">VI</span>
+            <span class="fob-small">Roma</span>
+          </div>
+          <div class="fob-face fob-back">
+            <span class="fob-note">Si prega di riconsegnare la chiave entro le 10:30.<br><b>Grazie.</b></span>
+          </div>
+          <span class="fob-eyelet"></span>
+        </div>
+      </div>
+      <p class="fob-hint">Muovete il cursore: la chiave oscilla.</p>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-top">
+      <p class="foot-claim">A cinque minuti dalla metro B.<br><em>Dentro la Roma vera.</em></p>
+      <a class="btn btn--light magnetic" href="#top">Torna all'ingresso <span class="btn-arrow" aria-hidden="true">↑</span></a>
+    </div>
+    <div class="foot-cols">
+      <div><span class="eyebrow">Dove</span><p>Viale delle Provincie 116<br>Interno 1, primo piano<br>00162 Roma · Nomentano</p></div>
+      <div><span class="eyebrow">Orari</span><p>Check-in 12:30 – 21:00<br>Check-out entro le 10:30</p></div>
+      <div><span class="eyebrow">Link</span><p><a href="https://www.booking.com/hotel/it/residenza-roma1.it.html" target="_blank" rel="noopener">Booking.com</a><br><a href="https://www.tripadvisor.it/Hotel_Review-g187791-d26612960-Reviews-Affittacamere_Residenza-Rome_Lazio.html" target="_blank" rel="noopener">Tripadvisor</a><br><a href="https://maps.app.goo.gl/EQ8xVYwSJT9c3mvT9" target="_blank" rel="noopener">Google Maps</a></p></div>
+    </div>
+    <div class="foot-word" data-scrub aria-hidden="true"><span class="split">Residenza</span></div>
+    <div class="foot-bottom">
+      <span>© 2026 Residenza · Affittacamere · Roma</span>
+      <span>Anteprima del sito · immagini dimostrative</span>
+    </div>
+  </div>
+</footer>
+
+<div class="grain" aria-hidden="true"></div>
+</body>
+</html>
