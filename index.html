@@ -20,8 +20,8 @@
 -->
 <style>
 :root{
-  --bg:#fff; --beige:#f5eee3; --beige-2:#e8dac5; --ocra:#c48f2c; --ocra-2:#9c6b17;
-  --verde:#6e7f5f; --verde-2:#4f5f44; --ink:#2a241e; --muted:#6f6458; --line:#e9dfd1; --line-b:rgba(42,36,30,.13);
+  --bg:#fff; --beige:#e6d6b8; --beige-2:#d3bd96; --ocra:#c48f2c; --ocra-2:#9c6b17;
+  --verde:#6e7f5f; --verde-2:#4f5f44; --ink:#2a241e; --muted:#5f5448; --line:#e9dfd1; --line-b:rgba(42,36,30,.13);
   --serif:'Cormorant Garamond',Georgia,'Times New Roman',serif;
   --sans:'Montserrat',system-ui,-apple-system,sans-serif;
   --gut:clamp(18px,4vw,48px); --rail:64px; --max:1200px;
@@ -167,11 +167,21 @@ h2 em{font-style:italic;color:var(--ocra-2)}
 
 /* ---------- Reveal ---------- */
 .js .reveal{opacity:0;transform:translateY(40px);transition:opacity 1s,transform 1.2s var(--ease);transition-delay:calc(var(--d,0)*.1s)}
-.js .reveal-3d{opacity:0;clip-path:inset(14% 10% 0 10% round 24px);transform:perspective(1200px) rotateX(24deg) translateY(70px) scale(.94);transform-origin:50% 100%;transition:opacity 1s,transform 1.6s var(--ease),clip-path 1.6s var(--ease);transition-delay:calc(var(--d,0)*.12s)}
+.js .reveal-3d{opacity:0;transform:perspective(1200px) rotateX(24deg) translateY(70px) scale(.94);transform-origin:50% 100%;transition:opacity 1s,transform 1.6s var(--ease);transition-delay:calc(var(--d,0)*.12s)}
 .js .reveal-3d img{transform:scale(1.25);transition:transform 2.2s var(--ease),opacity .6s}
 .js .reveal.in,.js .reveal-3d.in{opacity:1;transform:none}
-.js .reveal-3d.in{clip-path:inset(0 0 0 0)}
 .js .reveal-3d.in img{transform:none}
+.js .a-l,.js .a-r{opacity:0;transition:opacity .8s,transform 1.5s var(--ease);transition-delay:calc(var(--d,0)*.1s)}
+.js .a-l{transform:translateX(-60vw)}
+.js .a-r{transform:translateX(60vw)}
+.js .a-l.in,.js .a-r.in{opacity:1;transform:none}
+.js .w-l,.js .w-r{transition:clip-path 1.6s cubic-bezier(.77,0,.18,1);transition-delay:calc(var(--d,0)*.1s)}
+.js .w-l{clip-path:inset(0 100% 0 0)}
+.js .w-r{clip-path:inset(0 0 0 100%)}
+.js .w-l.in,.js .w-r.in{clip-path:inset(0 0 0 0)}
+.js .about-img img{transform:scale(1.35);transition:transform 2.2s var(--ease),opacity .6s}
+.js .about-img.in img{transform:none}
+.js .room.reveal-3d .room-img img{transition:transform 1.2s var(--ease),opacity .6s}
 .js .split .w{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.14em;margin-bottom:-.14em}
 .js .split .w>span{display:inline-block;transform:translateY(112%) rotate(5deg);transform-origin:0 100%;transition:transform 1.15s var(--ease)}
 .js .split.in .w>span{transform:none}
@@ -213,7 +223,7 @@ h2 em{font-style:italic;color:var(--ocra-2)}
 .swipe{display:none;font-size:.6rem;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
 .amen-label{margin-top:clamp(48px,7vw,80px);margin-bottom:18px}
 .amen{list-style:none;display:flex;flex-wrap:wrap;gap:10px 12px}
-.amen li{display:flex;align-items:center;gap:10px;padding:.65em 1.2em;border-radius:999px;font-size:.78rem;background:#fff;box-shadow:0 1px 0 var(--line)}
+.amen li{display:flex;align-items:center;gap:10px;padding:.65em 1.2em;border-radius:999px;font-size:.78rem;background:#fff;box-shadow:0 12px 24px -16px rgba(70,45,10,.35)}
 .amen li::before{content:'';width:9px;height:9px;flex:none;background:var(--verde);border-radius:0 100% 0 100%;transform:rotate(-10deg)}
 @media (max-width:1000px){.rooms{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:760px){
@@ -222,6 +232,70 @@ h2 em{font-style:italic;color:var(--ocra-2)}
   .rooms::-webkit-scrollbar{display:none}
   .rooms::after{content:'';flex:0 0 14%}
   .room{flex:0 0 78%;scroll-snap-align:start}
+}
+
+/* ---------- Galleria camera ---------- */
+.room{cursor:pointer}
+.room-more{margin-top:14px;display:inline-flex;align-items:center;min-height:44px;border:0;background:none;padding:0;font:600 .64rem/1 var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--ink);cursor:pointer;background:linear-gradient(var(--ocra),var(--ocra)) 0 70%/100% 1px no-repeat}
+.plus{position:absolute;right:14px;bottom:14px;z-index:2;width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.92);transition:transform .6s var(--ease),background .3s}
+.plus::before,.plus::after{content:'';position:absolute;left:50%;top:50%;width:14px;height:1.5px;margin:-.75px 0 0 -7px;background:var(--ink)}
+.plus::after{transform:rotate(90deg)}
+@media (hover:hover){.room:hover .plus{transform:rotate(90deg) scale(1.08);background:var(--ocra)}}
+.lb-open{overflow:hidden}
+.lb{position:fixed;inset:0;width:100vw;max-width:none;height:100vh;height:100dvh;max-height:none;margin:0;padding:0;border:0;background:var(--beige) var(--grain);color:var(--ink);overflow:hidden}
+.lb:not([open]){display:none}
+.lb[open]{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(380px,.7fr);animation:lbFade .5s both}
+.lb.out{animation:lbOut .5s .15s both}
+.lb::backdrop{background:rgba(42,36,30,.5)}
+.lb-gal{position:relative;min-height:0;background:var(--beige-2)}
+.lb[open] .lb-gal{animation:fromL 1s var(--ease) both}
+.lb[open] .lb-info{animation:fromR 1s var(--ease) both}
+.lb.out .lb-gal{animation:toL .6s var(--ease) both}
+.lb.out .lb-info{animation:toR .6s var(--ease) both}
+.lb-info.sw>*{animation:fadeUp .8s var(--ease) both}
+.lb-info.sw>*:nth-child(2){animation-delay:.05s}.lb-info.sw>*:nth-child(3){animation-delay:.1s}.lb-info.sw>*:nth-child(4){animation-delay:.15s}.lb-info.sw>*:nth-child(5){animation-delay:.2s}
+@keyframes lbFade{from{opacity:0}}
+@keyframes lbOut{to{opacity:0}}
+@keyframes fromL{from{transform:translateX(-100%)}}
+@keyframes fromR{from{transform:translateX(100%)}}
+@keyframes toL{to{transform:translateX(-100%)}}
+@keyframes toR{to{transform:translateX(100%)}}
+@keyframes fromB{from{transform:translateY(70px);opacity:0}}
+@keyframes toB{to{transform:translateY(70px);opacity:0}}
+@keyframes fadeUp{from{transform:translateY(24px);opacity:0}}
+.lb-track{display:flex;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;scroll-behavior:smooth;overscroll-behavior:contain}
+.lb-track::-webkit-scrollbar{display:none}
+.lb-slide{flex:0 0 100%;height:100%;scroll-snap-align:center}
+.lb-nav,.lb-close{position:absolute;z-index:5;display:grid;place-items:center;border:0;border-radius:50%;background:rgba(255,255,255,.9);color:var(--ink);cursor:pointer;transition:background .3s,transform .4s var(--ease)}
+.lb-nav{top:50%;width:52px;height:52px;margin-top:-26px}
+.lb-prev{left:20px}.lb-next{right:20px}
+.lb-nav svg,.lb-close svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.5}
+.lb-close{top:18px;right:18px;width:48px;height:48px}
+@media (hover:hover){.lb-nav:hover,.lb-close:hover{background:var(--ocra);color:#fff}.lb-close:hover{transform:rotate(90deg)}}
+.lb-count{position:absolute;left:22px;top:24px;z-index:5;padding:.6em 1.1em;border-radius:999px;background:rgba(255,255,255,.9);font:600 .64rem/1 var(--sans);letter-spacing:.2em}
+.lb-thumbs{position:absolute;left:0;right:0;bottom:18px;z-index:5;display:flex;justify-content:center;gap:10px;padding:0 16px}
+.lb-thumbs button{width:62px;height:46px;padding:0;border:2px solid transparent;border-radius:6px;overflow:hidden;background:var(--beige);opacity:.72;cursor:pointer;transition:opacity .3s,border-color .3s}
+.lb-thumbs button[aria-current=true]{border-color:#fff;opacity:1}
+.lb-info{min-height:0;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;padding:clamp(76px,8vw,96px) clamp(24px,4vw,56px) clamp(28px,4vw,48px)}
+.lb-info h3{font-size:clamp(3.2rem,5.4vw,4.6rem);font-weight:300;margin:10px 0 6px}
+.lb-tag{font:italic 400 1.35rem/1.3 var(--serif);color:var(--ocra-2);margin-bottom:18px}
+.lb-text{color:var(--muted);margin-bottom:26px}
+.lb-dl{display:grid;grid-template-columns:auto 1fr;border-top:1px solid var(--line-b);margin-bottom:28px}
+.lb-dl dt,.lb-dl dd{padding:14px 0;border-bottom:1px solid var(--line-b)}
+.lb-dl dt{padding-right:28px;font-size:.6rem;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);padding-top:18px}
+.lb-dl dd{font-size:.9rem}
+.lb-info .amen li{font-size:.74rem}
+.lb-info .btns{margin-top:auto;padding-top:32px}
+.lb-info .lb-nextroom{align-self:flex-start;margin-top:26px;border:0;background:linear-gradient(var(--ocra),var(--ocra)) 0 100%/100% 1px no-repeat;color:var(--ink);cursor:pointer}
+@media (max-width:860px){
+  .lb[open]{display:block;overflow-y:auto}
+  .lb[open] .lb-gal{animation-name:fromB}.lb[open] .lb-info{animation-name:fromB;animation-delay:.12s}
+  .lb.out .lb-gal,.lb.out .lb-info{animation-name:toB;animation-delay:0s}
+  .lb-gal{height:62svh}
+  .lb-info{overflow:visible;padding-top:30px}
+  .lb-close{position:fixed}
+  .lb-nav{width:44px;height:44px;margin-top:-22px}.lb-prev{left:10px}.lb-next{right:10px}
+  .lb-thumbs button{width:50px;height:38px}
 }
 
 /* ---------- Quartiere ---------- */
@@ -267,7 +341,8 @@ h2 em{font-style:italic;color:var(--ocra-2)}
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   *,*::before,*::after{animation:none!important;transition-duration:.01ms!important;transition-delay:0s!important}
-  .js .reveal,.js .reveal-3d,.js .split .w>span,.js .hero .fade,.js .ch,.js .stage{opacity:1!important;transform:none!important;clip-path:none!important}
+  .js .reveal,.js .reveal-3d,.js .a-l,.js .a-r,.js .split .w>span,.js .hero .fade,.js .ch,.js .stage,.js .about-img img{opacity:1!important;transform:none!important;clip-path:none!important}
+  .js .w-l,.js .w-r{clip-path:none!important}
   .js .mw{color:inherit}
 }
 </style>
@@ -350,8 +425,8 @@ h2 em{font-style:italic;color:var(--ocra-2)}
         <h2 class="split">Una casa romana, <em>fatta per riposare</em></h2>
       </header>
       <div class="about">
-        <figure class="about-img arch ph reveal-3d"><img data-foto="casa" loading="lazy" src="https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=900&q=70" alt="Una camera della guesthouse"></figure>
-        <div class="about-text reveal" style="--d:1">
+        <figure class="about-img arch ph w-l"><img data-foto="casa" loading="lazy" src="https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=900&q=70" alt="Una camera della guesthouse"></figure>
+        <div class="about-text a-r" style="--d:1">
           <p class="big">Aurora è una piccola guesthouse a Monteverde, uno dei quartieri più verdi e tranquilli di Roma.</p>
           <p>Camere appena rinnovate, un giardino dove rallentare e una terrazza che guarda la città. Il centro è vicino, il rumore resta fuori.</p>
           <ul class="facts">
@@ -369,30 +444,30 @@ h2 em{font-style:italic;color:var(--ocra-2)}
       <header class="sec-head">
         <span class="node"></span>
         <span class="eyebrow">II — Le camere</span>
-        <h2 class="split">Quattro stanze, <em>quattro luci</em></h2>
+        <h2 class="a-l">Quattro stanze, <em>quattro luci</em></h2>
         <p class="sub reveal">Ogni camera ha bagno privato, aria condizionata e tutto quello che serve per sentirsi a casa.</p>
       </header>
       <p class="swipe">Scorri →</p>
       <div class="rooms">
-        <article class="room reveal" style="--d:0"><div class="room-inner">
-          <div class="room-img arch ph"><img data-foto="camera-1" loading="lazy" src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=700&q=70" alt="Camera Alba"></div>
-          <div class="room-body"><p class="room-n">01</p><h3>Alba</h3><p>Letto matrimoniale, terrazza e la prima luce del giorno.</p></div>
+        <article class="room reveal-3d" style="--d:0" data-room="0"><div class="room-inner">
+          <div class="room-img arch ph"><img data-foto="camera-1" loading="lazy" src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=700&q=70" alt="Camera Alba"><span class="plus" aria-hidden="true"></span></div>
+          <div class="room-body"><p class="room-n">01</p><h3>Alba</h3><p>Letto matrimoniale, terrazza e la prima luce del giorno.</p><button class="room-more" type="button">Foto e dettagli</button></div>
         </div></article>
-        <article class="room reveal" style="--d:1"><div class="room-inner">
-          <div class="room-img arch ph"><img data-foto="camera-2" loading="lazy" src="https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=700&q=70" alt="Camera Ambra"></div>
-          <div class="room-body"><p class="room-n">02</p><h3>Ambra</h3><p>Toni caldi, tessuti morbidi e un bagno privato tutto per te.</p></div>
+        <article class="room reveal-3d" style="--d:1" data-room="1"><div class="room-inner">
+          <div class="room-img arch ph"><img data-foto="camera-2" loading="lazy" src="https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=700&q=70" alt="Camera Ambra"><span class="plus" aria-hidden="true"></span></div>
+          <div class="room-body"><p class="room-n">02</p><h3>Ambra</h3><p>Toni caldi, tessuti morbidi e un bagno privato tutto per te.</p><button class="room-more" type="button">Foto e dettagli</button></div>
         </div></article>
-        <article class="room reveal" style="--d:2"><div class="room-inner">
-          <div class="room-img arch ph"><img data-foto="camera-3" loading="lazy" src="https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=700&q=70" alt="Camera Salvia"></div>
-          <div class="room-body"><p class="room-n">03</p><h3>Salvia</h3><p>Affaccio sul giardino, silenzio e tanto verde.</p></div>
+        <article class="room reveal-3d" style="--d:2" data-room="2"><div class="room-inner">
+          <div class="room-img arch ph"><img data-foto="camera-3" loading="lazy" src="https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=700&q=70" alt="Camera Salvia"><span class="plus" aria-hidden="true"></span></div>
+          <div class="room-body"><p class="room-n">03</p><h3>Salvia</h3><p>Affaccio sul giardino, silenzio e tanto verde.</p><button class="room-more" type="button">Foto e dettagli</button></div>
         </div></article>
-        <article class="room reveal" style="--d:3"><div class="room-inner">
-          <div class="room-img arch ph"><img data-foto="camera-4" loading="lazy" src="https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?auto=format&fit=crop&w=700&q=70" alt="Camera Ocra"></div>
-          <div class="room-body"><p class="room-n">04</p><h3>Ocra</h3><p>Camera familiare, spaziosa, pensata per chi viaggia insieme.</p></div>
+        <article class="room reveal-3d" style="--d:3" data-room="3"><div class="room-inner">
+          <div class="room-img arch ph"><img data-foto="camera-4" loading="lazy" src="https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?auto=format&fit=crop&w=700&q=70" alt="Camera Ocra"><span class="plus" aria-hidden="true"></span></div>
+          <div class="room-body"><p class="room-n">04</p><h3>Ocra</h3><p>Camera familiare, spaziosa, pensata per chi viaggia insieme.</p><button class="room-more" type="button">Foto e dettagli</button></div>
         </div></article>
       </div>
       <span class="eyebrow amen-label reveal">Comfort inclusi</span>
-      <ul class="amen reveal" style="--d:1">
+      <ul class="amen">
         <li>Wi-Fi gratuito</li><li>Aria condizionata</li><li>Bagno privato con bidet</li><li>Accappatoi</li>
         <li>TV a schermo piatto</li><li>Frigo e bollitore</li><li>Giardino</li><li>Terrazza</li>
       </ul>
@@ -407,16 +482,16 @@ h2 em{font-style:italic;color:var(--ocra-2)}
         <h2 class="split">Monteverde, <em>a un passo da Trastevere</em></h2>
       </header>
       <div class="hood">
-        <div class="hood-media reveal">
-          <figure class="hood-img ph" data-par><img data-foto="quartiere" loading="lazy" src="https://images.unsplash.com/photo-1529260830199-42c24126f198?auto=format&fit=crop&w=1200&q=70" alt="Roma"></figure>
-          <svg class="stamp" viewBox="0 0 120 120" aria-hidden="true">
+        <div class="hood-media">
+          <figure class="hood-img ph w-r" data-par><img data-foto="quartiere" loading="lazy" src="https://images.unsplash.com/photo-1529260830199-42c24126f198?auto=format&fit=crop&w=1200&q=70" alt="Roma"></figure>
+          <svg class="stamp reveal" viewBox="0 0 120 120" aria-hidden="true">
             <defs><path id="c" d="M60 60m-44 0a44 44 0 1 1 88 0a44 44 0 1 1-88 0"/></defs>
             <circle cx="60" cy="60" r="57" fill="#fff"/>
             <text><textPath href="#c" textLength="272" lengthAdjust="spacing">ROMA · MONTEVERDE · TRASTEVERE · </textPath></text>
             <circle cx="60" cy="60" r="6" fill="#c48f2c"/>
           </svg>
         </div>
-        <div class="hood-text reveal" style="--d:1">
+        <div class="hood-text a-l" style="--d:1">
           <p>Strade alberate, forni di quartiere e la Roma di chi ci vive. Trastevere si raggiunge a piedi, il centro storico in pochi minuti.</p>
           <ul class="dist">
             <li>Stazione Trastevere<b><span data-count="1.4">1,4</span><small>KM</small></b></li>
@@ -434,17 +509,17 @@ h2 em{font-style:italic;color:var(--ocra-2)}
       <header class="sec-head">
         <span class="node"></span>
         <span class="eyebrow">IV — Contatti</span>
-        <h2 class="split">Ti aspettiamo <em>a Roma</em></h2>
+        <h2 class="a-r">Ti aspettiamo <em>a Roma</em></h2>
       </header>
       <div class="contact">
-        <div class="reveal">
+        <div class="a-l">
           <p class="addr">Via Quirico Filopanti, 8<br><em>00152 Roma</em></p>
           <div class="btns">
             <a class="btn" href="https://www.booking.com/hotel/it/guesthouse-aurora-ae.it.html" target="_blank" rel="noopener">Prenota su Booking <svg class="arr" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8h13M9 3l5 5-5 5"/></svg></a>
             <a class="btn btn-line" href="https://wa.me/390000000000" target="_blank" rel="noopener">WhatsApp</a>
           </div>
         </div>
-        <ul class="info reveal" style="--d:1">
+        <ul class="info a-r" style="--d:1">
           <li><span>Telefono</span><a href="tel:+390000000000">+39 000 000 0000</a></li>
           <li><span>Email</span><a href="mailto:">da inserire</a></li>
           <li><span>Zona</span>Monteverde · Gianicolense</li>
@@ -467,6 +542,30 @@ h2 em{font-style:italic;color:var(--ocra-2)}
     <p class="foot-mark" aria-hidden="true">Aurora</p>
   </footer>
 </div>
+
+<dialog class="lb" aria-labelledby="lb-title">
+  <button class="lb-close" type="button" aria-label="Chiudi"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M2 2l14 14M16 2L2 16"/></svg></button>
+  <div class="lb-gal">
+    <div class="lb-track" tabindex="0" aria-label="Foto della camera"></div>
+    <button class="lb-nav lb-prev" type="button" aria-label="Foto precedente"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M17 9H2M8 3L2 9l6 6"/></svg></button>
+    <button class="lb-nav lb-next" type="button" aria-label="Foto successiva"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M1 9h15M10 3l6 6-6 6"/></svg></button>
+    <span class="lb-count" aria-live="polite"></span>
+    <div class="lb-thumbs"></div>
+  </div>
+  <div class="lb-info">
+    <span class="eyebrow lb-n"></span>
+    <h3 id="lb-title"></h3>
+    <p class="lb-tag"></p>
+    <p class="lb-text"></p>
+    <dl class="lb-dl"></dl>
+    <ul class="amen lb-amen"></ul>
+    <div class="btns">
+      <a class="btn" href="https://www.booking.com/hotel/it/guesthouse-aurora-ae.it.html" target="_blank" rel="noopener">Prenota su Booking <svg class="arr" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8h13M9 3l5 5-5 5"/></svg></a>
+      <button class="btn btn-line lb-ask" type="button">Chiedi info</button>
+    </div>
+    <button class="room-more lb-nextroom" type="button">Camera successiva →</button>
+  </div>
+</dialog>
 
 <script>
 (() => {
@@ -532,7 +631,16 @@ h2 em{font-style:italic;color:var(--ocra-2)}
     if (e.target.dataset.count && !reduce) countUp(e.target);
     io.unobserve(e.target);
   }), { rootMargin: '0px 0px -10% 0px', threshold: .12 });
+  // Comfort: i chip entrano uno da sinistra e uno da destra
+  $$('.amen:not(.lb-amen) li').forEach((li, i) => { li.classList.add(i % 2 ? 'a-r' : 'a-l'); li.style.setProperty('--d', i * .5); });
   $$('.reveal, .reveal-3d, .split, [data-count]').forEach(el => io.observe(el));
+  // Gli elementi che entrano da fuori schermo si controllano solo in verticale (l'observer non li vedrebbe)
+  let slides = $$('.a-l, .a-r, .w-l, .w-r');
+  const checkSlides = () => {
+    if (!slides.length) return;
+    const lim = innerHeight * .88;
+    slides = slides.filter(el => { const r = el.getBoundingClientRect(); if (r.top < lim && r.bottom > 0) { el.classList.add('in'); return false; } return true; });
+  };
 
   // Nav + menu mobile
   const nav = $('.nav'), burger = $('.burger');
@@ -652,10 +760,10 @@ h2 em{font-style:italic;color:var(--ocra-2)}
   };
   const kick = () => { if (!raf) raf = requestAnimationFrame(frame); };
 
-  addEventListener('scroll', () => { onNav(); kick(); }, { passive: true });
+  addEventListener('scroll', () => { onNav(); checkSlides(); kick(); }, { passive: true });
   let rt;
   new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(() => { build(); kick(); }, 80); }).observe(flow);
-  build(); onNav(); kick();
+  build(); onNav(); checkSlides(); kick();
 
   // Camere: tilt 3D col mouse, coverflow su telefono
   const cards = $$('.room-inner'), track = $('.rooms');
@@ -680,6 +788,74 @@ h2 em{font-style:italic;color:var(--ocra-2)}
   track.addEventListener('scroll', () => requestAnimationFrame(cover), { passive: true });
   mobile.addEventListener('change', cover);
   cover();
+
+  // Camere: galleria e dettagli (foto segnaposto: da sostituire con quelle vere)
+  const lb = $('.lb'), lbTrack = $('.lb-track', lb), lbThumbs = $('.lb-thumbs', lb), lbCount = $('.lb-count', lb), lbInfo = $('.lb-info', lb);
+  const U = (id, w) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=70`;
+  const POOL = ['1611892440504-42a792e24d32', '1590490360182-c33d57733427', '1566665797739-1674de7a421a', '1596394516093-501ba68a0ba6', '1631049307264-da0ec9d70304', '1582719508461-905c673771fd', '1600585154340-be6161a56a0c', '1525874684015-58379d421a52', '1560185893-a55cbc8c57e8', '1598928506311-c55ded91a20c', '1552832230-c0197dd311b5', '1533089860892-a7c6f0a88666'].map(i => 'photo-' + i);
+  const shots = i => [0, 1, 2, 3, 4].map(k => POOL[(i + k * 2) % POOL.length]);
+  // DA VERIFICARE con il proprietario: descrizioni, ospiti, letti, affacci
+  const ROOMS = [
+    { name: 'Alba', tag: 'Terrazza e prima luce', text: 'Una camera luminosa con terrazza, pensata per iniziare la giornata con calma e fare colazione all’aperto.', info: [['Ospiti', '2'], ['Letto', 'Matrimoniale'], ['Affaccio', 'Terrazza'], ['Bagno', 'Privato, con bidet']] },
+    { name: 'Ambra', tag: 'Toni caldi, tessuti morbidi', text: 'Colori caldi e materiali naturali per una stanza raccolta, dove il silenzio del quartiere si sente davvero.', info: [['Ospiti', '2'], ['Letto', 'Matrimoniale'], ['Affaccio', 'Quartiere'], ['Bagno', 'Privato, con bidet']] },
+    { name: 'Salvia', tag: 'Il verde del giardino', text: 'Affaccia sul giardino: al mattino entra il verde, la sera resta solo il silenzio.', info: [['Ospiti', '2'], ['Letto', 'Matrimoniale'], ['Affaccio', 'Giardino'], ['Bagno', 'Privato, con bidet']] },
+    { name: 'Ocra', tag: 'Per chi viaggia insieme', text: 'La camera più spaziosa, ideale per famiglie o piccoli gruppi. Luce calda tutto il giorno.', info: [['Ospiti', 'Fino a 4'], ['Letto', 'Matrimoniale + aggiuntivi'], ['Affaccio', 'Terrazza'], ['Bagno', 'Privato, con bidet']] }
+  ];
+  const COMFORT = ['Wi-Fi gratuito', 'Aria condizionata', 'Accappatoi', 'TV a schermo piatto', 'Frigo e bollitore'];
+  let roomIdx = 0, slideIdx = 0;
+  const hideBroken = img => img.addEventListener('error', () => img.classList.add('broken'));
+  const go = k => lbTrack.scrollTo({ left: k * lbTrack.clientWidth });
+  const mark = () => {
+    slideIdx = Math.round(lbTrack.scrollLeft / (lbTrack.clientWidth || 1));
+    lbCount.textContent = `${slideIdx + 1} / ${lbTrack.children.length}`;
+    [...lbThumbs.children].forEach((b, k) => b.setAttribute('aria-current', k === slideIdx));
+  };
+  const fill = i => {
+    roomIdx = i;
+    const r = ROOMS[i], photos = shots(i);
+    lbTrack.style.scrollBehavior = 'auto'; lbTrack.scrollLeft = 0; lbTrack.style.scrollBehavior = '';
+    lbTrack.textContent = ''; lbThumbs.textContent = '';
+    photos.forEach((id, k) => {
+      const slide = document.createElement('div'), im = new Image();
+      slide.className = 'lb-slide ph'; im.src = U(id, 1400); im.alt = `Camera ${r.name}, foto ${k + 1}`;
+      if (k) im.loading = 'lazy'; hideBroken(im); slide.appendChild(im); lbTrack.appendChild(slide);
+      const th = document.createElement('button'), ti = new Image();
+      th.type = 'button'; th.setAttribute('aria-label', `Foto ${k + 1}`); ti.src = U(id, 160); ti.alt = ''; hideBroken(ti);
+      th.appendChild(ti); th.addEventListener('click', () => go(k)); lbThumbs.appendChild(th);
+    });
+    $('.lb-n', lb).textContent = `Camera 0${i + 1}`;
+    $('#lb-title', lb).textContent = r.name;
+    $('.lb-tag', lb).textContent = r.tag;
+    $('.lb-text', lb).textContent = r.text;
+    $('.lb-dl', lb).innerHTML = r.info.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('');
+    $('.lb-amen', lb).innerHTML = COMFORT.map(c => `<li>${c}</li>`).join('');
+    lbInfo.scrollTop = 0; lb.scrollTop = 0;
+    mark();
+  };
+  const openRoom = i => {
+    fill(i);
+    if (lb.open) { lbInfo.classList.remove('sw'); void lbInfo.offsetWidth; lbInfo.classList.add('sw'); return; }
+    lbInfo.classList.remove('sw'); lb.classList.remove('out');
+    lb.showModal(); root.classList.add('lb-open');
+  };
+  const closeLb = () => {
+    if (!lb.open || lb.classList.contains('out')) return;
+    lb.classList.add('out');
+    setTimeout(() => lb.close(), reduce ? 0 : 700);
+  };
+  lb.addEventListener('close', () => { root.classList.remove('lb-open'); lb.classList.remove('out'); });
+  lb.addEventListener('cancel', e => { e.preventDefault(); closeLb(); });
+  lb.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') { e.preventDefault(); go(Math.min(lbTrack.children.length - 1, slideIdx + 1)); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); go(Math.max(0, slideIdx - 1)); }
+  });
+  lbTrack.addEventListener('scroll', () => requestAnimationFrame(mark), { passive: true });
+  $('.lb-prev', lb).addEventListener('click', () => go(Math.max(0, slideIdx - 1)));
+  $('.lb-next', lb).addEventListener('click', () => go(Math.min(lbTrack.children.length - 1, slideIdx + 1)));
+  $('.lb-close', lb).addEventListener('click', closeLb);
+  $('.lb-nextroom', lb).addEventListener('click', () => openRoom((roomIdx + 1) % ROOMS.length));
+  $('.lb-ask', lb).addEventListener('click', () => { closeLb(); setTimeout(() => $('#contatti').scrollIntoView(), reduce ? 50 : 760); });
+  $$('.room').forEach((el, i) => el.addEventListener('click', () => openRoom(i)));
 })();
 </script>
 </body>
