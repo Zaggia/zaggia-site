@@ -1,7 +1,7 @@
 {
-  "name": "Manhunt Roma",
+  "name": "Manhunt Italia",
   "short_name": "Manhunt",
-  "description": "Caccia all'uomo per le strade di Roma.",
+  "description": "Caccia all'uomo nelle città italiane.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
@@ -9,6 +9,11 @@
   "theme_color": "#0f1318",
   "lang": "it",
   "icons": [
-    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
   ]
 }
