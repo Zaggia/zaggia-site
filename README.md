@@ -7,9 +7,10 @@ Caccia all'uomo per le strade di Roma, giocata dal browser del telefono.
 - **Posizioni live** di tutti i giocatori, filtrate per ruolo:
   - i cacciatori vedono le prede solo a intervalli ("segnale ogni N minuti", oppure in diretta);
   - chi esce dalla zona viene mostrato in diretta;
+  - anche i cacciatori possono essere mostrati alle prede a intervalli ("segnale cacciatori ogni N minuti");
   - le prede ricevono un allarme quando un cacciatore è vicino;
   - arbitri e giocatori catturati vedono tutto.
-- **Catture**: il pulsante appare al cacciatore quando è entro la distanza di cattura; la preda può anche arrendersi.
+- **Catture**: il pulsante appare al cacciatore quando è entro la distanza di cattura; la preda può anche arrendersi. Con la regola "cattura automatica" la preda viene presa da sola dopo 5 secondi con un cacciatore entro la distanza.
 - Vantaggio iniziale, timer, modalità infezione, cronaca degli eventi, vibrazione, schermo sempre acceso, installabile come app.
 
 ## Come funziona
