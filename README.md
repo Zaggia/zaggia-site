@@ -11,6 +11,8 @@ Caccia all'uomo per le strade di Roma, giocata dal browser del telefono.
   - le prede ricevono un allarme quando un cacciatore è vicino;
   - arbitri e giocatori catturati vedono tutto.
 - **Catture**: il pulsante appare al cacciatore quando è entro la distanza di cattura; la preda può anche arrendersi. Con la regola "cattura automatica" la preda viene presa da sola dopo 5 secondi con un cacciatore entro la distanza.
+- **Kamikaze**: regola opzionale. Con più di 10 giocatori una preda a caso diventa kamikaze in segreto; il cacciatore che la prende viene eliminato. Se restano senza cacciatori vincono le prede.
+- **Account facoltativo** (nome, cognome, età, lingua, email, password): le password sono salvate solo come hash PBKDF2, dopo 5 tentativi sbagliati l'account si blocca per 10 minuti, si può eliminare dall'app. Nessuna email viene inviata. La lingua è salvata nel profilo, ma l'interfaccia per ora è solo in italiano.
 - Vantaggio iniziale, timer, modalità infezione, cronaca degli eventi, vibrazione, schermo sempre acceso, installabile come app.
 
 ## Come funziona
@@ -22,7 +24,7 @@ netlify/functions/api.mts   API /api/:action (create, join, sync, config, start,
 scripts/dev.mjs         server locale con emulatore di Netlify Blobs
 ```
 
-Lo stato vive in Netlify Blobs. Ogni giocatore scrive solo la propria chiave (`g/{codice}/p/{id}`), l'host solo la configurazione (`g/{codice}/game`), le catture sono chiavi create una volta (`g/{codice}/c/{id}`). I client fanno `sync` ogni 3,5 secondi inviando la propria posizione e ricevendo lo stato già filtrato per ruolo: le posizioni nascoste non lasciano mai il server. Le partite si cancellano dopo 24 ore.
+Lo stato vive in Netlify Blobs (partite, `u/…` account, `s/…` sessioni). Ogni giocatore scrive solo la propria chiave (`g/{codice}/p/{id}`), l'host solo la configurazione (`g/{codice}/game`), le catture sono chiavi create una volta (`g/{codice}/c/{id}`). I client fanno `sync` ogni 3,5 secondi inviando la propria posizione e ricevendo lo stato già filtrato per ruolo: le posizioni nascoste non lasciano mai il server. Le partite si cancellano dopo 24 ore.
 
 ## Sviluppo
 

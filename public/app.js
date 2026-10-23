@@ -11,12 +11,13 @@ const esc = (s) =>
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 const AUTO_HOLD_S = 5; // come AUTO_HOLD_MS nella funzione
-const ROLE_LABEL = { hunter: "Cacciatore", runner: "Preda", referee: "Arbitro", caught: "Catturato" };
+const ROLE_LABEL = { hunter: "Cacciatore", runner: "Preda", referee: "Arbitro", caught: "Catturato", eliminated: "Eliminato" };
 const ROLE_COUNT = {
   hunter: ["cacciatore", "cacciatori"],
   runner: ["preda", "prede"],
   referee: ["arbitro", "arbitri"],
   caught: ["catturato", "catturati"],
+  eliminated: ["eliminato", "eliminati"],
 };
 const countRole = (role, n) => `${n} ${ROLE_COUNT[role][n === 1 ? 0 : 1]}`;
 const agoLabel = (at) => {
@@ -40,6 +41,9 @@ const app = {
   wasOutside: false,
   fittedZone: null,
   wakeLock: null,
+  wasKamikaze: false,
+  account: null, // profilo dell'account, se si è entrati
+  accountView: "out", // out | login | register | in
 };
 
 const storage = {
@@ -99,7 +103,8 @@ function showHome(error) {
   const saved = storage.get(SESSION_KEY);
   $("#resume").hidden = !saved;
   if (saved) $("#resume-code").textContent = saved.code;
-  $("#name").value = storage.get(NAME_KEY) ?? "";
+  $("#name").value = storage.get(NAME_KEY) || app.account?.firstName || "";
+  renderAccount();
   const fromUrl = new URLSearchParams(location.search).get("g");
   if (fromUrl) $("#code").value = fromUrl.toUpperCase().slice(0, 5);
   const err = $("#home-error");
@@ -446,6 +451,11 @@ function applyState(s) {
   const meP = s.players.find((p) => p.id === s.me.id);
   if (meP?.outside && !app.wasOutside) vibrate([500, 150, 500]);
   app.wasOutside = !!meP?.outside;
+  if (s.me.kamikaze && !app.wasKamikaze) {
+    toast("Sei il KAMIKAZE! Se un cacciatore ti prende, lo elimini.", 7000);
+    vibrate([200, 100, 200, 100, 400]);
+  }
+  app.wasKamikaze = !!s.me.kamikaze;
 
   const zoneKey = JSON.stringify(s.zone);
   if (s.zone && app.fittedZone !== zoneKey && !app.edit) {
@@ -476,8 +486,9 @@ function renderHud() {
   $("#hud-code").textContent = s.code;
   const role = s.me.role;
   const badge = $("#hud-role");
-  badge.className = `role-badge role-${role}`;
-  badge.textContent = ROLE_LABEL[role];
+  const kamikaze = s.me.kamikaze && role === "runner";
+  badge.className = `role-badge role-${role}${kamikaze ? " role-kamikaze" : ""}`;
+  badge.textContent = kamikaze ? "Preda · Kamikaze" : ROLE_LABEL[role];
 
   let phase = "";
   let timer = "";
@@ -507,7 +518,7 @@ function renderHud() {
     if (!note && !s.settings.revealEveryMin) note = "Prede in diretta per tutti.";
     if (s.settings.shrinkTo < 100) note += note ? " · la zona si restringe" : "La zona si restringe";
   } else {
-    phase = s.winner === "hunters" ? "Vincono i cacciatori" : s.winner === "runners" ? "Vincono le prede" : "Partita finita";
+    phase = s.winner === "hunters" ? "Vincono i cacciatori" : s.winner === "runners" ? "Vincono le prede" : s.winner === "draw" ? "Pareggio" : "Partita finita";
   }
   $("#hud-phase").textContent = phase;
   $("#hud-timer").textContent = timer;
@@ -626,13 +637,21 @@ function hostStartHtml(s) {
   if (!s.zone) problem = "Disegna la zona di gioco per poter iniziare.";
   else if (!hunters) problem = "Serve almeno un cacciatore.";
   else if (!runners) problem = "Serve almeno una preda.";
+  let kamikazeHint = "";
+  if (s.settings.kamikaze) {
+    const playing = s.players.filter((p) => p.baseRole !== "referee").length;
+    kamikazeHint = playing > 10
+      ? "Kamikaze attivo: all'inizio una preda a caso lo diventa, in segreto."
+      : `Kamikaze non attivo: servono più di 10 giocatori (ora ${playing}).`;
+  }
   return `
     <div class="row" style="justify-content:space-between">
       <div><div class="eyebrow">Codice partita</div><div class="mono" style="font-size:24px;letter-spacing:.2em">${esc(s.code)}</div></div>
       <button class="btn btn-sm" type="button" data-action="share">Invita amici</button>
     </div>
     <button class="btn btn-primary btn-lg btn-block" type="button" data-action="start" ${problem ? "disabled" : ""}>Inizia partita</button>
-    <p class="hint">${problem ? esc(problem) : `${countRole("hunter", hunters)} contro ${countRole("runner", runners)}.`}</p>`;
+    <p class="hint">${problem ? esc(problem) : `${countRole("hunter", hunters)} contro ${countRole("runner", runners)}.`}</p>
+    ${kamikazeHint ? `<p class="hint">${esc(kamikazeHint)}</p>` : ""}`;
 }
 
 function zoneEditorHtml(s) {
@@ -685,7 +704,7 @@ function playerStatus(s, p) {
 }
 
 function playersHtml(s, editable) {
-  const order = { hunter: 0, runner: 1, caught: 2, referee: 3 };
+  const order = { hunter: 0, runner: 1, caught: 2, eliminated: 2, referee: 3 };
   const players = [...s.players].sort((a, b) => order[a.role] - order[b.role] || a.name.localeCompare(b.name));
   const rows = players
     .map((p) => {
@@ -698,6 +717,8 @@ function playersHtml(s, editable) {
         controls = `<div class="seg">${seg}</div>${isMe ? "" : `<button class="btn btn-sm btn-ghost" type="button" data-kick="${esc(p.id)}" aria-label="Espelli ${esc(p.name)}">✕</button>`}`;
       } else if (s.isHost && s.phase === "hunt" && p.role === "caught") {
         controls = `<button class="btn btn-sm btn-ghost" type="button" data-uncatch="${esc(p.id)}">Annulla cattura</button>`;
+      } else if (s.isHost && s.phase === "hunt" && p.role === "eliminated") {
+        controls = `<button class="btn btn-sm btn-ghost" type="button" data-unelim="${esc(p.id)}">Annulla eliminazione</button>`;
       } else if (s.me.role === "referee" && s.phase === "hunt" && p.role === "runner") {
         controls = `<button class="btn btn-sm btn-danger" type="button" data-catch="${esc(p.id)}">Segna preso</button>`;
       }
@@ -710,7 +731,7 @@ function playersHtml(s, editable) {
       </li>`;
     })
     .join("");
-  const counts = ["hunter", "runner", "caught", "referee"]
+  const counts = ["hunter", "runner", "caught", "eliminated", "referee"]
     .map((r) => [r, s.players.filter((p) => p.role === r).length])
     .filter(([, n]) => n)
     .map(([r, n]) => countRole(r, n))
@@ -735,6 +756,7 @@ const SETTING_TOGGLES = [
   ["autoCatch", `Cattura automatica: preso dopo ${AUTO_HOLD_S} s entro la distanza`],
   ["outsideReveal", "Chi esce dalla zona viene mostrato in diretta"],
   ["infection", "Infezione: chi viene preso diventa cacciatore"],
+  ["kamikaze", "Kamikaze: una preda segreta elimina il cacciatore che la prende (serve più di 10 giocatori)"],
 ];
 
 function rulesFormHtml(s) {
@@ -760,6 +782,7 @@ function rulesSummaryHtml(s) {
     ["Segnale cacciatori", st.runnersSeeHunters ? "in diretta" : st.hunterRevealEveryMin ? `ogni ${st.hunterRevealEveryMin} min` : "nascosti"],
     ["Cattura", st.autoCatch ? `automatica (${AUTO_HOLD_S} s)` : "con pulsante"],
     ["Infezione", st.infection ? "sì" : "no"],
+    ["Kamikaze", !st.kamikaze ? "no" : s.kamikazeActive ? "attivo" : "se più di 10 giocatori"],
   ];
   return `<div class="section-head"><h3>Regole</h3></div>
     <dl class="rules-summary">${items.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>`;
@@ -783,7 +806,14 @@ function gameActionsHtml(s) {
         : `<button class="btn btn-danger btn-block" type="button" data-action="surrender">Mi hanno preso</button>`,
     );
   }
+  if (s.me.kamikaze && role === "runner") {
+    parts.push(`<p class="hint"><strong>Sei il kamikaze.</strong> Nessuno lo sa: se un cacciatore ti prende, viene eliminato.</p>`);
+  }
+  if (role === "hunter" && s.kamikazeActive && s.phase === "hunt") {
+    parts.push(`<p class="hint">Attenzione: tra le prede c'è un kamikaze. Chi lo prende viene eliminato.</p>`);
+  }
   if (role === "caught") parts.push(`<p class="hint">Sei stato catturato. Ora vedi tutti i giocatori.</p>`);
+  if (role === "eliminated") parts.push(`<p class="hint">Il kamikaze ti ha eliminato. Ora vedi tutti i giocatori.</p>`);
   if (role === "hunter" && s.phase === "hunt" && !s.catchable.length) {
     parts.push(
       s.settings.autoCatch
@@ -805,10 +835,11 @@ function gameActionsHtml(s) {
 
 function resultHtml(s) {
   const cls = s.winner ?? "none";
-  const title = s.winner === "hunters" ? "Vincono i cacciatori" : s.winner === "runners" ? "Vincono le prede" : "Partita terminata";
+  const title =
+    s.winner === "hunters" ? "Vincono i cacciatori" : s.winner === "runners" ? "Vincono le prede" : s.winner === "draw" ? "Pareggio" : "Partita terminata";
   const t = s.timeline;
   const played = t && s.endedAt ? fmtClock(s.endedAt - t.startedAt) : "";
-  const caught = s.catches.length;
+  const caught = s.catches.filter((c) => !c.eliminated).length;
   const host = s.isHost
     ? `<div class="row"><button class="btn btn-primary" type="button" data-action="reset">Nuova partita</button>
         ${app.confirm === "delete"
@@ -816,7 +847,8 @@ function resultHtml(s) {
           : `<button class="btn btn-ghost" type="button" data-action="delete">Chiudi e cancella</button>`}</div>`
     : "";
   return `<div class="result ${cls}"><h2>${title}</h2>
-    <p class="hint">Durata ${played} · ${caught} ${caught === 1 ? "cattura" : "catture"}</p></div>${host}`;
+    <p class="hint">Durata ${played} · ${caught} ${caught === 1 ? "cattura" : "catture"}</p>
+    ${s.kamikazeName ? `<p class="hint">Il kamikaze era ${esc(s.kamikazeName)}.</p>` : ""}</div>${host}`;
 }
 
 function eventsHtml(s) {
@@ -856,6 +888,7 @@ $("#sheet-body").addEventListener("click", async (e) => {
   }
   if (t.dataset.kick) return act("kick", { target: t.dataset.kick }, "Giocatore espulso");
   if (t.dataset.uncatch) return act("uncatch", { target: t.dataset.uncatch }, "Cattura annullata");
+  if (t.dataset.unelim) return act("uncatch", { target: t.dataset.unelim, elim: true }, "Eliminazione annullata");
   if (t.dataset.catch) return act("catch", { target: t.dataset.catch });
 
   const action = t.dataset.action;
@@ -954,9 +987,135 @@ $("#sheet-body").addEventListener("change", (e) => {
   });
 });
 
+// ---------- Account ----------
+const ACCOUNT_KEY = "manhunt.account";
+const LANG_NAME = { it: "Italiano", en: "English", es: "Español", fr: "Français", de: "Deutsch" };
+const ACCOUNT_VIEWS = { out: "#account-out", login: "#login-form", register: "#register-form", in: "#account-in" };
+
+function showError(sel, msg) {
+  const el = $(sel);
+  el.hidden = !msg;
+  el.textContent = msg ?? "";
+}
+
+function showAccountView(view) {
+  app.accountView = view;
+  for (const [key, sel] of Object.entries(ACCOUNT_VIEWS)) $(sel).hidden = key !== view;
+  $("#delete-form").hidden = true;
+}
+
+function renderAccount() {
+  const a = app.account;
+  if (a) {
+    $("#acc-name").textContent = `${a.firstName} ${a.lastName}`;
+    $("#acc-details").textContent = `${a.email} · ${a.age} anni · ${LANG_NAME[a.language] ?? a.language}`;
+    showAccountView("in");
+  } else {
+    showAccountView(app.accountView === "in" ? "out" : app.accountView);
+  }
+}
+
+function setAccount(profile, token) {
+  app.account = profile;
+  if (token) storage.set(ACCOUNT_KEY, { token });
+  if (!$("#name").value.trim()) $("#name").value = profile.firstName;
+  renderAccount();
+}
+
+function clearAccount() {
+  app.account = null;
+  app.accountView = "out";
+  storage.set(ACCOUNT_KEY, null);
+  renderAccount();
+}
+
+async function loadAccount() {
+  const saved = storage.get(ACCOUNT_KEY);
+  if (!saved?.token) return renderAccount();
+  try {
+    const { profile } = await api("me", { userToken: saved.token });
+    setAccount(profile);
+  } catch (err) {
+    if (err.status === 401) clearAccount();
+  }
+}
+
+async function submitAccount(e, errorSel, run) {
+  e.preventDefault();
+  const btn = e.submitter;
+  if (btn) btn.disabled = true;
+  showError(errorSel);
+  try {
+    await run();
+  } catch (err) {
+    showError(errorSel, err.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+$("#acc-show-login").addEventListener("click", () => showAccountView("login"));
+$("#acc-show-register").addEventListener("click", () => showAccountView("register"));
+document.querySelectorAll("[data-acc-cancel]").forEach((b) =>
+  b.addEventListener("click", () => {
+    showError("#login-error");
+    showError("#register-error");
+    renderAccount();
+    if (!app.account) showAccountView("out");
+  }),
+);
+
+$("#login-form").addEventListener("submit", (e) =>
+  submitAccount(e, "#login-error", async () => {
+    const { token, profile } = await api("login", { email: $("#login-email").value, password: $("#login-password").value });
+    $("#login-password").value = "";
+    setAccount(profile, token);
+  }),
+);
+
+$("#register-form").addEventListener("submit", (e) =>
+  submitAccount(e, "#register-error", async () => {
+    const { token, profile } = await api("register", {
+      firstName: $("#reg-first").value,
+      lastName: $("#reg-last").value,
+      age: $("#reg-age").value,
+      language: $("#reg-lang").value,
+      email: $("#reg-email").value,
+      password: $("#reg-password").value,
+      consent: $("#reg-consent").checked,
+    });
+    $("#reg-password").value = "";
+    setAccount(profile, token);
+  }),
+);
+
+$("#acc-logout").addEventListener("click", () => {
+  const token = storage.get(ACCOUNT_KEY)?.token;
+  clearAccount();
+  if (token) api("logout", { userToken: token }).catch(() => {});
+});
+
+$("#acc-delete").addEventListener("click", () => {
+  $("#delete-form").hidden = false;
+  $("#delete-password").focus();
+});
+$("#delete-cancel").addEventListener("click", () => {
+  $("#delete-form").hidden = true;
+  $("#delete-password").value = "";
+  showError("#delete-error");
+});
+$("#delete-form").addEventListener("submit", (e) =>
+  submitAccount(e, "#delete-error", async () => {
+    await api("deleteAccount", { userToken: storage.get(ACCOUNT_KEY)?.token, password: $("#delete-password").value });
+    $("#delete-password").value = "";
+    clearAccount();
+  }),
+);
+
 // ---------- Avvio ----------
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
 const saved = storage.get(SESSION_KEY);
 const urlCode = new URLSearchParams(location.search).get("g")?.toUpperCase();
 if (saved && (!urlCode || urlCode === saved.code)) startGame(saved);
 else showHome();
+loadAccount();

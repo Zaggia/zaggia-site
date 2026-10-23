@@ -59,6 +59,86 @@
         <p class="form-error" id="home-error" role="alert" hidden></p>
       </form>
 
+      <section id="account" class="card stack" aria-label="Account">
+        <div id="account-out" class="stack">
+          <div>
+            <div class="eyebrow">Account facoltativo</div>
+            <p class="hint">Con un account ritrovi il tuo nome ogni volta che entri. Si può giocare anche senza.</p>
+          </div>
+          <div class="row">
+            <button class="btn btn-sm" id="acc-show-login" type="button">Accedi</button>
+            <button class="btn btn-sm" id="acc-show-register" type="button">Crea account</button>
+          </div>
+        </div>
+
+        <form id="login-form" class="stack" hidden>
+          <div class="eyebrow">Accedi</div>
+          <label class="field"><span class="label">Email</span>
+            <input id="login-email" name="email" type="email" autocomplete="username" inputmode="email" required></label>
+          <label class="field"><span class="label">Password</span>
+            <input id="login-password" name="password" type="password" autocomplete="current-password" required></label>
+          <div class="row">
+            <button class="btn btn-primary" type="submit">Accedi</button>
+            <button class="btn btn-ghost" type="button" data-acc-cancel>Annulla</button>
+          </div>
+          <p class="form-error" id="login-error" role="alert" hidden></p>
+        </form>
+
+        <form id="register-form" class="stack" hidden>
+          <div class="eyebrow">Crea account</div>
+          <div class="grid2">
+            <label class="field"><span class="label">Nome</span>
+              <input id="reg-first" name="given-name" autocomplete="given-name" maxlength="40" required></label>
+            <label class="field"><span class="label">Cognome</span>
+              <input id="reg-last" name="family-name" autocomplete="family-name" maxlength="40" required></label>
+            <label class="field"><span class="label">Età</span>
+              <input id="reg-age" name="age" type="number" inputmode="numeric" min="5" max="120" required></label>
+            <label class="field"><span class="label">Lingua</span>
+              <select id="reg-lang" name="language">
+                <option value="it" selected>Italiano</option>
+                <option value="en">English</option>
+                <option value="es">Español</option>
+                <option value="fr">Français</option>
+                <option value="de">Deutsch</option>
+              </select></label>
+          </div>
+          <label class="field"><span class="label">Email</span>
+            <input id="reg-email" name="email" type="email" autocomplete="username" inputmode="email" maxlength="120" required></label>
+          <label class="field"><span class="label">Password (almeno 8 caratteri)</span>
+            <input id="reg-password" name="new-password" type="password" autocomplete="new-password" minlength="8" maxlength="200" required></label>
+          <label class="toggle"><input id="reg-consent" type="checkbox" required>
+            Accetto che nome, cognome, età, lingua ed email vengano salvati per far funzionare l'account. Posso eliminarlo quando voglio.</label>
+          <p class="hint">Per ora l'app è solo in italiano: la lingua resta salvata nel tuo profilo.</p>
+          <div class="row">
+            <button class="btn btn-primary" type="submit">Crea account</button>
+            <button class="btn btn-ghost" type="button" data-acc-cancel>Annulla</button>
+          </div>
+          <p class="form-error" id="register-error" role="alert" hidden></p>
+        </form>
+
+        <div id="account-in" class="stack" hidden>
+          <div>
+            <div class="eyebrow">Il tuo account</div>
+            <div class="account-name" id="acc-name"></div>
+            <div class="hint" id="acc-details"></div>
+          </div>
+          <div class="row">
+            <button class="btn btn-sm btn-ghost" id="acc-logout" type="button">Esci</button>
+            <button class="btn btn-sm btn-danger" id="acc-delete" type="button">Elimina account</button>
+          </div>
+          <form id="delete-form" class="confirm" hidden>
+            <strong>Eliminare l'account per sempre?</strong>
+            <label class="field"><span class="label">Scrivi la password per confermare</span>
+              <input id="delete-password" type="password" autocomplete="current-password" required></label>
+            <div class="row">
+              <button class="btn btn-primary" type="submit">Elimina</button>
+              <button class="btn btn-ghost" type="button" id="delete-cancel">Annulla</button>
+            </div>
+            <p class="form-error" id="delete-error" role="alert" hidden></p>
+          </form>
+        </div>
+      </section>
+
       <section class="how">
         <h2>Come si gioca</h2>
         <ol>
@@ -67,7 +147,7 @@
           <li>Chi esce dalla zona viene mostrato in diretta. Vicino a una preda, il cacciatore può catturarla.</li>
           <li>Vincono i cacciatori se prendono tutti, le prede se resistono fino allo scadere.</li>
         </ol>
-        <p class="fineprint">La posizione viene condivisa solo con i giocatori della tua partita, solo mentre l'app è aperta. Le partite si cancellano dopo 24 ore.</p>
+        <p class="fineprint">La posizione viene condivisa solo con i giocatori della tua partita, solo mentre l'app è aperta. Le partite si cancellano dopo 24 ore. Se crei un account, i suoi dati restano salvati finché non lo elimini.</p>
       </section>
     </div>
   </main>
