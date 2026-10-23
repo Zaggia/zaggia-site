@@ -2,7 +2,7 @@
 
 Caccia all'uomo per le strade di Roma, giocata dal browser del telefono.
 
-- **Mappa di Roma** (OpenStreetMap / CARTO) con zone già pronte: Centro storico, Trastevere, Villa Borghese, Mura Aureliane, Colosseo.
+- **Mappa di Roma** (OpenStreetMap, scurita con un filtro CSS) con zone già pronte: Centro storico, Trastevere, Villa Borghese, Mura Aureliane, Colosseo.
 - **Zona di gioco** a cerchio o poligono disegnata dall'host, con restringimento opzionale nel tempo.
 - **Posizioni live** di tutti i giocatori, filtrate per ruolo:
   - i cacciatori vedono le prede solo a intervalli ("segnale ogni N minuti", oppure in diretta);

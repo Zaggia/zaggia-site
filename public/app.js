@@ -149,10 +149,11 @@ const layers = { zone: null, draft: null, markers: new Map(), accuracy: null };
 function initMap() {
   if (map) return;
   map = L.map("map", { zoomControl: false, attributionControl: true }).setView(ROME, 14);
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-    subdomains: "abcd",
-    maxZoom: 20,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  // Tile OpenStreetMap (senza chiave); lo stile scuro arriva da un filtro CSS sulla classe "map-tiles".
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    className: "map-tiles",
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   }).addTo(map);
   map.on("click", onMapClick);
 }

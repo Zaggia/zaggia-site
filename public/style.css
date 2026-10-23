@@ -116,6 +116,8 @@ input:focus { border-color: var(--runner); outline: none; }
 .game { position: fixed; inset: 0; overflow: hidden; }
 .map { position: absolute; inset: 0; background: #0b0e12; }
 .leaflet-container { background: #0b0e12; font-family: var(--font-body); }
+/* Mappa chiara di OpenStreetMap resa notturna: inverte la luminosità e tiene i colori. */
+.map-tiles { filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9) saturate(0.7); }
 .leaflet-control-attribution { background: rgba(15, 19, 24, 0.7) !important; color: var(--muted) !important; font-size: 10px; }
 .leaflet-control-attribution a { color: var(--muted) !important; }
 .leaflet-top { top: calc(var(--safe-top) + 92px); }
