@@ -16,6 +16,8 @@ type Settings = {
   headStartMin: number;
   revealEveryMin: number;
   runnersSeeHunters: boolean;
+  hunterRevealEveryMin: number;
+  autoCatch: boolean;
   catchRadiusM: number;
   dangerRadiusM: number;
   infection: boolean;
@@ -43,21 +45,28 @@ type Player = {
   lastSeen: number;
   pos?: LatLng & { acc: number; at: number };
   ping?: LatLng & { at: number };
-  pingRound?: number;
+  pingKey?: string;
   pingTick?: number;
   outsideSince?: number | null;
 };
 
-type Catch = { target: string; by: string; at: number; self?: boolean };
+type Catch = { target: string; by: string; at: number; self?: boolean; auto?: boolean };
+type Near = { since: number };
 
 const GAME_TTL_MS = 24 * 3600 * 1000;
 const ONLINE_MS = 45 * 1000;
+// Cattura automatica: il cacciatore deve restare entro la distanza per questo tempo,
+// e le posizioni devono essere recenti (il GPS fermo non basta a prendere qualcuno).
+const AUTO_HOLD_MS = 5 * 1000;
+const AUTO_FRESH_MS = 25 * 1000;
 
 const DEFAULT_SETTINGS: Settings = {
   durationMin: 60,
   headStartMin: 5,
   revealEveryMin: 5,
   runnersSeeHunters: false,
+  hunterRevealEveryMin: 0,
+  autoCatch: false,
   catchRadiusM: 30,
   dangerRadiusM: 200,
   infection: false,
@@ -123,6 +132,8 @@ const cleanSettings = (v: any, prev: Settings): Settings => ({
   headStartMin: clamp(v?.headStartMin, 0, 60, prev.headStartMin),
   revealEveryMin: clamp(v?.revealEveryMin, 0, 60, prev.revealEveryMin),
   runnersSeeHunters: typeof v?.runnersSeeHunters === "boolean" ? v.runnersSeeHunters : prev.runnersSeeHunters,
+  hunterRevealEveryMin: clamp(v?.hunterRevealEveryMin, 0, 60, prev.hunterRevealEveryMin),
+  autoCatch: typeof v?.autoCatch === "boolean" ? v.autoCatch : prev.autoCatch,
   catchRadiusM: clamp(v?.catchRadiusM, 5, 200, prev.catchRadiusM),
   dangerRadiusM: clamp(v?.dangerRadiusM, 0, 2000, prev.dangerRadiusM),
   infection: typeof v?.infection === "boolean" ? v.infection : prev.infection,
@@ -143,12 +154,14 @@ async function loadGame(code: string) {
   let game: Game | null = null;
   const players: Record<string, Player> = {};
   const catches: Record<string, Catch> = {};
+  const nears: Record<string, Near> = {};
   for (const [key, value] of entries) {
     if (!value) continue;
     const rest = key.slice(prefix.length);
     if (rest === "game") game = value as Game;
     else if (rest.startsWith("p/")) players[rest.slice(2)] = value as Player;
     else if (rest.startsWith("c/")) catches[rest.slice(2)] = value as Catch;
+    else if (rest.startsWith("n/")) nears[rest.slice(2)] = value as Near;
   }
   if (!game) throw new HttpError(404, "Partita non trovata. Controlla il codice.");
 
@@ -156,7 +169,7 @@ async function loadGame(code: string) {
     await Promise.all(blobs.map((b) => s.delete(b.key)));
     throw new HttpError(404, "Questa partita è scaduta (dura al massimo 24 ore).");
   }
-  return { game, players, catches, keys: blobs.map((b) => b.key) };
+  return { game, players, catches, nears, keys: blobs.map((b) => b.key) };
 }
 
 function auth(players: Record<string, Player>, id: unknown, token: unknown) {
@@ -201,6 +214,7 @@ function buildState(
   catches: Record<string, Catch>,
   me: Player,
   now: number,
+  nears: Record<string, Near> = {},
 ) {
   const { phase, ...end } = phaseOf(game, players, catches, now) as any;
   const t = game.status === "lobby" ? null : timeline(game);
@@ -233,7 +247,7 @@ function buildState(
       } else if (game.settings.revealEveryMin === 0) {
         pos = p.pos ?? null;
         out.visibility = "live";
-      } else if (p.ping && p.pingRound === game.startedAt) {
+      } else if (p.ping && p.pingKey === `${game.startedAt}:runner`) {
         pos = p.ping;
         out.visibility = "ping";
       }
@@ -241,6 +255,9 @@ function buildState(
       if (game.settings.runnersSeeHunters) {
         pos = p.pos ?? null;
         out.visibility = "live";
+      } else if (phase === "hunt" && game.settings.hunterRevealEveryMin > 0 && p.ping && p.pingKey === `${game.startedAt}:hunter`) {
+        pos = p.ping;
+        out.visibility = "ping";
       }
     } else if (myRole === role) {
       pos = p.pos ?? null;
@@ -254,6 +271,7 @@ function buildState(
   // Allarme vicinanza per le prede e lista prede catturabili per i cacciatori.
   // Calcolati sulle posizioni reali, senza rivelarle.
   let danger: number | null = null;
+  let capturing: number | null = null;
   let catchable: { id: string; name: string; dist: number }[] = [];
   if (phase === "hunt" && me.pos && isFresh(me, now)) {
     const others = Object.values(players).filter((p) => p.id !== me.id && isFresh(p, now));
@@ -263,6 +281,9 @@ function buildState(
         .map((p) => distanceM(me.pos!, p.pos!));
       const min = d.length ? Math.min(...d) : Infinity;
       if (min <= game.settings.dangerRadiusM) danger = Math.ceil(min / 25) * 25;
+    }
+    if (myRole === "runner" && game.settings.autoCatch && nears[me.id]) {
+      capturing = Math.max(0, Math.ceil((nears[me.id].since + AUTO_HOLD_MS - now) / 1000));
     }
     if (myRole === "hunter") {
       catchable = others
@@ -319,6 +340,7 @@ function buildState(
     players: list,
     catches: Object.values(catches).map((c) => ({ target: c.target, by: c.by, at: c.at, self: !!c.self })),
     danger,
+    capturing,
     catchable,
     events: events.slice(0, 30),
   };
@@ -329,6 +351,55 @@ const json = (data: unknown, status = 200) =>
     status,
     headers: { "content-type": "application/json", "cache-control": "no-store" },
   });
+
+// Cattura automatica: una preda con un cacciatore entro la distanza di cattura per AUTO_HOLD_MS viene presa.
+// Lo stato "sta per essere presa" sta in g/{codice}/n/{id}; può scriverlo chiunque faccia sync,
+// il valore è sempre lo stesso istante di inizio, quindi le scritture concorrenti non confliggono.
+async function autoCatchPass(
+  code: string,
+  game: Game,
+  players: Record<string, Player>,
+  catches: Record<string, Catch>,
+  nears: Record<string, Near>,
+  now: number,
+) {
+  const s = store();
+  const fresh = (p: Player) => !!p.pos && now - p.pos.at < AUTO_FRESH_MS;
+  const all = Object.values(players);
+  const hunters = all.filter((p) => effectiveRole(game, catches, p.id) === "hunter" && fresh(p));
+  const runners = all.filter((p) => effectiveRole(game, catches, p.id) === "runner" && fresh(p));
+
+  for (const r of runners) {
+    let nearest: Player | null = null;
+    let best = Infinity;
+    for (const h of hunters) {
+      const d = distanceM(h.pos!, r.pos!);
+      if (d <= game.settings.catchRadiusM && d < best) {
+        best = d;
+        nearest = h;
+      }
+    }
+    const near = nears[r.id];
+    if (!nearest) {
+      if (near) {
+        delete nears[r.id];
+        await s.delete(`g/${code}/n/${r.id}`);
+      }
+      continue;
+    }
+    // Un "since" troppo vecchio vuol dire che nessuno ha controllato per un po': si riparte da capo.
+    if (!near || now - near.since > 6 * AUTO_HOLD_MS) {
+      nears[r.id] = { since: now };
+      await s.setJSON(`g/${code}/n/${r.id}`, nears[r.id]);
+    } else if (now - near.since >= AUTO_HOLD_MS) {
+      const c: Catch = { target: r.id, by: nearest.id, at: now, auto: true };
+      const { modified } = await s.setJSON(`g/${code}/c/${r.id}`, c, { onlyIfNew: true });
+      catches[r.id] = modified ? c : (catches[r.id] ?? c);
+      delete nears[r.id];
+      await s.delete(`g/${code}/n/${r.id}`);
+    }
+  }
+}
 
 async function handle(action: string, body: any) {
   const s = store();
@@ -371,11 +442,11 @@ async function handle(action: string, body: any) {
     return { code, id, token };
   }
 
-  const { game, players, catches, keys } = await loadGame(code);
+  const { game, players, catches, nears, keys } = await loadGame(code);
   const me = auth(players, body.id, body.token);
   const saveGame = () => s.setJSON(`g/${code}/game`, game);
   const clearCatches = () =>
-    Promise.all(keys.filter((k) => k.startsWith(`g/${code}/c/`)).map((k) => s.delete(k)));
+    Promise.all(keys.filter((k) => /^g\/[A-Z]+\/[cn]\//.test(k)).map((k) => s.delete(k)));
 
   switch (action) {
     case "sync": {
@@ -385,27 +456,35 @@ async function handle(action: string, body: any) {
 
       const { phase } = phaseOf(game, players, catches, now);
       const playing = phase === "headstart" || phase === "hunt";
-      if (playing && me.pos && effectiveRole(game, catches, me.id) === "runner") {
+      const role = effectiveRole(game, catches, me.id);
+      if (playing && me.pos && role === "runner") {
         me.outsideSince = insideZone(currentZone(game, now), me.pos) ? null : (me.outsideSince ?? now);
-        // Segnale periodico: la prima posizione dopo ogni scatto viene mostrata ai cacciatori.
-        const every = game.settings.revealEveryMin * 60000;
-        if (phase === "hunt" && every > 0) {
-          const tick = Math.floor((now - timeline(game).huntStart) / every);
-          if (me.pingRound !== game.startedAt) {
-            me.pingRound = game.startedAt;
+      } else {
+        me.outsideSince = null;
+      }
+
+      // Segnale periodico: la prima posizione dopo ogni scatto viene mostrata agli avversari.
+      // Vale per le prede (verso i cacciatori) e, se l'host lo vuole, per i cacciatori (verso le prede).
+      if (phase === "hunt" && me.pos && (role === "runner" || role === "hunter")) {
+        const every = (role === "hunter" ? game.settings.hunterRevealEveryMin : game.settings.revealEveryMin) * 60000;
+        if (every > 0) {
+          const key = `${game.startedAt}:${role}`;
+          if (me.pingKey !== key) {
+            me.pingKey = key;
             me.pingTick = -1;
             me.ping = undefined;
           }
+          const tick = Math.floor((now - timeline(game).huntStart) / every);
           if (tick > (me.pingTick ?? -1)) {
             me.ping = { lat: me.pos.lat, lng: me.pos.lng, at: now };
             me.pingTick = tick;
           }
         }
-      } else {
-        me.outsideSince = null;
       }
       await s.setJSON(`g/${code}/p/${me.id}`, me);
-      return buildState(game, players, catches, me, now);
+
+      if (phase === "hunt" && game.settings.autoCatch) await autoCatchPass(code, game, players, catches, nears, now);
+      return buildState(game, players, catches, me, now, nears);
     }
 
     case "config": {
@@ -488,6 +567,7 @@ async function handle(action: string, body: any) {
       if (target === me.id) throw new HttpError(400, "Non puoi espellere te stesso.");
       await s.delete(`g/${code}/p/${target}`);
       await s.delete(`g/${code}/c/${target}`);
+      await s.delete(`g/${code}/n/${target}`);
       break;
     }
 
@@ -495,6 +575,7 @@ async function handle(action: string, body: any) {
       if (me.id === game.hostId) throw new HttpError(409, "Sei l'host: chiudi la partita invece di uscire.");
       await s.delete(`g/${code}/p/${me.id}`);
       await s.delete(`g/${code}/c/${me.id}`);
+      await s.delete(`g/${code}/n/${me.id}`);
       return { ok: true };
     }
 
@@ -510,7 +591,7 @@ async function handle(action: string, body: any) {
 
   // Dopo ogni azione l'interfaccia riceve lo stato aggiornato.
   const fresh = await loadGame(code);
-  return buildState(fresh.game, fresh.players, fresh.catches, fresh.players[me.id] ?? me, Date.now());
+  return buildState(fresh.game, fresh.players, fresh.catches, fresh.players[me.id] ?? me, Date.now(), fresh.nears);
 }
 
 export default async (req: Request) => {

@@ -363,7 +363,9 @@ input:focus { border-color: var(--runner); outline: none; }
 .pin.runner .pin-core { background: var(--runner); color: #1b1407; }
 .pin.referee .pin-core { background: var(--referee); color: #111; }
 .pin.caught .pin-core { background: #444b55; color: var(--text); }
-.pin.ping .pin-core { background: transparent; border: 2px dashed var(--runner); color: var(--runner); box-shadow: none; }
+.pin.ping .pin-core { background: transparent; border: 2px dashed currentColor; box-shadow: none; }
+.pin.ping.runner .pin-core { color: var(--runner); }
+.pin.ping.hunter .pin-core { color: var(--hunter); }
 .pin.offline { opacity: 0.45; }
 .pin.me .pin-core { border-color: #fff; }
 .pin.me::after {

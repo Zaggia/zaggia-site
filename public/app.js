@@ -10,6 +10,7 @@ const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
+const AUTO_HOLD_S = 5; // come AUTO_HOLD_MS nella funzione
 const ROLE_LABEL = { hunter: "Cacciatore", runner: "Preda", referee: "Arbitro", caught: "Catturato" };
 const ROLE_COUNT = {
   hunter: ["cacciatore", "cacciatori"],
@@ -241,7 +242,8 @@ function fitZone(zone) {
 }
 
 function markerHtml(p, isMe) {
-  const cls = ["pin", p.visibility === "ping" ? "ping" : p.role];
+  const cls = ["pin", p.role];
+  if (p.visibility === "ping") cls.push("ping");
   if (isMe) cls.push("me");
   if (!p.online && !isMe) cls.push("offline");
   let label = esc(isMe ? "Tu" : p.name);
@@ -460,8 +462,8 @@ function applyState(s) {
 }
 
 // ---------- HUD ----------
-function nextPingAt(s) {
-  const every = s.settings.revealEveryMin * 60000;
+function nextPingAt(s, everyMin) {
+  const every = everyMin * 60000;
   if (s.phase !== "hunt" || !every) return null;
   const t = timeline({ ...s, startedAt: s.timeline.startedAt });
   const tick = Math.floor((now() - t.huntStart) / every);
@@ -491,10 +493,18 @@ function renderHud() {
   } else if (s.phase === "hunt") {
     phase = "Caccia aperta";
     timer = fmtClock(t.endsAt - now());
-    const ping = nextPingAt(s);
-    if (ping && role === "runner") note = `La tua posizione verrà rivelata tra ${fmtClock(ping - now())}`;
-    else if (ping && role === "hunter") note = `Nuove posizioni delle prede tra ${fmtClock(ping - now())}`;
-    else if (!s.settings.revealEveryMin) note = "Posizioni in diretta per tutti.";
+    const preyPing = nextPingAt(s, s.settings.revealEveryMin);
+    const hunterPing = s.settings.runnersSeeHunters ? null : nextPingAt(s, s.settings.hunterRevealEveryMin);
+    if (role === "runner") {
+      const bits = [];
+      if (preyPing) bits.push(`La tua posizione verrà rivelata tra ${fmtClock(preyPing - now())}`);
+      if (hunterPing) bits.push(`${bits.length ? "cacciatori" : "Cacciatori"} visibili tra ${fmtClock(hunterPing - now())}`);
+      note = bits.join(" · ");
+    } else if (role === "hunter") {
+      if (preyPing) note = `Nuove posizioni delle prede tra ${fmtClock(preyPing - now())}`;
+      if (hunterPing) note += `${note ? " · " : ""}le prede vedono te tra ${fmtClock(hunterPing - now())}`;
+    }
+    if (!note && !s.settings.revealEveryMin) note = "Prede in diretta per tutti.";
     if (s.settings.shrinkTo < 100) note += note ? " · la zona si restringe" : "La zona si restringe";
   } else {
     phase = s.winner === "hunters" ? "Vincono i cacciatori" : s.winner === "runners" ? "Vincono le prede" : "Partita finita";
@@ -512,8 +522,11 @@ function renderAlerts() {
   gps.hidden = !app.geoError;
   gps.textContent = app.geoError ?? "";
   if (!s) return;
-  danger.hidden = s.danger == null;
-  danger.textContent = s.danger != null ? `Cacciatore a meno di ${s.danger} m!` : "";
+  const beingCaught = s.capturing != null;
+  danger.hidden = s.danger == null && !beingCaught;
+  danger.textContent = beingCaught
+    ? `Ti stanno prendendo: ${s.capturing} s`
+    : s.danger != null ? `Cacciatore a meno di ${s.danger} m!` : "";
   const meP = s.players.find((p) => p.id === s.me.id);
   outside.hidden = !meP?.outside;
   outside.textContent = s.settings.outsideReveal
@@ -711,13 +724,15 @@ function playersHtml(s, editable) {
 const SETTING_FIELDS = [
   ["durationMin", "Durata caccia (min)", 5, 600],
   ["headStartMin", "Vantaggio prede (min)", 0, 60],
-  ["revealEveryMin", "Segnale ogni (min, 0 = diretta)", 0, 60],
+  ["revealEveryMin", "Segnale prede ogni (min, 0 = diretta)", 0, 60],
+  ["hunterRevealEveryMin", "Segnale cacciatori ogni (min, 0 = mai)", 0, 60],
   ["catchRadiusM", "Distanza cattura (m)", 5, 200],
   ["dangerRadiusM", "Allarme vicinanza (m, 0 = off)", 0, 2000],
   ["shrinkTo", "Zona finale (% , 100 = fissa)", 10, 100],
 ];
 const SETTING_TOGGLES = [
-  ["runnersSeeHunters", "Le prede vedono i cacciatori in diretta"],
+  ["runnersSeeHunters", "Le prede vedono i cacciatori sempre in diretta"],
+  ["autoCatch", `Cattura automatica: preso dopo ${AUTO_HOLD_S} s entro la distanza`],
   ["outsideReveal", "Chi esce dalla zona viene mostrato in diretta"],
   ["infection", "Infezione: chi viene preso diventa cacciatore"],
 ];
@@ -742,7 +757,8 @@ function rulesSummaryHtml(s) {
     ["Cattura entro", `${st.catchRadiusM} m`],
     ["Allarme", st.dangerRadiusM ? `${st.dangerRadiusM} m` : "spento"],
     ["Zona", st.shrinkTo < 100 ? `si riduce al ${st.shrinkTo}%` : "fissa"],
-    ["Prede vedono cacciatori", st.runnersSeeHunters ? "sì" : "no"],
+    ["Segnale cacciatori", st.runnersSeeHunters ? "in diretta" : st.hunterRevealEveryMin ? `ogni ${st.hunterRevealEveryMin} min` : "nascosti"],
+    ["Cattura", st.autoCatch ? `automatica (${AUTO_HOLD_S} s)` : "con pulsante"],
     ["Infezione", st.infection ? "sì" : "no"],
   ];
   return `<div class="section-head"><h3>Regole</h3></div>
@@ -769,7 +785,11 @@ function gameActionsHtml(s) {
   }
   if (role === "caught") parts.push(`<p class="hint">Sei stato catturato. Ora vedi tutti i giocatori.</p>`);
   if (role === "hunter" && s.phase === "hunt" && !s.catchable.length) {
-    parts.push(`<p class="hint">Avvicinati entro ${s.settings.catchRadiusM} m da una preda: comparirà il pulsante per catturarla.</p>`);
+    parts.push(
+      s.settings.autoCatch
+        ? `<p class="hint">Cattura automatica: resta entro ${s.settings.catchRadiusM} m da una preda per ${AUTO_HOLD_S} secondi. Se serve, compare anche il pulsante.</p>`
+        : `<p class="hint">Avvicinati entro ${s.settings.catchRadiusM} m da una preda: comparirà il pulsante per catturarla.</p>`,
+    );
   }
   if (s.isHost) {
     parts.push(
