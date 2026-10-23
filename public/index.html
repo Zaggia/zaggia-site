@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+  <meta name="theme-color" content="#0f1318">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Manhunt Roma</title>
+  <meta name="description" content="Caccia all'uomo per le strade di Roma: posizioni live, zona di gioco e segnali periodici.">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Saira+Condensed:wght@600;800&display=swap">
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <!-- Schermata iniziale -->
+  <main id="home" class="home">
+    <div class="home-inner">
+      <header class="brand">
+        <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+          <circle cx="32" cy="32" r="27" fill="none" stroke="currentColor" stroke-width="3"/>
+          <circle cx="32" cy="32" r="14" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="6 5"/>
+          <path d="M32 2v14M32 48v14M2 32h14M48 32h14" stroke="currentColor" stroke-width="3"/>
+          <circle cx="32" cy="32" r="4" fill="var(--hunter)"/>
+        </svg>
+        <div>
+          <h1>Manhunt <span>Roma</span></h1>
+          <p class="tagline">Caccia all'uomo tra i sette colli. Crea una partita, disegna la zona, condividi il codice.</p>
+        </div>
+      </header>
+
+      <div id="resume" class="card resume" hidden>
+        <div>
+          <div class="eyebrow">Partita in corso</div>
+          <div class="resume-code mono" id="resume-code"></div>
+        </div>
+        <div class="row">
+          <button class="btn btn-primary" id="resume-btn" type="button">Rientra</button>
+          <button class="btn btn-ghost" id="resume-forget" type="button">Dimentica</button>
+        </div>
+      </div>
+
+      <form id="home-form" class="card stack" autocomplete="off">
+        <label class="field">
+          <span class="label">Il tuo nome</span>
+          <input id="name" name="name" maxlength="24" placeholder="es. Giulia" required>
+        </label>
+        <button class="btn btn-primary btn-lg" id="create-btn" type="submit" value="create">Crea una partita</button>
+        <div class="divider"><span>oppure entra con un codice</span></div>
+        <div class="join-row">
+          <input id="code" name="code" class="mono code-input" maxlength="5" placeholder="ABCDE" autocapitalize="characters" spellcheck="false">
+          <button class="btn" id="join-btn" type="submit" value="join">Entra</button>
+        </div>
+        <p class="form-error" id="home-error" role="alert" hidden></p>
+      </form>
+
+      <section class="how">
+        <h2>Come si gioca</h2>
+        <ol>
+          <li><strong>Cacciatori</strong> contro <strong>prede</strong>. L'host sceglie i ruoli e la zona.</li>
+          <li>Le prede partono con un vantaggio. Poi ogni pochi minuti i cacciatori ricevono la loro posizione.</li>
+          <li>Chi esce dalla zona viene mostrato in diretta. Vicino a una preda, il cacciatore può catturarla.</li>
+          <li>Vincono i cacciatori se prendono tutti, le prede se resistono fino allo scadere.</li>
+        </ol>
+        <p class="fineprint">La posizione viene condivisa solo con i giocatori della tua partita, solo mentre l'app è aperta. Le partite si cancellano dopo 24 ore.</p>
+      </section>
+    </div>
+  </main>
+
+  <!-- Schermata di gioco -->
+  <section id="game" class="game" hidden>
+    <div id="map" class="map" aria-label="Mappa di Roma"></div>
+
+    <header class="hud">
+      <div class="hud-row">
+        <button class="chip chip-code mono" id="hud-code" type="button" title="Condividi codice"></button>
+        <div class="hud-phase" id="hud-phase"></div>
+        <div class="hud-timer mono" id="hud-timer"></div>
+      </div>
+      <div class="hud-row hud-sub">
+        <span class="role-badge" id="hud-role"></span>
+        <span class="hud-note" id="hud-note"></span>
+      </div>
+    </header>
+
+    <div class="alerts">
+      <div class="alert alert-danger" id="alert-danger" hidden></div>
+      <div class="alert alert-outside" id="alert-outside" hidden></div>
+      <div class="alert alert-gps" id="alert-gps" hidden></div>
+    </div>
+
+    <div class="map-tools">
+      <button class="tool" id="tool-me" type="button" aria-label="Centra su di me" title="Centra su di me">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+      </button>
+      <button class="tool" id="tool-zone" type="button" aria-label="Mostra la zona" title="Mostra la zona">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7l6-3 5 3 5-2v12l-5 2-5-3-6 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <div class="catch-bar" id="catch-bar" hidden></div>
+
+    <section class="sheet" id="sheet">
+      <button class="sheet-handle" id="sheet-handle" type="button" aria-label="Espandi pannello"><span></span></button>
+      <div class="sheet-body" id="sheet-body"></div>
+    </section>
+
+    <div class="toast" id="toast" role="status" hidden></div>
+  </section>
+
+  <script src="/vendor/leaflet/leaflet.js"></script>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
