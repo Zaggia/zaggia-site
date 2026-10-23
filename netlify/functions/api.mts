@@ -6,6 +6,9 @@ import { currentZone, distanceM, insideZone, timeline } from "../../public/geo.j
 //   g/{code}/game     -> configurazione partita, la scrive solo l'host
 //   g/{code}/p/{id}   -> giocatore e posizione, la scrive solo quel giocatore (o l'host per kick)
 //   g/{code}/c/{id}   -> cattura del giocatore {id}, creata una sola volta
+//   g/{code}/c/x-{id} -> eliminazione del cacciatore {id} da parte del kamikaze
+//   g/{code}/n/{id}   -> preda {id} con un cacciatore vicino (cattura automatica)
+//   u/{sha256(email)} -> account (password con PBKDF2), s/{sha256(token)} -> sessione dell'account
 
 type LatLng = { lat: number; lng: number };
 type Zone = { type: "circle"; center: LatLng; radius: number } | { type: "polygon"; points: LatLng[] };
@@ -18,6 +21,7 @@ type Settings = {
   runnersSeeHunters: boolean;
   hunterRevealEveryMin: number;
   autoCatch: boolean;
+  kamikaze: boolean;
   catchRadiusM: number;
   dangerRadiusM: number;
   infection: boolean;
@@ -35,6 +39,7 @@ type Game = {
   zone: Zone | null;
   settings: Settings;
   roles: Record<string, Role>;
+  kamikazeId?: string;
 };
 
 type Player = {
@@ -50,7 +55,7 @@ type Player = {
   outsideSince?: number | null;
 };
 
-type Catch = { target: string; by: string; at: number; self?: boolean; auto?: boolean };
+type Catch = { target: string; by: string; at: number; self?: boolean; auto?: boolean; eliminated?: boolean };
 type Near = { since: number };
 
 const GAME_TTL_MS = 24 * 3600 * 1000;
@@ -59,6 +64,8 @@ const ONLINE_MS = 45 * 1000;
 // e le posizioni devono essere recenti (il GPS fermo non basta a prendere qualcuno).
 const AUTO_HOLD_MS = 5 * 1000;
 const AUTO_FRESH_MS = 25 * 1000;
+// Kamikaze: serve più di 10 giocatori (arbitri esclusi).
+const KAMIKAZE_MIN_PLAYERS = 11;
 
 const DEFAULT_SETTINGS: Settings = {
   durationMin: 60,
@@ -67,6 +74,7 @@ const DEFAULT_SETTINGS: Settings = {
   runnersSeeHunters: false,
   hunterRevealEveryMin: 0,
   autoCatch: false,
+  kamikaze: false,
   catchRadiusM: 30,
   dangerRadiusM: 200,
   infection: false,
@@ -134,6 +142,7 @@ const cleanSettings = (v: any, prev: Settings): Settings => ({
   runnersSeeHunters: typeof v?.runnersSeeHunters === "boolean" ? v.runnersSeeHunters : prev.runnersSeeHunters,
   hunterRevealEveryMin: clamp(v?.hunterRevealEveryMin, 0, 60, prev.hunterRevealEveryMin),
   autoCatch: typeof v?.autoCatch === "boolean" ? v.autoCatch : prev.autoCatch,
+  kamikaze: typeof v?.kamikaze === "boolean" ? v.kamikaze : prev.kamikaze,
   catchRadiusM: clamp(v?.catchRadiusM, 5, 200, prev.catchRadiusM),
   dangerRadiusM: clamp(v?.dangerRadiusM, 0, 2000, prev.dangerRadiusM),
   infection: typeof v?.infection === "boolean" ? v.infection : prev.infection,
@@ -184,10 +193,14 @@ function requireHost(game: Game, me: Player) {
 
 const baseRole = (game: Game, id: string): Role => game.roles[id] ?? "runner";
 
-// Ruolo in gioco: una preda catturata diventa cacciatore (modalità infezione) o resta fuori.
+const elimKey = (id: string) => `x-${id}`;
+
+// Ruolo in gioco: una preda catturata diventa cacciatore (modalità infezione) o resta fuori;
+// un cacciatore eliminato dal kamikaze è fuori per sempre. Il kamikaze preso non viene mai infettato.
 function effectiveRole(game: Game, catches: Record<string, Catch>, id: string) {
+  if (catches[elimKey(id)]) return "eliminated";
   const base = baseRole(game, id);
-  if (base === "runner" && catches[id]) return game.settings.infection ? "hunter" : "caught";
+  if (base === "runner" && catches[id]) return game.settings.infection && id !== game.kamikazeId ? "hunter" : "caught";
   return base;
 }
 
@@ -195,13 +208,20 @@ function phaseOf(game: Game, players: Record<string, Player>, catches: Record<st
   if (game.status === "lobby") return { phase: "lobby" as const };
   if (game.status === "ended") return { phase: "ended" as const, winner: null, endedAt: game.endedAt ?? now };
   const t = timeline(game);
-  const runners = Object.keys(players).filter((id) => baseRole(game, id) === "runner");
+  const ids = Object.keys(players);
+  const runners = ids.filter((id) => baseRole(game, id) === "runner");
   const caught = runners.filter((id) => catches[id]);
-  if (runners.length > 0 && caught.length === runners.length) {
-    const endedAt = Math.max(...caught.map((id) => catches[id].at));
-    return { phase: "ended" as const, winner: "hunters", endedAt };
+  const allCaught = runners.length > 0 && caught.length === runners.length;
+  const eliminated = ids.filter((id) => catches[elimKey(id)]);
+  const noHunterLeft = eliminated.length > 0 && !ids.some((id) => effectiveRole(game, catches, id) === "hunter");
+  const lastAt = (list: string[], key: (id: string) => string) => Math.max(...list.map((id) => catches[key(id)].at));
+  if (allCaught && noHunterLeft) {
+    const endedAt = Math.max(lastAt(caught, (id) => id), lastAt(eliminated, elimKey));
+    return { phase: "ended" as const, winner: "draw", endedAt };
   }
-  if (now >= t.endsAt) return { phase: "ended" as const, winner: "runners", endedAt: t.endsAt };
+  if (allCaught) return { phase: "ended" as const, winner: "hunters", endedAt: lastAt(caught, (id) => id) };
+  if (noHunterLeft) return { phase: "ended" as const, winner: "runners", reason: "eliminated", endedAt: lastAt(eliminated, elimKey) };
+  if (now >= t.endsAt) return { phase: "ended" as const, winner: "runners", reason: "time", endedAt: t.endsAt };
   if (now < t.huntStart) return { phase: "headstart" as const };
   return { phase: "hunt" as const };
 }
@@ -220,7 +240,7 @@ function buildState(
   const t = game.status === "lobby" ? null : timeline(game);
   const myRole = effectiveRole(game, catches, me.id);
   const playing = phase === "headstart" || phase === "hunt";
-  const seesAll = !playing || myRole === "referee" || myRole === "caught";
+  const seesAll = !playing || myRole === "referee" || myRole === "caught" || myRole === "eliminated";
 
   const list = Object.values(players).map((p) => {
     const role = effectiveRole(game, catches, p.id);
@@ -235,7 +255,7 @@ function buildState(
       visibility: "hidden",
     };
     let pos: any = null;
-    if (p.id === me.id || seesAll || role === "caught" || role === "referee") {
+    if (p.id === me.id || seesAll || role === "caught" || role === "eliminated" || role === "referee") {
       pos = p.pos ?? null;
       out.visibility = "live";
     } else if (myRole === "hunter" && role === "runner") {
@@ -300,6 +320,10 @@ function buildState(
     events.push({ at: t.startedAt, kind: "start", text: "Partita iniziata: le prede scappano." });
     if (now >= t.huntStart) events.push({ at: t.huntStart, kind: "hunt", text: "I cacciatori sono partiti." });
     for (const c of Object.values(catches)) {
+      if (c.eliminated) {
+        events.push({ at: c.at, kind: "boom", text: `${name(c.by)} era il kamikaze: ${name(c.target)} è stato eliminato.` });
+        continue;
+      }
       events.push({
         at: c.at,
         kind: "catch",
@@ -315,13 +339,17 @@ function buildState(
       const text =
         end.winner === "hunters"
           ? "Tutte le prede catturate: vincono i cacciatori."
-          : end.winner === "runners"
-            ? "Tempo scaduto: vincono le prede."
-            : "Partita terminata dall'host.";
+          : end.winner === "draw"
+            ? "Pareggio: il kamikaze ha portato via l'ultimo cacciatore."
+            : end.winner === "runners"
+              ? end.reason === "eliminated"
+                ? "Tutti i cacciatori eliminati: vincono le prede."
+                : "Tempo scaduto: vincono le prede."
+              : "Partita terminata dall'host.";
       events.push({ at: end.endedAt, kind: "end", text });
     }
   }
-  const rank: Record<string, number> = { start: 0, hunt: 1, outside: 2, catch: 3, end: 4 };
+  const rank: Record<string, number> = { start: 0, hunt: 1, outside: 2, catch: 3, boom: 4, end: 5 };
   events.sort((a, b) => b.at - a.at || rank[b.kind] - rank[a.kind]);
 
   return {
@@ -332,13 +360,21 @@ function buildState(
     endedAt: end.endedAt ?? null,
     hostId: game.hostId,
     isHost: me.id === game.hostId,
-    me: { id: me.id, name: me.name, role: myRole, baseRole: baseRole(game, me.id) },
+    me: {
+      id: me.id,
+      name: me.name,
+      role: myRole,
+      baseRole: baseRole(game, me.id),
+      kamikaze: game.status !== "lobby" && game.kamikazeId === me.id,
+    },
+    kamikazeActive: game.status !== "lobby" && !!game.kamikazeId,
+    kamikazeName: phase === "ended" && game.kamikazeId ? (players[game.kamikazeId]?.name ?? null) : null,
     settings: game.settings,
     zone: game.zone,
     currentZone: playing ? currentZone(game, now) : game.zone,
     timeline: t,
     players: list,
-    catches: Object.values(catches).map((c) => ({ target: c.target, by: c.by, at: c.at, self: !!c.self })),
+    catches: Object.values(catches).map((c) => ({ target: c.target, by: c.by, at: c.at, self: !!c.self, eliminated: !!c.eliminated })),
     danger,
     capturing,
     catchable,
@@ -351,6 +387,15 @@ const json = (data: unknown, status = 200) =>
     status,
     headers: { "content-type": "application/json", "cache-control": "no-store" },
   });
+
+// Kamikaze: se la preda segreta viene presa da un cacciatore, il cacciatore viene eliminato.
+async function maybeBoom(code: string, game: Game, catches: Record<string, Catch>, targetId: string, byId: string, now: number) {
+  if (!game.kamikazeId || game.kamikazeId !== targetId || byId === targetId) return;
+  if (effectiveRole(game, catches, byId) !== "hunter") return;
+  const c: Catch = { target: byId, by: targetId, at: now, eliminated: true };
+  await store().setJSON(`g/${code}/c/${elimKey(byId)}`, c, { onlyIfNew: true });
+  catches[elimKey(byId)] = c;
+}
 
 // Cattura automatica: una preda con un cacciatore entro la distanza di cattura per AUTO_HOLD_MS viene presa.
 // Lo stato "sta per essere presa" sta in g/{codice}/n/{id}; può scriverlo chiunque faccia sync,
@@ -395,15 +440,190 @@ async function autoCatchPass(
       const c: Catch = { target: r.id, by: nearest.id, at: now, auto: true };
       const { modified } = await s.setJSON(`g/${code}/c/${r.id}`, c, { onlyIfNew: true });
       catches[r.id] = modified ? c : (catches[r.id] ?? c);
+      if (modified) await maybeBoom(code, game, catches, r.id, nearest.id, now);
       delete nears[r.id];
       await s.delete(`g/${code}/n/${r.id}`);
     }
   }
 }
 
+// ---------- Account ----------
+// Registrazione facoltativa con email e password. La password non viene mai salvata: solo PBKDF2-SHA256 con sale.
+// Nessuna email viene inviata; l'account si può eliminare in qualsiasi momento.
+
+type User = {
+  firstName: string;
+  lastName: string;
+  age: number;
+  language: string;
+  email: string;
+  salt: string;
+  hash: string;
+  createdAt: number;
+  fails?: number;
+  lockedUntil?: number;
+};
+type Session = { userKey: string; createdAt: number };
+
+const LANGUAGES = ["it", "en", "es", "fr", "de"];
+const SESSION_TTL_MS = 90 * 24 * 3600 * 1000;
+const LOCK_AFTER_FAILS = 5;
+const LOCK_MS = 10 * 60 * 1000;
+const PBKDF2_ITERATIONS = 210_000;
+const ACCOUNT_ACTIONS = new Set(["register", "login", "me", "logout", "deleteAccount"]);
+
+const toHex = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+const fromHex = (hex: string) => new Uint8Array((hex.match(/../g) ?? []).map((h) => parseInt(h, 16)));
+const sha256 = async (v: string) => toHex(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(v))));
+
+async function hashPassword(password: string, salt: Uint8Array) {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", hash: "SHA-256", salt: salt as BufferSource, iterations: PBKDF2_ITERATIONS },
+    key,
+    256,
+  );
+  return toHex(new Uint8Array(bits));
+}
+
+const sameString = (a: string, b: string) => {
+  let diff = a.length ^ b.length;
+  for (let i = 0; i < Math.max(a.length, b.length); i++) diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+  return diff === 0;
+};
+
+const cleanPersonName = (v: unknown, label: string) => {
+  const name = String(v ?? "").trim().replace(/\s+/g, " ").slice(0, 40);
+  if (!name) throw new HttpError(400, `Scrivi il tuo ${label}.`);
+  return name;
+};
+
+const cleanEmail = (v: unknown) => {
+  const email = String(v ?? "").trim().toLowerCase();
+  if (email.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new HttpError(400, "Scrivi un indirizzo email valido.");
+  return email;
+};
+
+const profileOf = (u: User) => ({ firstName: u.firstName, lastName: u.lastName, age: u.age, language: u.language, email: u.email });
+
+async function account(action: string, body: any, now: number) {
+  const s = store();
+  const userKeyOf = async (email: string) => `u/${await sha256(email)}`;
+
+  const openSession = async (userKey: string) => {
+    const token = newToken();
+    await s.setJSON(`s/${await sha256(token)}`, { userKey, createdAt: now } satisfies Session);
+    return token;
+  };
+
+  const sessionUser = async () => {
+    const token = body.userToken;
+    if (typeof token !== "string" || token.length < 20) throw new HttpError(401, "Accedi di nuovo.");
+    const sessionKey = `s/${await sha256(token)}`;
+    const session = (await s.get(sessionKey, { type: "json" })) as Session | null;
+    if (!session || now - session.createdAt > SESSION_TTL_MS) {
+      if (session) await s.delete(sessionKey);
+      throw new HttpError(401, "Accedi di nuovo.");
+    }
+    const user = (await s.get(session.userKey, { type: "json" })) as User | null;
+    if (!user) {
+      await s.delete(sessionKey);
+      throw new HttpError(401, "Account non trovato.");
+    }
+    return { user, userKey: session.userKey, sessionKey };
+  };
+
+  const checkPassword = async (key: string, user: User | null, password: string) => {
+    if (!user) {
+      await hashPassword(password, new Uint8Array(16)); // stesso tempo di risposta anche se l'email non esiste
+      throw new HttpError(401, "Email o password errati.");
+    }
+    if (user.lockedUntil && user.lockedUntil > now) {
+      throw new HttpError(429, `Troppi tentativi. Riprova tra ${Math.ceil((user.lockedUntil - now) / 60000)} minuti.`);
+    }
+    if (!sameString(await hashPassword(password, fromHex(user.salt)), user.hash)) {
+      user.fails = (user.fails ?? 0) + 1;
+      if (user.fails >= LOCK_AFTER_FAILS) {
+        user.lockedUntil = now + LOCK_MS;
+        user.fails = 0;
+      }
+      await s.setJSON(key, user);
+      throw new HttpError(401, "Email o password errati.");
+    }
+    if (user.fails || user.lockedUntil) {
+      user.fails = 0;
+      user.lockedUntil = undefined;
+      await s.setJSON(key, user);
+    }
+  };
+
+  switch (action) {
+    case "register": {
+      const firstName = cleanPersonName(body.firstName, "nome");
+      const lastName = cleanPersonName(body.lastName, "cognome");
+      const age = Math.round(Number(body.age));
+      if (!Number.isFinite(age) || age < 5 || age > 120) throw new HttpError(400, "L'età deve essere tra 5 e 120 anni.");
+      const language = LANGUAGES.includes(body.language) ? body.language : "it";
+      const email = cleanEmail(body.email);
+      const password = String(body.password ?? "");
+      if (password.length < 8) throw new HttpError(400, "La password deve avere almeno 8 caratteri.");
+      if (password.length > 200) throw new HttpError(400, "La password è troppo lunga.");
+      if (body.consent !== true) throw new HttpError(400, "Per creare l'account devi accettare il trattamento dei dati.");
+
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      const user: User = {
+        firstName,
+        lastName,
+        age,
+        language,
+        email,
+        salt: toHex(salt),
+        hash: await hashPassword(password, salt),
+        createdAt: now,
+      };
+      const key = await userKeyOf(email);
+      const { modified } = await s.setJSON(key, user, { onlyIfNew: true });
+      if (!modified) throw new HttpError(409, "Esiste già un account con questa email. Prova ad accedere.");
+      return { token: await openSession(key), profile: profileOf(user) };
+    }
+
+    case "login": {
+      const email = cleanEmail(body.email);
+      const key = await userKeyOf(email);
+      const user = (await s.get(key, { type: "json" })) as User | null;
+      await checkPassword(key, user, String(body.password ?? ""));
+      return { token: await openSession(key), profile: profileOf(user!) };
+    }
+
+    case "me": {
+      const { user } = await sessionUser();
+      return { profile: profileOf(user) };
+    }
+
+    case "logout": {
+      try {
+        const { sessionKey } = await sessionUser();
+        await s.delete(sessionKey);
+      } catch {}
+      return { ok: true };
+    }
+
+    case "deleteAccount": {
+      const { user, userKey, sessionKey } = await sessionUser();
+      await checkPassword(userKey, user, String(body.password ?? ""));
+      await s.delete(userKey);
+      await s.delete(sessionKey);
+      return { ok: true };
+    }
+  }
+  throw new HttpError(404, "Azione sconosciuta.");
+}
+
 async function handle(action: string, body: any) {
   const s = store();
   const now = Date.now();
+
+  if (ACCOUNT_ACTIONS.has(action)) return account(action, body, now);
 
   if (action === "create") {
     const name = cleanName(body.name);
@@ -512,6 +732,11 @@ async function handle(action: string, body: any) {
       game.status = "running";
       game.startedAt = now;
       game.endedAt = undefined;
+      game.kamikazeId = undefined;
+      if (game.settings.kamikaze && ids.filter((id) => baseRole(game, id) !== "referee").length >= KAMIKAZE_MIN_PLAYERS) {
+        const runners = ids.filter((id) => baseRole(game, id) === "runner");
+        game.kamikazeId = runners[crypto.getRandomValues(new Uint32Array(1))[0] % runners.length];
+      }
       await saveGame();
       break;
     }
@@ -532,6 +757,7 @@ async function handle(action: string, body: any) {
       game.status = "lobby";
       game.startedAt = undefined;
       game.endedAt = undefined;
+      game.kamikazeId = undefined;
       await saveGame();
       break;
     }
@@ -551,13 +777,15 @@ async function handle(action: string, body: any) {
         if (d > game.settings.catchRadiusM * 1.5) throw new HttpError(409, `${target.name} è a ${Math.round(d)} m: avvicinati.`);
       }
       const c: Catch = { target: target.id, by: me.id, at: now, self };
-      await s.setJSON(`g/${code}/c/${target.id}`, c, { onlyIfNew: true });
+      const { modified } = await s.setJSON(`g/${code}/c/${target.id}`, c, { onlyIfNew: true });
+      if (modified && !self) await maybeBoom(code, game, catches, target.id, me.id, now);
       break;
     }
 
     case "uncatch": {
       requireHost(game, me);
-      await s.delete(`g/${code}/c/${String(body.target)}`);
+      const target = String(body.target);
+      await s.delete(body.elim ? `g/${code}/c/${elimKey(target)}` : `g/${code}/c/${target}`);
       break;
     }
 
@@ -567,6 +795,7 @@ async function handle(action: string, body: any) {
       if (target === me.id) throw new HttpError(400, "Non puoi espellere te stesso.");
       await s.delete(`g/${code}/p/${target}`);
       await s.delete(`g/${code}/c/${target}`);
+      await s.delete(`g/${code}/c/${elimKey(target)}`);
       await s.delete(`g/${code}/n/${target}`);
       break;
     }
@@ -575,6 +804,7 @@ async function handle(action: string, body: any) {
       if (me.id === game.hostId) throw new HttpError(409, "Sei l'host: chiudi la partita invece di uscire.");
       await s.delete(`g/${code}/p/${me.id}`);
       await s.delete(`g/${code}/c/${me.id}`);
+      await s.delete(`g/${code}/c/${elimKey(me.id)}`);
       await s.delete(`g/${code}/n/${me.id}`);
       return { ok: true };
     }

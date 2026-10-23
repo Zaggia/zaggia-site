@@ -166,6 +166,7 @@ input:focus { border-color: var(--runner); outline: none; }
   display: inline-flex; align-items: center; gap: 6px;
   font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;
   padding: 2px 8px; border-radius: 4px; color: #111;
+  white-space: nowrap; flex: none;
 }
 .role-hunter { background: var(--hunter); color: #fff; }
 .role-runner { background: var(--runner); }
@@ -393,3 +394,14 @@ input:focus { border-color: var(--runner); outline: none; }
   .map-tools { right: 432px; }
   .catch-bar { right: 488px; left: var(--gutter-l); max-width: 360px; }
 }
+
+/* ---------- Account, kamikaze ---------- */
+.account-name { font-size: 18px; font-weight: 600; overflow-wrap: anywhere; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 340px) { .grid2 { grid-template-columns: 1fr; } }
+.role-badge.role-kamikaze { background: #7a1610; color: #fff; box-shadow: inset 0 0 0 1px var(--hunter); }
+.role-eliminated { background: var(--muted); }
+.dot.eliminated { background: transparent; border: 2px solid var(--hunter); }
+.pin.eliminated .pin-core { background: #444b55; color: var(--text); }
+.events .ev-boom { color: var(--hunter); font-weight: 600; }
+.result.draw { background: var(--panel-2); border: 1px solid var(--line); }
