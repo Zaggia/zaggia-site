@@ -74,11 +74,11 @@ export function currentZone(game, now) {
   return scaleZone(game.zone, 1 - (1 - shrinkTo / 100) * progress);
 }
 
-// Zone già pronte su Roma (coordinate approssimate).
+// Zone già pronte a Roma (coordinate approssimate). I nomi sono chiavi di traduzione.
 export const ROME_PRESETS = [
   {
     id: "centro",
-    name: "Centro storico",
+    nameKey: "preset.centro",
     zone: {
       type: "polygon",
       points: [
@@ -95,7 +95,7 @@ export const ROME_PRESETS = [
   },
   {
     id: "trastevere",
-    name: "Trastevere",
+    nameKey: "preset.trastevere",
     zone: {
       type: "polygon",
       points: [
@@ -111,7 +111,7 @@ export const ROME_PRESETS = [
   },
   {
     id: "borghese",
-    name: "Villa Borghese",
+    nameKey: "preset.borghese",
     zone: {
       type: "polygon",
       points: [
@@ -126,7 +126,7 @@ export const ROME_PRESETS = [
   },
   {
     id: "mura",
-    name: "Dentro le Mura Aureliane",
+    nameKey: "preset.mura",
     zone: {
       type: "polygon",
       points: [
@@ -149,7 +149,66 @@ export const ROME_PRESETS = [
   },
   {
     id: "colosseo",
-    name: "Colosseo · 1 km",
+    nameKey: "preset.colosseo",
     zone: { type: "circle", center: { lat: 41.8902, lng: 12.4922 }, radius: 1000 },
   },
 ];
+
+// Le città italiane giocabili. Le zone di Roma sono già pronte; per le altre c'è un cerchio attorno al centro
+// (1 o 2 km). L'host può comunque disegnare una zona a mano ovunque in Italia.
+const around = (lat, lng) => [
+  { id: "center", nameKey: "preset.center", zone: { type: "circle", center: { lat, lng }, radius: 1000 } },
+  { id: "wide", nameKey: "preset.wide", zone: { type: "circle", center: { lat, lng }, radius: 2000 } },
+];
+
+const CITY_CENTERS = [
+  ["milano", 45.4642, 9.19],
+  ["napoli", 40.847, 14.256],
+  ["torino", 45.0703, 7.6869],
+  ["palermo", 38.1157, 13.3615],
+  ["genova", 44.4075, 8.934],
+  ["bologna", 44.4949, 11.3426],
+  ["firenze", 43.7696, 11.2558],
+  ["bari", 41.1288, 16.87],
+  ["catania", 37.5023, 15.0873],
+  ["venezia", 45.434, 12.3388],
+  ["verona", 45.4384, 10.9916],
+  ["messina", 38.1938, 15.554],
+  ["padova", 45.4064, 11.8768],
+  ["trieste", 45.6495, 13.7768],
+  ["brescia", 45.5416, 10.2118],
+  ["parma", 44.8015, 10.3279],
+  ["modena", 44.6471, 10.9252],
+  ["perugia", 43.1107, 12.3908],
+  ["cagliari", 39.2238, 9.1217],
+  ["pisa", 43.7228, 10.4017],
+  ["bergamo", 45.6983, 9.6773],
+  ["lecce", 40.3515, 18.175],
+  ["salerno", 40.6824, 14.7681],
+  ["ancona", 43.6158, 13.5189],
+  ["pescara", 42.4618, 14.2161],
+  ["trento", 46.0748, 11.1217],
+  ["bolzano", 46.4983, 11.3548],
+  ["reggio-calabria", 38.1113, 15.6473],
+  ["sassari", 40.7259, 8.5556],
+  ["livorno", 43.5485, 10.3106],
+  ["rimini", 44.0678, 12.5695],
+  ["ravenna", 44.4184, 12.2035],
+  ["vicenza", 45.5455, 11.5354],
+  ["udine", 46.0711, 13.2346],
+  ["siracusa", 37.0755, 15.2866],
+  ["laquila", 42.3498, 13.3995],
+  ["campobasso", 41.5603, 14.6627],
+  ["potenza", 40.6404, 15.8056],
+  ["catanzaro", 38.9098, 16.5877],
+  ["aosta", 45.7371, 7.3201],
+];
+
+export const CITIES = [
+  { id: "roma", center: { lat: 41.8967, lng: 12.4822 }, presets: ROME_PRESETS },
+  ...CITY_CENTERS.map(([id, lat, lng]) => ({ id, center: { lat, lng }, presets: around(lat, lng) })),
+];
+
+export function nearestCity(pos) {
+  return CITIES.reduce((best, c) => (distanceM(c.center, pos) < distanceM(best.center, pos) ? c : best), CITIES[0]);
+}

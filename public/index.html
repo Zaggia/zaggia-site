@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#0f1318">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Manhunt Roma</title>
-  <meta name="description" content="Caccia all'uomo per le strade di Roma: posizioni live, zona di gioco e segnali periodici.">
+  <title>Manhunt Italia</title>
+  <meta name="description" content="Caccia all'uomo nelle città italiane: posizioni live, zona di gioco e segnali periodici.">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icon.svg">
@@ -21,6 +21,13 @@
   <!-- Schermata iniziale -->
   <main id="home" class="home">
     <div class="home-inner">
+      <div class="lang-row">
+        <label class="lang">
+          <span class="label" data-i18n="home.language">Lingua</span>
+          <select id="lang-select" aria-label="Lingua"></select>
+        </label>
+      </div>
+
       <header class="brand">
         <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
           <circle cx="32" cy="32" r="27" fill="none" stroke="currentColor" stroke-width="3"/>
@@ -29,32 +36,32 @@
           <circle cx="32" cy="32" r="4" fill="var(--hunter)"/>
         </svg>
         <div>
-          <h1>Manhunt <span>Roma</span></h1>
-          <p class="tagline">Caccia all'uomo tra i sette colli. Crea una partita, disegna la zona, condividi il codice.</p>
+          <h1>Manhunt <span>Italia</span></h1>
+          <p class="tagline" data-i18n="home.tagline">Caccia all'uomo nelle città italiane. Crea una partita, disegna la zona, condividi il codice.</p>
         </div>
       </header>
 
       <div id="resume" class="card resume" hidden>
         <div>
-          <div class="eyebrow">Partita in corso</div>
+          <div class="eyebrow" data-i18n="home.resume_label">Partita in corso</div>
           <div class="resume-code mono" id="resume-code"></div>
         </div>
         <div class="row">
-          <button class="btn btn-primary" id="resume-btn" type="button">Rientra</button>
-          <button class="btn btn-ghost" id="resume-forget" type="button">Dimentica</button>
+          <button class="btn btn-primary" id="resume-btn" type="button" data-i18n="home.resume_btn">Rientra</button>
+          <button class="btn btn-ghost" id="resume-forget" type="button" data-i18n="home.resume_forget">Dimentica</button>
         </div>
       </div>
 
       <form id="home-form" class="card stack" autocomplete="off">
         <label class="field">
-          <span class="label">Il tuo nome</span>
-          <input id="name" name="name" maxlength="24" placeholder="es. Giulia" required>
+          <span class="label" data-i18n="home.name_label">Il tuo nome</span>
+          <input id="name" name="name" maxlength="24" data-i18n-placeholder="home.name_ph" placeholder="es. Giulia" required>
         </label>
-        <button class="btn btn-primary btn-lg" id="create-btn" type="submit" value="create">Crea una partita</button>
-        <div class="divider"><span>oppure entra con un codice</span></div>
+        <button class="btn btn-primary btn-lg" id="create-btn" type="submit" value="create" data-i18n="home.create">Crea una partita</button>
+        <div class="divider"><span data-i18n="home.or_join">oppure entra con un codice</span></div>
         <div class="join-row">
-          <input id="code" name="code" class="mono code-input" maxlength="5" placeholder="ABCDE" autocapitalize="characters" spellcheck="false">
-          <button class="btn" id="join-btn" type="submit" value="join">Entra</button>
+          <input id="code" name="code" class="mono code-input" maxlength="5" placeholder="ABCDE" autocapitalize="characters" spellcheck="false" aria-label="Code">
+          <button class="btn" id="join-btn" type="submit" value="join" data-i18n="home.join">Entra</button>
         </div>
         <p class="form-error" id="home-error" role="alert" hidden></p>
       </form>
@@ -62,77 +69,70 @@
       <section id="account" class="card stack" aria-label="Account">
         <div id="account-out" class="stack">
           <div>
-            <div class="eyebrow">Account facoltativo</div>
-            <p class="hint">Con un account ritrovi il tuo nome ogni volta che entri. Si può giocare anche senza.</p>
+            <div class="eyebrow" data-i18n="acc.optional">Account facoltativo</div>
+            <p class="hint" data-i18n="acc.hint_out">Con un account ritrovi il tuo nome ogni volta che entri. Si può giocare anche senza.</p>
           </div>
           <div class="row">
-            <button class="btn btn-sm" id="acc-show-login" type="button">Accedi</button>
-            <button class="btn btn-sm" id="acc-show-register" type="button">Crea account</button>
+            <button class="btn btn-sm" id="acc-show-login" type="button" data-i18n="acc.login">Accedi</button>
+            <button class="btn btn-sm" id="acc-show-register" type="button" data-i18n="acc.register">Crea account</button>
           </div>
         </div>
 
         <form id="login-form" class="stack" hidden>
-          <div class="eyebrow">Accedi</div>
-          <label class="field"><span class="label">Email</span>
+          <div class="eyebrow" data-i18n="acc.login">Accedi</div>
+          <label class="field"><span class="label" data-i18n="acc.email">Email</span>
             <input id="login-email" name="email" type="email" autocomplete="username" inputmode="email" required></label>
-          <label class="field"><span class="label">Password</span>
+          <label class="field"><span class="label" data-i18n="acc.password">Password</span>
             <input id="login-password" name="password" type="password" autocomplete="current-password" required></label>
           <div class="row">
-            <button class="btn btn-primary" type="submit">Accedi</button>
-            <button class="btn btn-ghost" type="button" data-acc-cancel>Annulla</button>
+            <button class="btn btn-primary" type="submit" data-i18n="acc.login">Accedi</button>
+            <button class="btn btn-ghost" type="button" data-acc-cancel data-i18n="common.cancel">Annulla</button>
           </div>
           <p class="form-error" id="login-error" role="alert" hidden></p>
         </form>
 
         <form id="register-form" class="stack" hidden>
-          <div class="eyebrow">Crea account</div>
+          <div class="eyebrow" data-i18n="acc.register">Crea account</div>
           <div class="grid2">
-            <label class="field"><span class="label">Nome</span>
+            <label class="field"><span class="label" data-i18n="acc.first">Nome</span>
               <input id="reg-first" name="given-name" autocomplete="given-name" maxlength="40" required></label>
-            <label class="field"><span class="label">Cognome</span>
+            <label class="field"><span class="label" data-i18n="acc.last">Cognome</span>
               <input id="reg-last" name="family-name" autocomplete="family-name" maxlength="40" required></label>
-            <label class="field"><span class="label">Età</span>
+            <label class="field"><span class="label" data-i18n="acc.age">Età</span>
               <input id="reg-age" name="age" type="number" inputmode="numeric" min="5" max="120" required></label>
-            <label class="field"><span class="label">Lingua</span>
-              <select id="reg-lang" name="language">
-                <option value="it" selected>Italiano</option>
-                <option value="en">English</option>
-                <option value="es">Español</option>
-                <option value="fr">Français</option>
-                <option value="de">Deutsch</option>
-              </select></label>
+            <label class="field"><span class="label" data-i18n="acc.lang">Lingua</span>
+              <select id="reg-lang" name="language"></select></label>
           </div>
-          <label class="field"><span class="label">Email</span>
+          <label class="field"><span class="label" data-i18n="acc.email">Email</span>
             <input id="reg-email" name="email" type="email" autocomplete="username" inputmode="email" maxlength="120" required></label>
-          <label class="field"><span class="label">Password (almeno 8 caratteri)</span>
+          <label class="field"><span class="label" data-i18n="acc.password_new">Password (almeno 8 caratteri)</span>
             <input id="reg-password" name="new-password" type="password" autocomplete="new-password" minlength="8" maxlength="200" required></label>
           <label class="toggle"><input id="reg-consent" type="checkbox" required>
-            Accetto che nome, cognome, età, lingua ed email vengano salvati per far funzionare l'account. Posso eliminarlo quando voglio.</label>
-          <p class="hint">Per ora l'app è solo in italiano: la lingua resta salvata nel tuo profilo.</p>
+            <span data-i18n="acc.consent">Accetto che nome, cognome, età, lingua ed email vengano salvati per far funzionare l'account. Posso eliminarlo quando voglio.</span></label>
           <div class="row">
-            <button class="btn btn-primary" type="submit">Crea account</button>
-            <button class="btn btn-ghost" type="button" data-acc-cancel>Annulla</button>
+            <button class="btn btn-primary" type="submit" data-i18n="acc.register">Crea account</button>
+            <button class="btn btn-ghost" type="button" data-acc-cancel data-i18n="common.cancel">Annulla</button>
           </div>
           <p class="form-error" id="register-error" role="alert" hidden></p>
         </form>
 
         <div id="account-in" class="stack" hidden>
           <div>
-            <div class="eyebrow">Il tuo account</div>
+            <div class="eyebrow" data-i18n="acc.yours">Il tuo account</div>
             <div class="account-name" id="acc-name"></div>
             <div class="hint" id="acc-details"></div>
           </div>
           <div class="row">
-            <button class="btn btn-sm btn-ghost" id="acc-logout" type="button">Esci</button>
-            <button class="btn btn-sm btn-danger" id="acc-delete" type="button">Elimina account</button>
+            <button class="btn btn-sm btn-ghost" id="acc-logout" type="button" data-i18n="acc.logout">Esci</button>
+            <button class="btn btn-sm btn-danger" id="acc-delete" type="button" data-i18n="acc.delete">Elimina account</button>
           </div>
           <form id="delete-form" class="confirm" hidden>
-            <strong>Eliminare l'account per sempre?</strong>
-            <label class="field"><span class="label">Scrivi la password per confermare</span>
+            <strong data-i18n="acc.delete_title">Eliminare l'account per sempre?</strong>
+            <label class="field"><span class="label" data-i18n="acc.delete_pw">Scrivi la password per confermare</span>
               <input id="delete-password" type="password" autocomplete="current-password" required></label>
             <div class="row">
-              <button class="btn btn-primary" type="submit">Elimina</button>
-              <button class="btn btn-ghost" type="button" id="delete-cancel">Annulla</button>
+              <button class="btn btn-primary" type="submit" data-i18n="acc.delete_confirm">Elimina</button>
+              <button class="btn btn-ghost" type="button" id="delete-cancel" data-i18n="common.cancel">Annulla</button>
             </div>
             <p class="form-error" id="delete-error" role="alert" hidden></p>
           </form>
@@ -140,25 +140,25 @@
       </section>
 
       <section class="how">
-        <h2>Come si gioca</h2>
+        <h2 data-i18n="how.title">Come si gioca</h2>
         <ol>
-          <li><strong>Cacciatori</strong> contro <strong>prede</strong>. L'host sceglie i ruoli e la zona.</li>
-          <li>Le prede partono con un vantaggio. Poi ogni pochi minuti i cacciatori ricevono la loro posizione.</li>
-          <li>Chi esce dalla zona viene mostrato in diretta. Vicino a una preda, il cacciatore può catturarla.</li>
-          <li>Vincono i cacciatori se prendono tutti, le prede se resistono fino allo scadere.</li>
+          <li data-i18n-html="how.1"></li>
+          <li data-i18n="how.2"></li>
+          <li data-i18n="how.3"></li>
+          <li data-i18n="how.4"></li>
         </ol>
-        <p class="fineprint">La posizione viene condivisa solo con i giocatori della tua partita, solo mentre l'app è aperta. Le partite si cancellano dopo 24 ore. Se crei un account, i suoi dati restano salvati finché non lo elimini.</p>
+        <p class="fineprint" data-i18n="how.fine"></p>
       </section>
     </div>
   </main>
 
   <!-- Schermata di gioco -->
   <section id="game" class="game" hidden>
-    <div id="map" class="map" aria-label="Mappa di Roma"></div>
+    <div id="map" class="map" data-i18n-aria-label="map.aria" aria-label="Mappa"></div>
 
     <header class="hud">
       <div class="hud-row">
-        <button class="chip chip-code mono" id="hud-code" type="button" title="Condividi codice"></button>
+        <button class="chip chip-code mono" id="hud-code" type="button" data-i18n-title="hud.share" title="Condividi codice"></button>
         <div class="hud-phase" id="hud-phase"></div>
         <div class="hud-timer mono" id="hud-timer"></div>
       </div>
@@ -175,10 +175,10 @@
     </div>
 
     <div class="map-tools">
-      <button class="tool" id="tool-me" type="button" aria-label="Centra su di me" title="Centra su di me">
+      <button class="tool" id="tool-me" type="button" data-i18n-aria-label="tool.me" data-i18n-title="tool.me" aria-label="Centra su di me" title="Centra su di me">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
       </button>
-      <button class="tool" id="tool-zone" type="button" aria-label="Mostra la zona" title="Mostra la zona">
+      <button class="tool" id="tool-zone" type="button" data-i18n-aria-label="tool.zone" data-i18n-title="tool.zone" aria-label="Mostra la zona" title="Mostra la zona">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7l6-3 5 3 5-2v12l-5 2-5-3-6 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
       </button>
     </div>
@@ -186,7 +186,7 @@
     <div class="catch-bar" id="catch-bar" hidden></div>
 
     <section class="sheet" id="sheet">
-      <button class="sheet-handle" id="sheet-handle" type="button" aria-label="Espandi pannello"><span></span></button>
+      <button class="sheet-handle" id="sheet-handle" type="button" data-i18n-aria-label="sheet.handle" aria-label="Espandi pannello"><span></span></button>
       <div class="sheet-body" id="sheet-body"></div>
     </section>
 

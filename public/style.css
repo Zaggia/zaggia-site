@@ -405,3 +405,8 @@ input:focus { border-color: var(--runner); outline: none; }
 .pin.eliminated .pin-core { background: #444b55; color: var(--text); }
 .events .ev-boom { color: var(--hunter); font-weight: 600; }
 .result.draw { background: var(--panel-2); border: 1px solid var(--line); }
+
+/* ---------- Lingua ---------- */
+.lang-row { display: flex; justify-content: flex-end; }
+.lang { display: flex; align-items: center; gap: 8px; }
+.lang select { width: auto; min-height: 36px; padding: 4px 10px; }

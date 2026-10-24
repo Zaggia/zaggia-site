@@ -1,29 +1,23 @@
-import { ROME_PRESETS, centroid, distanceM, timeline } from "./geo.js";
+import { CITIES, centroid, distanceM, nearestCity, timeline } from "./geo.js";
+import { LANGS, applyStatic, detectLang, getLang, has, plural, setLang, t } from "./i18n.js";
 
-const ROME = [41.8967, 12.4822];
+const DEFAULT_VIEW = [41.8967, 12.4822]; // senza GPS e senza zona si parte da Roma
 const SYNC_MS = 3500;
+const AUTO_HOLD_S = 3; // come AUTO_HOLD_MS nella funzione
 const SESSION_KEY = "manhunt.session";
 const NAME_KEY = "manhunt.name";
+const LANG_KEY = "manhunt.lang";
+const ACCOUNT_KEY = "manhunt.account";
 
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
-const AUTO_HOLD_S = 5; // come AUTO_HOLD_MS nella funzione
-const ROLE_LABEL = { hunter: "Cacciatore", runner: "Preda", referee: "Arbitro", caught: "Catturato", eliminated: "Eliminato" };
-const ROLE_COUNT = {
-  hunter: ["cacciatore", "cacciatori"],
-  runner: ["preda", "prede"],
-  referee: ["arbitro", "arbitri"],
-  caught: ["catturato", "catturati"],
-  eliminated: ["eliminato", "eliminati"],
-};
-const countRole = (role, n) => `${n} ${ROLE_COUNT[role][n === 1 ? 0 : 1]}`;
-const agoLabel = (at) => {
-  const min = Math.round((now() - at) / 60000);
-  return min < 1 ? "adesso" : `${min}′ fa`;
-};
+const roleLabel = (role) => t(`role.${role}`);
+const countRole = (role, n) => plural(`count.${role}`, n);
+const cityName = (id) => t(`city.${id}`);
+const presetName = (p) => t(p.nameKey);
 
 // ---------- Stato locale ----------
 const app = {
@@ -31,7 +25,7 @@ const app = {
   state: null, // ultima risposta del server
   clockOffset: 0,
   myPos: null, // { lat, lng, acc, at }
-  geoError: null,
+  geoError: null, // "unsupported" | "denied" | "searching" | null
   syncTimer: null,
   syncing: false,
   edit: null, // { mode: "circle", center, radius } | { mode: "polygon", points }
@@ -44,6 +38,10 @@ const app = {
   wasKamikaze: false,
   account: null, // profilo dell'account, se si è entrati
   accountView: "out", // out | login | register | in
+  city: null, // città scelta nell'editor della zona
+  cityChosen: false,
+  userMovedMap: false,
+  boundsKey: "",
 };
 
 const storage = {
@@ -55,16 +53,24 @@ const storage = {
   },
 };
 
+// Gli errori del server arrivano come codice: qui diventano una frase nella lingua scelta.
 async function api(action, body = {}) {
-  const res = await fetch(`/api/${action}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ ...app.session, ...body }),
-  });
-  const data = await res.json().catch(() => ({ error: "Il server non ha risposto correttamente." }));
+  let res;
+  try {
+    res = await fetch(`/api/${action}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...app.session, ...body }),
+    });
+  } catch {
+    throw Object.assign(new Error(t("err.network")), { code: "network" });
+  }
+  const data = await res.json().catch(() => ({ error: "bad_response" }));
   if (!res.ok) {
-    const err = new Error(data.error || "Qualcosa è andato storto.");
+    const key = `err.${data.error}`;
+    const err = new Error(has(key) ? t(key, data.params) : t("err.generic"));
     err.status = res.status;
+    err.code = data.error;
     throw err;
   }
   return data;
@@ -81,9 +87,14 @@ function fmtClock(ms) {
   const pad = (n) => String(n).padStart(2, "0");
   return h ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 }
-const fmtTime = (t) => new Date(t).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
-const fmtDist = (m) => (m >= 1000 ? `${(m / 1000).toFixed(1).replace(".", ",")} km` : `${Math.round(m)} m`);
+const fmtTime = (ms) => new Date(ms).toLocaleTimeString(getLang(), { hour: "2-digit", minute: "2-digit" });
+const fmtNum = (n, digits = 1) => n.toLocaleString(getLang(), { maximumFractionDigits: digits });
+const fmtDist = (m) => (m >= 1000 ? `${fmtNum(m / 1000)} km` : `${Math.round(m)} m`);
 const initials = (name) => name.trim().split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+const agoLabel = (at) => {
+  const min = Math.round((now() - at) / 60000);
+  return min < 1 ? t("ago.now") : t("ago.min", { n: min });
+};
 
 function toast(text, ms = 3200) {
   const el = $("#toast");
@@ -94,6 +105,39 @@ function toast(text, ms = 3200) {
 }
 
 const vibrate = (pattern) => { try { navigator.vibrate?.(pattern); } catch {} };
+
+// Gli eventi arrivano dal server come codice + nomi, la frase si compone qui.
+const eventText = (e) => t(`ev.${e.code}`, { a: e.a || t("someone"), b: e.b || t("someone") });
+
+// ---------- Lingua ----------
+function fillLangSelect(sel) {
+  sel.innerHTML = Object.entries(LANGS)
+    .map(([code, name]) => `<option value="${code}">${esc(name)}</option>`)
+    .join("");
+}
+
+function changeLang(lang, { persist = true } = {}) {
+  setLang(lang);
+  storage.set(LANG_KEY, lang);
+  applyStatic();
+  $("#lang-select").value = lang;
+  $("#reg-lang").value = lang;
+  showError("#home-error");
+  if (!$("#home").hidden) renderAccount();
+  if (app.state) {
+    renderHud();
+    renderAlerts();
+    renderCatchBar();
+    renderSheet();
+    drawPlayers();
+  }
+  const token = storage.get(ACCOUNT_KEY)?.token;
+  if (persist && app.account && token) {
+    api("setLanguage", { userToken: token, language: lang })
+      .then((r) => (app.account = r.profile))
+      .catch(() => {});
+  }
+}
 
 // ---------- Home ----------
 function showHome(error) {
@@ -107,9 +151,7 @@ function showHome(error) {
   renderAccount();
   const fromUrl = new URLSearchParams(location.search).get("g");
   if (fromUrl) $("#code").value = fromUrl.toUpperCase().slice(0, 5);
-  const err = $("#home-error");
-  err.hidden = !error;
-  err.textContent = error ?? "";
+  showError("#home-error", error);
 }
 
 $("#home-form").addEventListener("submit", async (e) => {
@@ -119,10 +161,9 @@ $("#home-form").addEventListener("submit", async (e) => {
   if (document.activeElement === $("#code") && $("#code").value.trim()) action = "join";
   const name = $("#name").value.trim();
   const code = $("#code").value.trim().toUpperCase();
-  const err = $("#home-error");
-  err.hidden = true;
-  if (!name) return showFormError("Scrivi il tuo nome.");
-  if (action === "join" && code.length !== 5) return showFormError("Il codice ha 5 lettere.");
+  showError("#home-error");
+  if (!name) return showError("#home-error", t("home.err_name"));
+  if (action === "join" && code.length !== 5) return showError("#home-error", t("home.err_code"));
   storage.set(NAME_KEY, name);
   e.submitter && (e.submitter.disabled = true);
   try {
@@ -132,13 +173,9 @@ $("#home-form").addEventListener("submit", async (e) => {
     history.replaceState(null, "", `/?g=${session.code}`);
     startGame(session);
   } catch (ex) {
-    showFormError(ex.message);
+    showError("#home-error", ex.message);
   } finally {
     e.submitter && (e.submitter.disabled = false);
-  }
-  function showFormError(msg) {
-    err.textContent = msg;
-    err.hidden = false;
   }
 });
 $("#code").addEventListener("input", (e) => (e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, "")));
@@ -154,14 +191,15 @@ const layers = { zone: null, draft: null, markers: new Map(), accuracy: null };
 
 function initMap() {
   if (map) return;
-  map = L.map("map", { zoomControl: false, attributionControl: true }).setView(ROME, 14);
-  // Tile OpenStreetMap (senza chiave); lo stile scuro arriva da un filtro CSS sulla classe "map-tiles".
+  map = L.map("map", { zoomControl: false, attributionControl: true, maxBoundsViscosity: 0.9 }).setView(DEFAULT_VIEW, 13);
+  // Tile OpenStreetMap (senza chiave, tutta l'Italia); lo stile scuro arriva da un filtro CSS sulla classe "map-tiles".
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     className: "map-tiles",
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   }).addTo(map);
   map.on("click", onMapClick);
+  map.on("dragstart", () => (app.userMovedMap = true));
 }
 
 function zoneRing(zone) {
@@ -187,6 +225,8 @@ function zoneAreaKm2(zone) {
   return Math.abs(a / 2) / 1e6;
 }
 
+const zoneCenter = (zone) => (zone.type === "circle" ? zone.center : centroid(zone.points));
+
 function drawZone(original, current) {
   const key = JSON.stringify([original, current]);
   if (layers.zone?.key === key) return;
@@ -211,6 +251,15 @@ function drawZone(original, current) {
   layers.zone = { key, group };
 }
 
+// Durante la partita la mappa resta sulla città di gioco: non si può andare in giro per l'Italia.
+function limitMap(s) {
+  const playing = s.phase === "headstart" || s.phase === "hunt";
+  const key = playing && s.zone ? JSON.stringify(s.zone) : "";
+  if (app.boundsKey === key) return;
+  app.boundsKey = key;
+  map.setMaxBounds(key ? L.polygon(zoneRing(s.zone)).getBounds().pad(0.6) : null);
+}
+
 function drawDraft() {
   layers.draft?.remove();
   layers.draft = null;
@@ -218,14 +267,15 @@ function drawDraft() {
   if (!ed) return;
   const group = L.layerGroup();
   const color = css("--runner");
+  const vertex = L.divIcon({ className: "", html: '<div class="vertex"></div>', iconSize: [14, 14], iconAnchor: [7, 7] });
   if (ed.mode === "circle" && ed.center) {
     L.circle([ed.center.lat, ed.center.lng], { radius: ed.radius, color, weight: 2, dashArray: "6 6", fillOpacity: 0.12 }).addTo(group);
-    L.marker([ed.center.lat, ed.center.lng], { icon: L.divIcon({ className: "", html: '<div class="vertex"></div>', iconSize: [14, 14], iconAnchor: [7, 7] }), interactive: false }).addTo(group);
+    L.marker([ed.center.lat, ed.center.lng], { icon: vertex, interactive: false }).addTo(group);
   }
   if (ed.mode === "polygon" && ed.points.length) {
     const ll = ed.points.map((p) => [p.lat, p.lng]);
     (ll.length >= 3 ? L.polygon(ll, { color, weight: 2, dashArray: "6 6", fillOpacity: 0.12 }) : L.polyline(ll, { color, weight: 2, dashArray: "6 6" })).addTo(group);
-    ll.forEach((p) => L.marker(p, { icon: L.divIcon({ className: "", html: '<div class="vertex"></div>', iconSize: [14, 14], iconAnchor: [7, 7] }), interactive: false }).addTo(group));
+    ll.forEach((p) => L.marker(p, { icon: vertex, interactive: false }).addTo(group));
   }
   group.addTo(map);
   layers.draft = group;
@@ -251,8 +301,8 @@ function markerHtml(p, isMe) {
   if (p.visibility === "ping") cls.push("ping");
   if (isMe) cls.push("me");
   if (!p.online && !isMe) cls.push("offline");
-  let label = esc(isMe ? "Tu" : p.name);
-  if (p.visibility === "ping") label += ` · ${agoLabel(p.pos.at)}`;
+  let label = esc(isMe ? t("players.you_label") : p.name);
+  if (p.visibility === "ping") label += ` · ${esc(agoLabel(p.pos.at))}`;
   return `<div class="${cls.join(" ")}"><div class="pin-core">${esc(initials(p.name))}</div><div class="pin-label">${label}</div></div>`;
 }
 
@@ -297,11 +347,13 @@ function drawPlayers() {
 
 $("#tool-me").addEventListener("click", () => {
   if (app.myPos) map.setView([app.myPos.lat, app.myPos.lng], Math.max(map.getZoom(), 16));
-  else toast("Posizione non ancora disponibile.");
+  else toast(t("toast.no_position"));
 });
 $("#tool-zone").addEventListener("click", () => {
   const z = app.state?.currentZone ?? app.state?.zone;
-  z ? fitZone(z) : map.setView(ROME, 14);
+  if (z) fitZone(z);
+  else if (app.myPos) map.setView([app.myPos.lat, app.myPos.lng], 15);
+  else map.setView(DEFAULT_VIEW, 13);
 });
 
 // ---------- Posizione ----------
@@ -309,7 +361,7 @@ let geoWatch = null;
 function startGeo() {
   if (geoWatch != null) return;
   if (!("geolocation" in navigator)) {
-    app.geoError = "Questo browser non supporta la geolocalizzazione.";
+    app.geoError = "unsupported";
     return renderAlerts();
   }
   geoWatch = navigator.geolocation.watchPosition(
@@ -317,15 +369,18 @@ function startGeo() {
       const first = !app.myPos;
       app.myPos = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: Math.round(pos.coords.accuracy), at: Date.now() };
       app.geoError = null;
-      if (app.state) drawPlayers();
+      // Al primo segnale GPS, se la zona non c'è ancora, la mappa va sulla città dove ti trovi.
+      if (first && !app.state?.zone && !app.userMovedMap && map) map.setView([app.myPos.lat, app.myPos.lng], 15);
+      if (first && !app.cityChosen) app.city = nearestCity(app.myPos).id;
+      if (app.state) {
+        drawPlayers();
+        if (first) renderSheet();
+      }
       renderAlerts();
       if (first) scheduleSync(0);
     },
     (err) => {
-      app.geoError =
-        err.code === err.PERMISSION_DENIED
-          ? "Posizione bloccata. Consenti l'accesso alla posizione nelle impostazioni del browser e ricarica."
-          : "Sto cercando il segnale GPS…";
+      app.geoError = err.code === err.PERMISSION_DENIED ? "denied" : "searching";
       renderAlerts();
     },
     { enableHighAccuracy: true, maximumAge: 3000, timeout: 20000 },
@@ -361,10 +416,16 @@ function startGame(session) {
   app.fittedZone = null;
   app.edit = null;
   app.confirm = null;
+  app.city = null;
+  app.cityChosen = false;
+  app.userMovedMap = false;
+  app.boundsKey = "";
   $("#home").hidden = true;
   $("#game").hidden = false;
   initMap();
+  map.setMaxBounds(null);
   map.invalidateSize();
+  if (app.myPos) map.setView([app.myPos.lat, app.myPos.lng], 15);
   startGeo();
   keepAwake();
   scheduleSync(0);
@@ -387,6 +448,7 @@ function stopGame() {
   layers.zone = null;
   layers.draft?.remove();
   layers.draft = null;
+  map?.setMaxBounds(null);
   app.wakeLock?.release?.();
 }
 
@@ -431,11 +493,11 @@ function applyState(s) {
   app.clockOffset = s.now - Date.now();
 
   // Nuovi eventi -> notifiche.
-  const keyOf = (e) => `${e.kind}:${e.at}:${e.text}`;
+  const keyOf = (e) => `${e.kind}:${e.at}:${e.code}:${e.a ?? ""}:${e.b ?? ""}`;
   if (app.seenEvents) {
     const fresh = s.events.filter((e) => !app.seenEvents.has(keyOf(e)) && e.kind !== "outside");
     if (fresh.length) {
-      toast(fresh[0].text, 4500);
+      toast(eventText(fresh[0]), 4500);
       vibrate([120, 80, 120]);
     }
   }
@@ -452,10 +514,13 @@ function applyState(s) {
   if (meP?.outside && !app.wasOutside) vibrate([500, 150, 500]);
   app.wasOutside = !!meP?.outside;
   if (s.me.kamikaze && !app.wasKamikaze) {
-    toast("Sei il KAMIKAZE! Se un cacciatore ti prende, lo elimini.", 7000);
+    toast(t("toast.kamikaze_you"), 7000);
     vibrate([200, 100, 200, 100, 400]);
   }
   app.wasKamikaze = !!s.me.kamikaze;
+
+  // La città dell'editor segue la zona già scelta, finché l'host non ne sceglie un'altra.
+  if (s.zone && !app.cityChosen) app.city = nearestCity(zoneCenter(s.zone)).id;
 
   const zoneKey = JSON.stringify(s.zone);
   if (s.zone && app.fittedZone !== zoneKey && !app.edit) {
@@ -463,6 +528,7 @@ function applyState(s) {
     app.fittedZone = zoneKey;
   }
 
+  limitMap(s);
   drawZone(s.zone, s.currentZone);
   drawPlayers();
   renderHud();
@@ -475,9 +541,9 @@ function applyState(s) {
 function nextPingAt(s, everyMin) {
   const every = everyMin * 60000;
   if (s.phase !== "hunt" || !every) return null;
-  const t = timeline({ ...s, startedAt: s.timeline.startedAt });
-  const tick = Math.floor((now() - t.huntStart) / every);
-  return t.huntStart + (tick + 1) * every;
+  const tl = timeline({ ...s, startedAt: s.timeline.startedAt });
+  const tick = Math.floor((now() - tl.huntStart) / every);
+  return tl.huntStart + (tick + 1) * every;
 }
 
 function renderHud() {
@@ -488,42 +554,45 @@ function renderHud() {
   const badge = $("#hud-role");
   const kamikaze = s.me.kamikaze && role === "runner";
   badge.className = `role-badge role-${role}${kamikaze ? " role-kamikaze" : ""}`;
-  badge.textContent = kamikaze ? "Preda · Kamikaze" : ROLE_LABEL[role];
+  badge.textContent = kamikaze ? t("role.kamikaze_badge") : roleLabel(role);
 
   let phase = "";
   let timer = "";
   let note = "";
-  const t = s.timeline;
+  const tl = s.timeline;
   if (s.phase === "lobby") {
-    phase = "In attesa";
-    note = s.isHost ? "Disegna la zona, scegli i ruoli e inizia." : "L'host sta preparando la partita.";
+    phase = t("hud.waiting");
+    note = s.isHost ? t("hud.waiting_host") : t("hud.waiting_guest");
   } else if (s.phase === "headstart") {
-    phase = "Le prede scappano";
-    timer = fmtClock(t.huntStart - now());
-    note = role === "hunter" ? "Resta fermo: parti allo scadere del conto alla rovescia." : role === "runner" ? "Allontanati dai cacciatori!" : "Vantaggio iniziale per le prede.";
+    phase = t("hud.headstart");
+    timer = fmtClock(tl.huntStart - now());
+    note = role === "hunter" ? t("hud.headstart_hunter") : role === "runner" ? t("hud.headstart_runner") : t("hud.headstart_other");
   } else if (s.phase === "hunt") {
-    phase = "Caccia aperta";
-    timer = fmtClock(t.endsAt - now());
+    phase = t("hud.hunt");
+    timer = fmtClock(tl.endsAt - now());
     const preyPing = nextPingAt(s, s.settings.revealEveryMin);
     const hunterPing = s.settings.runnersSeeHunters ? null : nextPingAt(s, s.settings.hunterRevealEveryMin);
     if (role === "runner") {
       const bits = [];
-      if (preyPing) bits.push(`La tua posizione verrà rivelata tra ${fmtClock(preyPing - now())}`);
-      if (hunterPing) bits.push(`${bits.length ? "cacciatori" : "Cacciatori"} visibili tra ${fmtClock(hunterPing - now())}`);
+      if (preyPing) bits.push(t("hud.reveal_you", { t: fmtClock(preyPing - now()) }));
+      if (hunterPing) bits.push(t(bits.length ? "hud.hunters_visible_next" : "hud.hunters_visible_first", { t: fmtClock(hunterPing - now()) }));
       note = bits.join(" · ");
     } else if (role === "hunter") {
-      if (preyPing) note = `Nuove posizioni delle prede tra ${fmtClock(preyPing - now())}`;
-      if (hunterPing) note += `${note ? " · " : ""}le prede vedono te tra ${fmtClock(hunterPing - now())}`;
+      if (preyPing) note = t("hud.prey_ping", { t: fmtClock(preyPing - now()) });
+      if (hunterPing) note += `${note ? " · " : ""}${t("hud.preys_see_you", { t: fmtClock(hunterPing - now()) })}`;
     }
-    if (!note && !s.settings.revealEveryMin) note = "Prede in diretta per tutti.";
-    if (s.settings.shrinkTo < 100) note += note ? " · la zona si restringe" : "La zona si restringe";
+    if (!note && !s.settings.revealEveryMin) note = t("hud.live_all");
+    if (s.settings.shrinkTo < 100) note += note ? ` · ${t("hud.zone_shrinks_next")}` : t("hud.zone_shrinks_first");
   } else {
-    phase = s.winner === "hunters" ? "Vincono i cacciatori" : s.winner === "runners" ? "Vincono le prede" : s.winner === "draw" ? "Pareggio" : "Partita finita";
+    phase = winnerTitle(s.winner, "hud.ended");
   }
   $("#hud-phase").textContent = phase;
   $("#hud-timer").textContent = timer;
   $("#hud-note").textContent = note;
 }
+
+const winnerTitle = (winner, fallbackKey) =>
+  winner === "hunters" ? t("res.hunters") : winner === "runners" ? t("res.runners") : winner === "draw" ? t("res.draw") : t(fallbackKey);
 
 function renderAlerts() {
   const s = app.state;
@@ -531,18 +600,16 @@ function renderAlerts() {
   const outside = $("#alert-outside");
   const gps = $("#alert-gps");
   gps.hidden = !app.geoError;
-  gps.textContent = app.geoError ?? "";
+  gps.textContent = app.geoError ? t(`geo.${app.geoError}`) : "";
   if (!s) return;
   const beingCaught = s.capturing != null;
   danger.hidden = s.danger == null && !beingCaught;
   danger.textContent = beingCaught
-    ? `Ti stanno prendendo: ${s.capturing} s`
-    : s.danger != null ? `Cacciatore a meno di ${s.danger} m!` : "";
+    ? t("alert.capturing", { s: s.capturing })
+    : s.danger != null ? t("alert.danger", { m: s.danger }) : "";
   const meP = s.players.find((p) => p.id === s.me.id);
   outside.hidden = !meP?.outside;
-  outside.textContent = s.settings.outsideReveal
-    ? "Sei fuori zona: i cacciatori ti vedono in diretta. Rientra!"
-    : "Sei fuori zona. Rientra!";
+  outside.textContent = s.settings.outsideReveal ? t("alert.outside_reveal") : t("alert.outside");
 }
 
 function renderCatchBar() {
@@ -553,7 +620,7 @@ function renderCatchBar() {
   if (list.length && bar.hidden) sheet.classList.remove("open");
   bar.hidden = !list.length;
   const html = list
-    .map((c) => `<button class="btn btn-primary catch-btn" type="button" data-catch="${esc(c.id)}">Cattura ${esc(c.name)} · ${c.dist} m</button>`)
+    .map((c) => `<button class="btn btn-primary catch-btn" type="button" data-catch="${esc(c.id)}">${esc(t("catch.btn", { name: c.name, m: c.dist }))}</button>`)
     .join("");
   if (bar.dataset.html !== html) {
     bar.innerHTML = html;
@@ -570,17 +637,17 @@ async function shareGame() {
   const s = app.state;
   if (!s) return;
   const url = `${location.origin}/?g=${s.code}`;
-  const text = `Entra nella mia partita di Manhunt Roma con il codice ${s.code}`;
+  const text = t("share.text", { code: s.code });
   try {
-    if (navigator.share) return await navigator.share({ title: "Manhunt Roma", text, url });
+    if (navigator.share) return await navigator.share({ title: t("meta.title"), text, url });
   } catch (err) {
     if (err?.name === "AbortError") return;
   }
   try {
     await navigator.clipboard.writeText(`${text}: ${url}`);
-    toast("Link copiato negli appunti");
+    toast(t("toast.link_copied"));
   } catch {
-    toast(`Codice: ${s.code}`);
+    toast(t("toast.code", { code: s.code }));
   }
 }
 
@@ -634,71 +701,74 @@ function hostStartHtml(s) {
   const hunters = s.players.filter((p) => p.baseRole === "hunter").length;
   const runners = s.players.filter((p) => p.baseRole === "runner").length;
   let problem = "";
-  if (!s.zone) problem = "Disegna la zona di gioco per poter iniziare.";
-  else if (!hunters) problem = "Serve almeno un cacciatore.";
-  else if (!runners) problem = "Serve almeno una preda.";
-  let kamikazeHint = "";
-  if (s.settings.kamikaze) {
-    const playing = s.players.filter((p) => p.baseRole !== "referee").length;
-    kamikazeHint = playing > 10
-      ? "Kamikaze attivo: all'inizio una preda a caso lo diventa, in segreto."
-      : `Kamikaze non attivo: servono più di 10 giocatori (ora ${playing}).`;
-  }
+  if (!s.zone) problem = t("err.need_zone");
+  else if (!hunters) problem = t("err.need_hunter");
+  else if (!runners) problem = t("err.need_runner");
+  // Con il kamikaze attivo il server sceglie la preda segreta all'inizio.
+  const kamikazeHint = s.settings.kamikaze ? t("lobby.kamikaze_on") : "";
   return `
     <div class="row" style="justify-content:space-between">
-      <div><div class="eyebrow">Codice partita</div><div class="mono" style="font-size:24px;letter-spacing:.2em">${esc(s.code)}</div></div>
-      <button class="btn btn-sm" type="button" data-action="share">Invita amici</button>
+      <div><div class="eyebrow">${esc(t("lobby.code"))}</div><div class="mono" style="font-size:24px;letter-spacing:.2em">${esc(s.code)}</div></div>
+      <button class="btn btn-sm" type="button" data-action="share">${esc(t("lobby.invite_friends"))}</button>
     </div>
-    <button class="btn btn-primary btn-lg btn-block" type="button" data-action="start" ${problem ? "disabled" : ""}>Inizia partita</button>
-    <p class="hint">${problem ? esc(problem) : `${countRole("hunter", hunters)} contro ${countRole("runner", runners)}.`}</p>
+    <button class="btn btn-primary btn-lg btn-block" type="button" data-action="start" ${problem ? "disabled" : ""}>${esc(t("lobby.start"))}</button>
+    <p class="hint">${problem ? esc(problem) : esc(t("lobby.versus", { h: countRole("hunter", hunters), r: countRole("runner", runners) }))}</p>
     ${kamikazeHint ? `<p class="hint">${esc(kamikazeHint)}</p>` : ""}`;
 }
 
 function zoneEditorHtml(s) {
   const ed = app.edit;
-  const presetId = ROME_PRESETS.find((p) => JSON.stringify(p.zone) === JSON.stringify(s.zone))?.id;
-  const presets = ROME_PRESETS.map(
-    (p) => `<button class="chip preset ${p.id === presetId ? "active" : ""}" type="button" data-preset="${p.id}">${esc(p.name)}</button>`,
-  ).join("");
+  const city = CITIES.find((c) => c.id === (app.city ?? "roma")) ?? CITIES[0];
+  const sameZone = (z) => JSON.stringify(z) === JSON.stringify(s.zone);
+  const presets = city.presets
+    .map((p) => `<button class="chip preset ${sameZone(p.zone) ? "active" : ""}" type="button" data-preset="${esc(p.id)}">${esc(presetName(p))}</button>`)
+    .join("");
+  const cityOptions = CITIES.map((c) => ({ id: c.id, name: cityName(c.id) }))
+    .sort((a, b) => a.name.localeCompare(b.name, getLang()))
+    .map((c) => `<option value="${c.id}" ${c.id === city.id ? "selected" : ""}>${esc(c.name)}</option>`)
+    .join("");
   let body;
   if (!ed) {
     const desc = s.zone
-      ? `${s.zone.type === "circle" ? `Cerchio di ${fmtDist(s.zone.radius)} di raggio` : `Poligono di ${s.zone.points.length} punti`} · ${zoneAreaKm2(s.zone).toFixed(2).replace(".", ",")} km²`
-      : "Nessuna zona: scegline una qui sotto o disegnala.";
+      ? `${s.zone.type === "circle" ? t("zone.desc_circle", { r: fmtDist(s.zone.radius) }) : t("zone.desc_polygon", { n: s.zone.points.length })} · ${fmtNum(zoneAreaKm2(s.zone), 2)} km²`
+      : t("zone.none");
     body = `
       <p class="hint">${esc(desc)}</p>
+      <label class="field"><span class="label">${esc(t("zone.city"))}</span>
+        <select id="city-select">${cityOptions}</select></label>
       <div class="presets">${presets}</div>
       <div class="row">
-        <button class="btn btn-sm" type="button" data-action="draw-circle">Disegna cerchio</button>
-        <button class="btn btn-sm" type="button" data-action="draw-polygon">Disegna poligono</button>
+        <button class="btn btn-sm" type="button" data-action="zone-here" ${app.myPos ? "" : "disabled"}>${esc(t("zone.around_me"))}</button>
+        <button class="btn btn-sm" type="button" data-action="draw-circle">${esc(t("zone.draw_circle"))}</button>
+        <button class="btn btn-sm" type="button" data-action="draw-polygon">${esc(t("zone.draw_polygon"))}</button>
       </div>`;
   } else if (ed.mode === "circle") {
     body = `
-      <p class="hint">${ed.center ? "Tocca la mappa per spostare il centro." : "Tocca la mappa per mettere il centro della zona."}</p>
-      <label class="field"><span class="label">Raggio · <span id="radius-val">${fmtDist(ed.radius)}</span></span>
+      <p class="hint">${esc(ed.center ? t("zone.circle_move") : t("zone.circle_set"))}</p>
+      <label class="field"><span class="label">${esc(t("zone.radius"))} · <span id="radius-val">${fmtDist(ed.radius)}</span></span>
         <input id="radius" type="range" min="200" max="5000" step="50" value="${ed.radius}"></label>
       <div class="row">
-        <button class="btn btn-sm btn-runner" type="button" data-action="save-zone" ${ed.center ? "" : "disabled"}>Salva zona</button>
-        <button class="btn btn-sm btn-ghost" type="button" data-action="cancel-zone">Annulla</button>
+        <button class="btn btn-sm btn-runner" type="button" data-action="save-zone" ${ed.center ? "" : "disabled"}>${esc(t("zone.save"))}</button>
+        <button class="btn btn-sm btn-ghost" type="button" data-action="cancel-zone">${esc(t("common.cancel"))}</button>
       </div>`;
   } else {
     body = `
-      <p class="hint">Tocca la mappa per aggiungere i vertici. Punti: ${ed.points.length}${ed.points.length < 3 ? " (minimo 3)" : ""}.</p>
+      <p class="hint">${esc(t("zone.polygon_hint", { n: ed.points.length }))}${ed.points.length < 3 ? esc(t("zone.min3")) : ""}</p>
       <div class="row">
-        <button class="btn btn-sm btn-runner" type="button" data-action="save-zone" ${ed.points.length >= 3 ? "" : "disabled"}>Salva zona</button>
-        <button class="btn btn-sm" type="button" data-action="undo-point" ${ed.points.length ? "" : "disabled"}>Togli ultimo punto</button>
-        <button class="btn btn-sm btn-ghost" type="button" data-action="cancel-zone">Annulla</button>
+        <button class="btn btn-sm btn-runner" type="button" data-action="save-zone" ${ed.points.length >= 3 ? "" : "disabled"}>${esc(t("zone.save"))}</button>
+        <button class="btn btn-sm" type="button" data-action="undo-point" ${ed.points.length ? "" : "disabled"}>${esc(t("zone.undo"))}</button>
+        <button class="btn btn-sm btn-ghost" type="button" data-action="cancel-zone">${esc(t("common.cancel"))}</button>
       </div>`;
   }
-  return `<div class="section-head"><h3>Zona di gioco</h3></div>${body}`;
+  return `<div class="section-head"><h3>${esc(t("zone.title"))}</h3></div>${body}`;
 }
 
 function playerStatus(s, p) {
   const bits = [];
-  if (p.isHost) bits.push("host");
-  if (!p.online) bits.push("offline");
-  if (p.outside) bits.push("fuori zona");
-  if (p.visibility === "ping" && p.pos) bits.push(`segnale ${agoLabel(p.pos.at)}`);
+  if (p.isHost) bits.push(t("players.host"));
+  if (!p.online) bits.push(t("players.offline"));
+  if (p.outside) bits.push(t("players.outside"));
+  if (p.visibility === "ping" && p.pos) bits.push(t("players.signal", { ago: agoLabel(p.pos.at) }));
   if (p.id !== s.me.id && p.pos && app.myPos && s.phase !== "lobby") bits.push(fmtDist(distanceM(app.myPos, p.pos)));
   return bits.join(" · ");
 }
@@ -712,20 +782,20 @@ function playersHtml(s, editable) {
       let controls = "";
       if (editable) {
         const seg = ["hunter", "runner", "referee"]
-          .map((r) => `<button type="button" class="r-${r}" aria-pressed="${p.baseRole === r}" data-role="${r}" data-player="${esc(p.id)}">${ROLE_LABEL[r]}</button>`)
+          .map((r) => `<button type="button" class="r-${r}" aria-pressed="${p.baseRole === r}" data-role="${r}" data-player="${esc(p.id)}">${esc(roleLabel(r))}</button>`)
           .join("");
-        controls = `<div class="seg">${seg}</div>${isMe ? "" : `<button class="btn btn-sm btn-ghost" type="button" data-kick="${esc(p.id)}" aria-label="Espelli ${esc(p.name)}">✕</button>`}`;
+        controls = `<div class="seg">${seg}</div>${isMe ? "" : `<button class="btn btn-sm btn-ghost" type="button" data-kick="${esc(p.id)}" aria-label="${esc(t("players.kick_aria", { name: p.name }))}">✕</button>`}`;
       } else if (s.isHost && s.phase === "hunt" && p.role === "caught") {
-        controls = `<button class="btn btn-sm btn-ghost" type="button" data-uncatch="${esc(p.id)}">Annulla cattura</button>`;
+        controls = `<button class="btn btn-sm btn-ghost" type="button" data-uncatch="${esc(p.id)}">${esc(t("players.uncatch"))}</button>`;
       } else if (s.isHost && s.phase === "hunt" && p.role === "eliminated") {
-        controls = `<button class="btn btn-sm btn-ghost" type="button" data-unelim="${esc(p.id)}">Annulla eliminazione</button>`;
+        controls = `<button class="btn btn-sm btn-ghost" type="button" data-unelim="${esc(p.id)}">${esc(t("players.unelim"))}</button>`;
       } else if (s.me.role === "referee" && s.phase === "hunt" && p.role === "runner") {
-        controls = `<button class="btn btn-sm btn-danger" type="button" data-catch="${esc(p.id)}">Segna preso</button>`;
+        controls = `<button class="btn btn-sm btn-danger" type="button" data-catch="${esc(p.id)}">${esc(t("players.mark_caught"))}</button>`;
       }
       const status = playerStatus(s, p);
       return `<li class="player ${p.online ? "" : "offline"}">
-        <span class="dot ${p.role}" title="${ROLE_LABEL[p.role]}"></span>
-        <span class="player-name">${esc(p.name)}${isMe ? '<span class="tag">tu</span>' : ""}
+        <span class="dot ${p.role}" title="${esc(roleLabel(p.role))}"></span>
+        <span class="player-name">${esc(p.name)}${isMe ? `<span class="tag">${esc(t("players.you"))}</span>` : ""}
           ${status ? `<div class="player-meta">${esc(status)}</div>` : ""}</span>
         ${controls}
       </li>`;
@@ -736,62 +806,63 @@ function playersHtml(s, editable) {
     .filter(([, n]) => n)
     .map(([r, n]) => countRole(r, n))
     .join(" · ");
-  const shuffle = editable && s.players.length > 1 ? `<button class="btn btn-sm" type="button" data-action="shuffle">Ruoli a caso</button>` : "";
-  return `<div class="section-head"><h3>Giocatori</h3>${shuffle}</div>
+  const shuffle = editable && s.players.length > 1 ? `<button class="btn btn-sm" type="button" data-action="shuffle">${esc(t("players.shuffle"))}</button>` : "";
+  return `<div class="section-head"><h3>${esc(t("players.title"))}</h3>${shuffle}</div>
     <p class="hint">${esc(counts)}</p>
     <ul class="players">${rows}</ul>`;
 }
 
 const SETTING_FIELDS = [
-  ["durationMin", "Durata caccia (min)", 5, 600],
-  ["headStartMin", "Vantaggio prede (min)", 0, 60],
-  ["revealEveryMin", "Segnale prede ogni (min, 0 = diretta)", 0, 60],
-  ["hunterRevealEveryMin", "Segnale cacciatori ogni (min, 0 = mai)", 0, 60],
-  ["catchRadiusM", "Distanza cattura (m)", 5, 200],
-  ["dangerRadiusM", "Allarme vicinanza (m, 0 = off)", 0, 2000],
-  ["shrinkTo", "Zona finale (% , 100 = fissa)", 10, 100],
+  ["durationMin", 5, 600],
+  ["headStartMin", 0, 60],
+  ["revealEveryMin", 0, 60],
+  ["hunterRevealEveryMin", 0, 60],
+  ["catchRadiusM", 5, 200],
+  ["dangerRadiusM", 0, 2000],
+  ["shrinkTo", 10, 100],
 ];
-const SETTING_TOGGLES = [
-  ["runnersSeeHunters", "Le prede vedono i cacciatori sempre in diretta"],
-  ["autoCatch", `Cattura automatica: preso dopo ${AUTO_HOLD_S} s entro la distanza`],
-  ["outsideReveal", "Chi esce dalla zona viene mostrato in diretta"],
-  ["infection", "Infezione: chi viene preso diventa cacciatore"],
-  ["kamikaze", "Kamikaze: una preda segreta elimina il cacciatore che la prende (serve più di 10 giocatori)"],
-];
+const SETTING_TOGGLES = ["runnersSeeHunters", "outsideReveal", "infection", "kamikaze"];
 
 function rulesFormHtml(s) {
   const fields = SETTING_FIELDS.map(
-    ([k, label, min, max]) => `<label class="setting"><span class="label">${label}</span>
+    ([k, min, max]) => `<label class="setting"><span class="label">${esc(t(`rules.${k}`))}</span>
       <input id="set-${k}" type="number" inputmode="numeric" min="${min}" max="${max}" value="${s.settings[k]}" data-setting="${k}"></label>`,
   ).join("");
-  const toggles = SETTING_TOGGLES.map(
-    ([k, label]) => `<label class="toggle"><input id="set-${k}" type="checkbox" data-setting="${k}" ${s.settings[k] ? "checked" : ""}>${label}</label>`,
-  ).join("");
-  return `<div class="section-head"><h3>Regole</h3></div><div class="settings">${fields}${toggles}</div>`;
+  // L'opzione kamikaze compare solo quando i giocatori sono abbastanza (più di 10).
+  const toggles = SETTING_TOGGLES.filter((k) => k !== "kamikaze" || s.kamikazeAvailable)
+    .map((k) => `<label class="toggle"><input id="set-${k}" type="checkbox" data-setting="${k}" ${s.settings[k] ? "checked" : ""}>${esc(t(`rules.${k}`))}</label>`)
+    .join("");
+  return `<div class="section-head"><h3>${esc(t("rules.title"))}</h3></div><div class="settings">${fields}${toggles}</div>`;
 }
 
 function rulesSummaryHtml(s) {
   const st = s.settings;
   const items = [
-    ["Durata", `${st.durationMin} min`],
-    ["Vantaggio", `${st.headStartMin} min`],
-    ["Segnale prede", st.revealEveryMin ? `ogni ${st.revealEveryMin} min` : "in diretta"],
-    ["Cattura entro", `${st.catchRadiusM} m`],
-    ["Allarme", st.dangerRadiusM ? `${st.dangerRadiusM} m` : "spento"],
-    ["Zona", st.shrinkTo < 100 ? `si riduce al ${st.shrinkTo}%` : "fissa"],
-    ["Segnale cacciatori", st.runnersSeeHunters ? "in diretta" : st.hunterRevealEveryMin ? `ogni ${st.hunterRevealEveryMin} min` : "nascosti"],
-    ["Cattura", st.autoCatch ? `automatica (${AUTO_HOLD_S} s)` : "con pulsante"],
-    ["Infezione", st.infection ? "sì" : "no"],
-    ["Kamikaze", !st.kamikaze ? "no" : s.kamikazeActive ? "attivo" : "se più di 10 giocatori"],
+    [t("sum.duration"), t("val.min", { n: st.durationMin })],
+    [t("sum.headstart"), t("val.min", { n: st.headStartMin })],
+    [t("sum.prey_signal"), st.revealEveryMin ? t("val.every_min", { n: st.revealEveryMin }) : t("val.live")],
+    [t("sum.hunter_signal"), st.runnersSeeHunters ? t("val.live") : st.hunterRevealEveryMin ? t("val.every_min", { n: st.hunterRevealEveryMin }) : t("val.hidden")],
+    [t("sum.capture"), t("val.capture", { m: st.catchRadiusM, s: AUTO_HOLD_S })],
+    [t("sum.alarm"), st.dangerRadiusM ? `${st.dangerRadiusM} m` : t("val.off")],
+    [t("sum.zone"), st.shrinkTo < 100 ? t("val.shrinks", { n: st.shrinkTo }) : t("val.fixed")],
+    [t("sum.infection"), st.infection ? t("val.yes") : t("val.no")],
   ];
-  return `<div class="section-head"><h3>Regole</h3></div>
-    <dl class="rules-summary">${items.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>`;
+  if (st.kamikaze || s.kamikazeActive) items.push([t("sum.kamikaze"), t("val.active")]);
+  return `<div class="section-head"><h3>${esc(t("rules.title"))}</h3></div>
+    <dl class="rules-summary">${items.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>`;
 }
 
 function waitHtml(s) {
-  const host = s.players.find((p) => p.isHost)?.name ?? "l'host";
-  return `<div class="section-head"><h3>Sala d'attesa</h3><button class="btn btn-sm" type="button" data-action="share">Invita</button></div>
-    <p class="hint">Sei ${s.me.role === "referee" ? "arbitro" : s.me.role === "hunter" ? "cacciatore" : "una preda"}. ${esc(host)} sta preparando zona e ruoli.${s.zone ? "" : " Zona non ancora scelta."}</p>`;
+  const host = s.players.find((p) => p.isHost)?.name ?? t("someone");
+  const you = t(`wait.as_${s.me.role === "referee" ? "referee" : s.me.role === "hunter" ? "hunter" : "runner"}`);
+  return `<div class="section-head"><h3>${esc(t("wait.title"))}</h3><button class="btn btn-sm" type="button" data-action="share">${esc(t("wait.invite"))}</button></div>
+    <p class="hint">${esc(you)} ${esc(t("wait.preparing", { host }))}${s.zone ? "" : ` ${esc(t("wait.no_zone"))}`}</p>`;
+}
+
+function confirmBox(title, yesAction, yesLabel, noLabel = t("common.cancel")) {
+  return `<div class="confirm"><strong>${esc(title)}</strong>
+    <div class="row"><button class="btn btn-primary" type="button" data-action="${yesAction}">${esc(yesLabel)}</button>
+    <button class="btn btn-ghost" type="button" data-action="confirm-no">${esc(noLabel)}</button></div></div>`;
 }
 
 function gameActionsHtml(s) {
@@ -800,101 +871,97 @@ function gameActionsHtml(s) {
   if (role === "runner" && s.phase === "hunt") {
     parts.push(
       app.confirm === "surrender"
-        ? `<div class="confirm"><strong>Confermi di essere stato catturato?</strong>
-            <div class="row"><button class="btn btn-primary" type="button" data-action="surrender-yes">Sì, mi hanno preso</button>
-            <button class="btn btn-ghost" type="button" data-action="confirm-no">No</button></div></div>`
-        : `<button class="btn btn-danger btn-block" type="button" data-action="surrender">Mi hanno preso</button>`,
+        ? confirmBox(t("act.surrender_confirm"), "surrender-yes", t("act.surrender_yes"), t("act.no"))
+        : `<button class="btn btn-danger btn-block" type="button" data-action="surrender">${esc(t("act.surrender"))}</button>`,
     );
   }
   if (s.me.kamikaze && role === "runner") {
-    parts.push(`<p class="hint"><strong>Sei il kamikaze.</strong> Nessuno lo sa: se un cacciatore ti prende, viene eliminato.</p>`);
+    parts.push(`<p class="hint"><strong>${esc(t("act.kamikaze_you_title"))}</strong> ${esc(t("act.kamikaze_you_text"))}</p>`);
   }
   if (role === "hunter" && s.kamikazeActive && s.phase === "hunt") {
-    parts.push(`<p class="hint">Attenzione: tra le prede c'è un kamikaze. Chi lo prende viene eliminato.</p>`);
+    parts.push(`<p class="hint">${esc(t("act.hunter_kamikaze"))}</p>`);
   }
-  if (role === "caught") parts.push(`<p class="hint">Sei stato catturato. Ora vedi tutti i giocatori.</p>`);
-  if (role === "eliminated") parts.push(`<p class="hint">Il kamikaze ti ha eliminato. Ora vedi tutti i giocatori.</p>`);
+  if (role === "caught") parts.push(`<p class="hint">${esc(t("act.caught"))}</p>`);
+  if (role === "eliminated") parts.push(`<p class="hint">${esc(t("act.eliminated"))}</p>`);
   if (role === "hunter" && s.phase === "hunt" && !s.catchable.length) {
-    parts.push(
-      s.settings.autoCatch
-        ? `<p class="hint">Cattura automatica: resta entro ${s.settings.catchRadiusM} m da una preda per ${AUTO_HOLD_S} secondi. Se serve, compare anche il pulsante.</p>`
-        : `<p class="hint">Avvicinati entro ${s.settings.catchRadiusM} m da una preda: comparirà il pulsante per catturarla.</p>`,
-    );
+    parts.push(`<p class="hint">${esc(t("act.hunter_hint", { m: s.settings.catchRadiusM, s: AUTO_HOLD_S }))}</p>`);
   }
   if (s.isHost) {
     parts.push(
       app.confirm === "stop"
-        ? `<div class="confirm"><strong>Terminare la partita per tutti?</strong>
-            <div class="row"><button class="btn btn-primary" type="button" data-action="stop-yes">Termina</button>
-            <button class="btn btn-ghost" type="button" data-action="confirm-no">Annulla</button></div></div>`
-        : `<button class="btn btn-ghost btn-sm" type="button" data-action="stop">Termina partita</button>`,
+        ? confirmBox(t("act.stop_confirm"), "stop-yes", t("act.stop_yes"))
+        : `<button class="btn btn-ghost btn-sm" type="button" data-action="stop">${esc(t("act.stop"))}</button>`,
     );
   }
-  return parts.join("") || `<p class="hint">Buona caccia.</p>`;
+  return parts.join("") || `<p class="hint">${esc(t("act.good_hunt"))}</p>`;
 }
 
 function resultHtml(s) {
   const cls = s.winner ?? "none";
-  const title =
-    s.winner === "hunters" ? "Vincono i cacciatori" : s.winner === "runners" ? "Vincono le prede" : s.winner === "draw" ? "Pareggio" : "Partita terminata";
-  const t = s.timeline;
-  const played = t && s.endedAt ? fmtClock(s.endedAt - t.startedAt) : "";
+  const title = winnerTitle(s.winner, "res.ended");
+  const tl = s.timeline;
+  const played = tl && s.endedAt ? fmtClock(s.endedAt - tl.startedAt) : "";
   const caught = s.catches.filter((c) => !c.eliminated).length;
   const host = s.isHost
-    ? `<div class="row"><button class="btn btn-primary" type="button" data-action="reset">Nuova partita</button>
+    ? `<div class="row"><button class="btn btn-primary" type="button" data-action="reset">${esc(t("res.new"))}</button>
         ${app.confirm === "delete"
-          ? `<button class="btn btn-danger" type="button" data-action="delete-yes">Conferma: cancella tutto</button>`
-          : `<button class="btn btn-ghost" type="button" data-action="delete">Chiudi e cancella</button>`}</div>`
+          ? `<button class="btn btn-danger" type="button" data-action="delete-yes">${esc(t("res.delete_confirm"))}</button>`
+          : `<button class="btn btn-ghost" type="button" data-action="delete">${esc(t("res.close_delete"))}</button>`}</div>`
     : "";
-  return `<div class="result ${cls}"><h2>${title}</h2>
-    <p class="hint">Durata ${played} · ${caught} ${caught === 1 ? "cattura" : "catture"}</p>
-    ${s.kamikazeName ? `<p class="hint">Il kamikaze era ${esc(s.kamikazeName)}.</p>` : ""}</div>${host}`;
+  return `<div class="result ${cls}"><h2>${esc(title)}</h2>
+    <p class="hint">${esc(plural("res.meta", caught, { t: played }))}</p>
+    ${s.kamikazeName ? `<p class="hint">${esc(t("res.kamikaze_was", { name: s.kamikazeName }))}</p>` : ""}</div>${host}`;
 }
 
 function eventsHtml(s) {
   if (!s.events.length) return "";
   const items = s.events
-    .map((e) => `<li class="ev-${e.kind}"><time class="mono">${fmtTime(e.at)}</time><span>${esc(e.text)}</span></li>`)
+    .map((e) => `<li class="ev-${e.kind}"><time class="mono">${fmtTime(e.at)}</time><span>${esc(eventText(e))}</span></li>`)
     .join("");
-  return `<div class="section-head"><h3>Cronaca</h3></div><ul class="events">${items}</ul>`;
+  return `<div class="section-head"><h3>${esc(t("ev.title"))}</h3></div><ul class="events">${items}</ul>`;
 }
 
 function leaveHtml(s) {
   if (s.isHost) {
     if (s.phase === "ended") return "";
     return app.confirm === "delete"
-      ? `<div class="confirm"><strong>Cancellare la partita per tutti?</strong>
-          <div class="row"><button class="btn btn-primary" type="button" data-action="delete-yes">Cancella</button>
-          <button class="btn btn-ghost" type="button" data-action="confirm-no">Annulla</button></div></div>`
-      : `<button class="btn btn-ghost btn-sm" type="button" data-action="delete">Chiudi la partita</button>`;
+      ? confirmBox(t("leave.delete_title"), "delete-yes", t("leave.delete_yes"))
+      : `<button class="btn btn-ghost btn-sm" type="button" data-action="delete">${esc(t("leave.close"))}</button>`;
   }
-  return `<button class="btn btn-ghost btn-sm" type="button" data-action="leave">Esci dalla partita</button>`;
+  return `<button class="btn btn-ghost btn-sm" type="button" data-action="leave">${esc(t("leave.leave"))}</button>`;
 }
 
 // Delegazione eventi del pannello.
 $("#sheet-body").addEventListener("click", async (e) => {
   const s = app.state;
-  const t = e.target.closest("button");
-  if (!t || !s) return;
+  const btn = e.target.closest("button");
+  if (!btn || !s) return;
 
-  if (t.dataset.preset) {
-    const preset = ROME_PRESETS.find((p) => p.id === t.dataset.preset);
-    const res = await act("config", { zone: preset.zone }, `Zona: ${preset.name}`);
+  if (btn.dataset.preset) {
+    const city = CITIES.find((c) => c.id === app.city) ?? CITIES[0];
+    const preset = city.presets.find((p) => p.id === btn.dataset.preset);
+    const res = await act("config", { zone: preset.zone }, t("toast.zone_set", { name: presetName(preset) }));
     if (res) fitZone(preset.zone);
     return;
   }
-  if (t.dataset.role) {
-    return act("config", { roles: { [t.dataset.player]: t.dataset.role } });
+  if (btn.dataset.role) {
+    return act("config", { roles: { [btn.dataset.player]: btn.dataset.role } });
   }
-  if (t.dataset.kick) return act("kick", { target: t.dataset.kick }, "Giocatore espulso");
-  if (t.dataset.uncatch) return act("uncatch", { target: t.dataset.uncatch }, "Cattura annullata");
-  if (t.dataset.unelim) return act("uncatch", { target: t.dataset.unelim, elim: true }, "Eliminazione annullata");
-  if (t.dataset.catch) return act("catch", { target: t.dataset.catch });
+  if (btn.dataset.kick) return act("kick", { target: btn.dataset.kick }, t("toast.kicked"));
+  if (btn.dataset.uncatch) return act("uncatch", { target: btn.dataset.uncatch }, t("toast.uncaught"));
+  if (btn.dataset.unelim) return act("uncatch", { target: btn.dataset.unelim, elim: true }, t("toast.unelim"));
+  if (btn.dataset.catch) return act("catch", { target: btn.dataset.catch });
 
-  const action = t.dataset.action;
+  const action = btn.dataset.action;
   switch (action) {
     case "share": return shareGame();
-    case "start": return act("start", {}, "Si parte! Le prede hanno il vantaggio.");
+    case "start": return act("start", {}, t("toast.started"));
+    case "zone-here": {
+      if (!app.myPos) return;
+      const zone = { type: "circle", center: { lat: +app.myPos.lat.toFixed(6), lng: +app.myPos.lng.toFixed(6) }, radius: 1000 };
+      if (await act("config", { zone }, t("toast.zone_saved"))) fitZone(zone);
+      return;
+    }
     case "draw-circle": {
       const z = s.zone?.type === "circle" ? s.zone : null;
       const c = map.getCenter();
@@ -913,7 +980,7 @@ $("#sheet-body").addEventListener("click", async (e) => {
     case "save-zone": {
       const ed = app.edit;
       const zone = ed.mode === "circle" ? { type: "circle", center: ed.center, radius: ed.radius } : { type: "polygon", points: ed.points };
-      if (await act("config", { zone }, "Zona salvata")) {
+      if (await act("config", { zone }, t("toast.zone_saved"))) {
         app.edit = null;
         fitZone(zone);
       }
@@ -927,7 +994,7 @@ $("#sheet-body").addEventListener("click", async (e) => {
         [pool[i], pool[j]] = [pool[j], pool[i]];
       }
       const roles = Object.fromEntries(pool.map((id, i) => [id, i < hunters ? "hunter" : "runner"]));
-      return act("config", { roles }, "Ruoli mescolati");
+      return act("config", { roles }, t("toast.shuffled"));
     }
     case "surrender":
     case "stop":
@@ -947,7 +1014,7 @@ $("#sheet-body").addEventListener("click", async (e) => {
       break;
     case "reset":
       app.confirm = null;
-      await act("reset", {}, "Nuova partita: stesse regole e zona");
+      await act("reset", {}, t("toast.reset"));
       break;
     case "delete-yes":
       if (await act("delete")) {
@@ -977,6 +1044,17 @@ $("#sheet-body").addEventListener("input", (e) => {
 });
 
 $("#sheet-body").addEventListener("change", (e) => {
+  if (e.target.id === "city-select") {
+    const city = CITIES.find((c) => c.id === e.target.value);
+    if (!city) return;
+    app.city = city.id;
+    app.cityChosen = true;
+    app.userMovedMap = true;
+    map.setView([city.center.lat, city.center.lng], 13);
+    e.target.blur();
+    renderSheet();
+    return;
+  }
   const key = e.target.dataset.setting;
   if (!key) return;
   const value = e.target.type === "checkbox" ? e.target.checked : Number(e.target.value);
@@ -988,8 +1066,6 @@ $("#sheet-body").addEventListener("change", (e) => {
 });
 
 // ---------- Account ----------
-const ACCOUNT_KEY = "manhunt.account";
-const LANG_NAME = { it: "Italiano", en: "English", es: "Español", fr: "Français", de: "Deutsch" };
 const ACCOUNT_VIEWS = { out: "#account-out", login: "#login-form", register: "#register-form", in: "#account-in" };
 
 function showError(sel, msg) {
@@ -1008,7 +1084,7 @@ function renderAccount() {
   const a = app.account;
   if (a) {
     $("#acc-name").textContent = `${a.firstName} ${a.lastName}`;
-    $("#acc-details").textContent = `${a.email} · ${a.age} anni · ${LANG_NAME[a.language] ?? a.language}`;
+    $("#acc-details").textContent = t("acc.details", { email: a.email, age: a.age, lang: LANGS[a.language] ?? a.language });
     showAccountView("in");
   } else {
     showAccountView(app.accountView === "in" ? "out" : app.accountView);
@@ -1019,6 +1095,8 @@ function setAccount(profile, token) {
   app.account = profile;
   if (token) storage.set(ACCOUNT_KEY, { token });
   if (!$("#name").value.trim()) $("#name").value = profile.firstName;
+  // La lingua scelta nell'account diventa la lingua dell'app.
+  if (profile.language && profile.language !== getLang()) changeLang(profile.language, { persist: false });
   renderAccount();
 }
 
@@ -1113,6 +1191,12 @@ $("#delete-form").addEventListener("submit", (e) =>
 );
 
 // ---------- Avvio ----------
+fillLangSelect($("#lang-select"));
+fillLangSelect($("#reg-lang"));
+$("#lang-select").addEventListener("change", (e) => changeLang(e.target.value));
+$("#reg-lang").addEventListener("change", (e) => changeLang(e.target.value));
+changeLang(detectLang(storage.get(LANG_KEY)), { persist: false });
+
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
 const saved = storage.get(SESSION_KEY);
 const urlCode = new URLSearchParams(location.search).get("g")?.toUpperCase();

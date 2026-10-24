@@ -20,7 +20,6 @@ type Settings = {
   revealEveryMin: number;
   runnersSeeHunters: boolean;
   hunterRevealEveryMin: number;
-  autoCatch: boolean;
   kamikaze: boolean;
   catchRadiusM: number;
   dangerRadiusM: number;
@@ -60,9 +59,9 @@ type Near = { since: number };
 
 const GAME_TTL_MS = 24 * 3600 * 1000;
 const ONLINE_MS = 45 * 1000;
-// Cattura automatica: il cacciatore deve restare entro la distanza per questo tempo,
+// Cattura automatica (sempre attiva): il cacciatore deve restare entro la distanza per questo tempo,
 // e le posizioni devono essere recenti (il GPS fermo non basta a prendere qualcuno).
-const AUTO_HOLD_MS = 5 * 1000;
+const AUTO_HOLD_MS = 3 * 1000;
 const AUTO_FRESH_MS = 25 * 1000;
 // Kamikaze: serve più di 10 giocatori (arbitri esclusi).
 const KAMIKAZE_MIN_PLAYERS = 11;
@@ -73,7 +72,6 @@ const DEFAULT_SETTINGS: Settings = {
   revealEveryMin: 5,
   runnersSeeHunters: false,
   hunterRevealEveryMin: 0,
-  autoCatch: false,
   kamikaze: false,
   catchRadiusM: 30,
   dangerRadiusM: 200,
@@ -84,11 +82,16 @@ const DEFAULT_SETTINGS: Settings = {
 
 const store = () => getStore({ name: "manhunt", consistency: "strong" });
 
+// Gli errori viaggiano come codici (es. "need_zone"): il testo lo sceglie l'app nella lingua di chi gioca.
 class HttpError extends Error {
   status: number;
-  constructor(status: number, message: string) {
-    super(message);
+  code: string;
+  params?: Record<string, string | number>;
+  constructor(status: number, code: string, params?: Record<string, string | number>) {
+    super(code);
     this.status = status;
+    this.code = code;
+    this.params = params;
   }
 }
 
@@ -107,7 +110,7 @@ const clamp = (v: unknown, min: number, max: number, fallback: number) => {
 
 const cleanName = (v: unknown) => {
   const name = String(v ?? "").trim().replace(/\s+/g, " ").slice(0, 24);
-  if (!name) throw new HttpError(400, "Scrivi un nome per giocare.");
+  if (!name) throw new HttpError(400, "name_required");
   return name;
 };
 
@@ -124,15 +127,15 @@ const cleanZone = (v: any): Zone | null => {
   if (!v) return null;
   if (v.type === "circle") {
     const center = cleanLatLng(v.center);
-    if (!center) throw new HttpError(400, "Centro della zona non valido.");
+    if (!center) throw new HttpError(400, "zone_center_invalid");
     return { type: "circle", center, radius: clamp(v.radius, 50, 20000, 1000) };
   }
   if (v.type === "polygon" && Array.isArray(v.points)) {
     const points = v.points.map(cleanLatLng).filter(Boolean).slice(0, 200) as LatLng[];
-    if (points.length < 3) throw new HttpError(400, "Il poligono deve avere almeno 3 punti.");
+    if (points.length < 3) throw new HttpError(400, "polygon_min");
     return { type: "polygon", points };
   }
-  throw new HttpError(400, "Zona non valida.");
+  throw new HttpError(400, "zone_invalid");
 };
 
 const cleanSettings = (v: any, prev: Settings): Settings => ({
@@ -141,7 +144,6 @@ const cleanSettings = (v: any, prev: Settings): Settings => ({
   revealEveryMin: clamp(v?.revealEveryMin, 0, 60, prev.revealEveryMin),
   runnersSeeHunters: typeof v?.runnersSeeHunters === "boolean" ? v.runnersSeeHunters : prev.runnersSeeHunters,
   hunterRevealEveryMin: clamp(v?.hunterRevealEveryMin, 0, 60, prev.hunterRevealEveryMin),
-  autoCatch: typeof v?.autoCatch === "boolean" ? v.autoCatch : prev.autoCatch,
   kamikaze: typeof v?.kamikaze === "boolean" ? v.kamikaze : prev.kamikaze,
   catchRadiusM: clamp(v?.catchRadiusM, 5, 200, prev.catchRadiusM),
   dangerRadiusM: clamp(v?.dangerRadiusM, 0, 2000, prev.dangerRadiusM),
@@ -155,7 +157,7 @@ async function loadGame(code: string) {
   const prefix = `g/${code}/`;
   const { blobs } = await s.list({ prefix });
   const gameKey = `${prefix}game`;
-  if (!blobs.some((b) => b.key === gameKey)) throw new HttpError(404, "Partita non trovata. Controlla il codice.");
+  if (!blobs.some((b) => b.key === gameKey)) throw new HttpError(404, "game_not_found");
 
   const entries = await Promise.all(
     blobs.map(async (b) => [b.key, await s.get(b.key, { type: "json" })] as const),
@@ -172,26 +174,30 @@ async function loadGame(code: string) {
     else if (rest.startsWith("c/")) catches[rest.slice(2)] = value as Catch;
     else if (rest.startsWith("n/")) nears[rest.slice(2)] = value as Near;
   }
-  if (!game) throw new HttpError(404, "Partita non trovata. Controlla il codice.");
+  if (!game) throw new HttpError(404, "game_not_found");
 
   if (Date.now() - game.createdAt > GAME_TTL_MS) {
     await Promise.all(blobs.map((b) => s.delete(b.key)));
-    throw new HttpError(404, "Questa partita è scaduta (dura al massimo 24 ore).");
+    throw new HttpError(404, "game_expired");
   }
   return { game, players, catches, nears, keys: blobs.map((b) => b.key) };
 }
 
 function auth(players: Record<string, Player>, id: unknown, token: unknown) {
   const me = players[String(id)];
-  if (!me || me.token !== token) throw new HttpError(403, "Non fai più parte di questa partita.");
+  if (!me || me.token !== token) throw new HttpError(403, "not_member");
   return me;
 }
 
 function requireHost(game: Game, me: Player) {
-  if (game.hostId !== me.id) throw new HttpError(403, "Solo chi ha creato la partita può farlo.");
+  if (game.hostId !== me.id) throw new HttpError(403, "host_only");
 }
 
 const baseRole = (game: Game, id: string): Role => game.roles[id] ?? "runner";
+
+// L'opzione kamikaze esiste solo con più di 10 giocatori (arbitri esclusi).
+const kamikazeAvailable = (game: Game, players: Record<string, Player>) =>
+  Object.keys(players).filter((id) => baseRole(game, id) !== "referee").length >= KAMIKAZE_MIN_PLAYERS;
 
 const elimKey = (id: string) => `x-${id}`;
 
@@ -302,7 +308,7 @@ function buildState(
       const min = d.length ? Math.min(...d) : Infinity;
       if (min <= game.settings.dangerRadiusM) danger = Math.ceil(min / 25) * 25;
     }
-    if (myRole === "runner" && game.settings.autoCatch && nears[me.id]) {
+    if (myRole === "runner" && nears[me.id]) {
       capturing = Math.max(0, Math.ceil((nears[me.id].since + AUTO_HOLD_MS - now) / 1000));
     }
     if (myRole === "hunter") {
@@ -314,39 +320,40 @@ function buildState(
     }
   }
 
-  const name = (id: string) => players[id]?.name ?? "Qualcuno";
-  const events: { at: number; text: string; kind: string }[] = [];
+  const name = (id: string) => players[id]?.name ?? "";
+  // Gli eventi portano un codice e i nomi: la frase la compone l'app nella lingua di chi legge.
+  const events: { at: number; kind: string; code: string; a?: string; b?: string }[] = [];
   if (t) {
-    events.push({ at: t.startedAt, kind: "start", text: "Partita iniziata: le prede scappano." });
-    if (now >= t.huntStart) events.push({ at: t.huntStart, kind: "hunt", text: "I cacciatori sono partiti." });
+    events.push({ at: t.startedAt, kind: "start", code: "start" });
+    if (now >= t.huntStart) events.push({ at: t.huntStart, kind: "hunt", code: "hunt" });
     for (const c of Object.values(catches)) {
       if (c.eliminated) {
-        events.push({ at: c.at, kind: "boom", text: `${name(c.by)} era il kamikaze: ${name(c.target)} è stato eliminato.` });
+        events.push({ at: c.at, kind: "boom", code: "boom", a: name(c.by), b: name(c.target) });
         continue;
       }
-      events.push({
-        at: c.at,
-        kind: "catch",
-        text: c.self ? `${name(c.target)} si è arreso.` : `${name(c.by)} ha catturato ${name(c.target)}.`,
-      });
+      events.push(
+        c.self
+          ? { at: c.at, kind: "catch", code: "surrender", a: name(c.target) }
+          : { at: c.at, kind: "catch", code: "catch", a: name(c.by), b: name(c.target) },
+      );
     }
     if (playing) {
       for (const p of Object.values(players)) {
-        if (p.outsideSince) events.push({ at: p.outsideSince, kind: "outside", text: `${p.name} è fuori zona.` });
+        if (p.outsideSince) events.push({ at: p.outsideSince, kind: "outside", code: "outside", a: p.name });
       }
     }
     if (phase === "ended") {
-      const text =
+      const code =
         end.winner === "hunters"
-          ? "Tutte le prede catturate: vincono i cacciatori."
+          ? "end_hunters"
           : end.winner === "draw"
-            ? "Pareggio: il kamikaze ha portato via l'ultimo cacciatore."
+            ? "end_draw"
             : end.winner === "runners"
               ? end.reason === "eliminated"
-                ? "Tutti i cacciatori eliminati: vincono le prede."
-                : "Tempo scaduto: vincono le prede."
-              : "Partita terminata dall'host.";
-      events.push({ at: end.endedAt, kind: "end", text });
+                ? "end_runners_elim"
+                : "end_runners_time"
+              : "end_stopped";
+      events.push({ at: end.endedAt, kind: "end", code });
     }
   }
   const rank: Record<string, number> = { start: 0, hunt: 1, outside: 2, catch: 3, boom: 4, end: 5 };
@@ -369,7 +376,8 @@ function buildState(
     },
     kamikazeActive: game.status !== "lobby" && !!game.kamikazeId,
     kamikazeName: phase === "ended" && game.kamikazeId ? (players[game.kamikazeId]?.name ?? null) : null,
-    settings: game.settings,
+    settings: { ...game.settings, kamikaze: game.settings.kamikaze && kamikazeAvailable(game, players) },
+    kamikazeAvailable: kamikazeAvailable(game, players),
     zone: game.zone,
     currentZone: playing ? currentZone(game, now) : game.zone,
     timeline: t,
@@ -470,7 +478,7 @@ const SESSION_TTL_MS = 90 * 24 * 3600 * 1000;
 const LOCK_AFTER_FAILS = 5;
 const LOCK_MS = 10 * 60 * 1000;
 const PBKDF2_ITERATIONS = 210_000;
-const ACCOUNT_ACTIONS = new Set(["register", "login", "me", "logout", "deleteAccount"]);
+const ACCOUNT_ACTIONS = new Set(["register", "login", "me", "logout", "deleteAccount", "setLanguage"]);
 
 const toHex = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 const fromHex = (hex: string) => new Uint8Array((hex.match(/../g) ?? []).map((h) => parseInt(h, 16)));
@@ -492,15 +500,15 @@ const sameString = (a: string, b: string) => {
   return diff === 0;
 };
 
-const cleanPersonName = (v: unknown, label: string) => {
+const cleanPersonName = (v: unknown, code: string) => {
   const name = String(v ?? "").trim().replace(/\s+/g, " ").slice(0, 40);
-  if (!name) throw new HttpError(400, `Scrivi il tuo ${label}.`);
+  if (!name) throw new HttpError(400, code);
   return name;
 };
 
 const cleanEmail = (v: unknown) => {
   const email = String(v ?? "").trim().toLowerCase();
-  if (email.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new HttpError(400, "Scrivi un indirizzo email valido.");
+  if (email.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new HttpError(400, "email_invalid");
   return email;
 };
 
@@ -518,17 +526,17 @@ async function account(action: string, body: any, now: number) {
 
   const sessionUser = async () => {
     const token = body.userToken;
-    if (typeof token !== "string" || token.length < 20) throw new HttpError(401, "Accedi di nuovo.");
+    if (typeof token !== "string" || token.length < 20) throw new HttpError(401, "login_again");
     const sessionKey = `s/${await sha256(token)}`;
     const session = (await s.get(sessionKey, { type: "json" })) as Session | null;
     if (!session || now - session.createdAt > SESSION_TTL_MS) {
       if (session) await s.delete(sessionKey);
-      throw new HttpError(401, "Accedi di nuovo.");
+      throw new HttpError(401, "login_again");
     }
     const user = (await s.get(session.userKey, { type: "json" })) as User | null;
     if (!user) {
       await s.delete(sessionKey);
-      throw new HttpError(401, "Account non trovato.");
+      throw new HttpError(401, "account_missing");
     }
     return { user, userKey: session.userKey, sessionKey };
   };
@@ -536,10 +544,10 @@ async function account(action: string, body: any, now: number) {
   const checkPassword = async (key: string, user: User | null, password: string) => {
     if (!user) {
       await hashPassword(password, new Uint8Array(16)); // stesso tempo di risposta anche se l'email non esiste
-      throw new HttpError(401, "Email o password errati.");
+      throw new HttpError(401, "login_failed");
     }
     if (user.lockedUntil && user.lockedUntil > now) {
-      throw new HttpError(429, `Troppi tentativi. Riprova tra ${Math.ceil((user.lockedUntil - now) / 60000)} minuti.`);
+      throw new HttpError(429, "locked", { minutes: Math.ceil((user.lockedUntil - now) / 60000) });
     }
     if (!sameString(await hashPassword(password, fromHex(user.salt)), user.hash)) {
       user.fails = (user.fails ?? 0) + 1;
@@ -548,7 +556,7 @@ async function account(action: string, body: any, now: number) {
         user.fails = 0;
       }
       await s.setJSON(key, user);
-      throw new HttpError(401, "Email o password errati.");
+      throw new HttpError(401, "login_failed");
     }
     if (user.fails || user.lockedUntil) {
       user.fails = 0;
@@ -559,16 +567,16 @@ async function account(action: string, body: any, now: number) {
 
   switch (action) {
     case "register": {
-      const firstName = cleanPersonName(body.firstName, "nome");
-      const lastName = cleanPersonName(body.lastName, "cognome");
+      const firstName = cleanPersonName(body.firstName, "first_name_required");
+      const lastName = cleanPersonName(body.lastName, "last_name_required");
       const age = Math.round(Number(body.age));
-      if (!Number.isFinite(age) || age < 5 || age > 120) throw new HttpError(400, "L'età deve essere tra 5 e 120 anni.");
+      if (!Number.isFinite(age) || age < 5 || age > 120) throw new HttpError(400, "age_invalid");
       const language = LANGUAGES.includes(body.language) ? body.language : "it";
       const email = cleanEmail(body.email);
       const password = String(body.password ?? "");
-      if (password.length < 8) throw new HttpError(400, "La password deve avere almeno 8 caratteri.");
-      if (password.length > 200) throw new HttpError(400, "La password è troppo lunga.");
-      if (body.consent !== true) throw new HttpError(400, "Per creare l'account devi accettare il trattamento dei dati.");
+      if (password.length < 8) throw new HttpError(400, "password_short");
+      if (password.length > 200) throw new HttpError(400, "password_long");
+      if (body.consent !== true) throw new HttpError(400, "consent_required");
 
       const salt = crypto.getRandomValues(new Uint8Array(16));
       const user: User = {
@@ -583,7 +591,7 @@ async function account(action: string, body: any, now: number) {
       };
       const key = await userKeyOf(email);
       const { modified } = await s.setJSON(key, user, { onlyIfNew: true });
-      if (!modified) throw new HttpError(409, "Esiste già un account con questa email. Prova ad accedere.");
+      if (!modified) throw new HttpError(409, "email_taken");
       return { token: await openSession(key), profile: profileOf(user) };
     }
 
@@ -597,6 +605,15 @@ async function account(action: string, body: any, now: number) {
 
     case "me": {
       const { user } = await sessionUser();
+      return { profile: profileOf(user) };
+    }
+
+    case "setLanguage": {
+      const { user, userKey } = await sessionUser();
+      if (LANGUAGES.includes(body.language) && user.language !== body.language) {
+        user.language = body.language;
+        await s.setJSON(userKey, user);
+      }
       return { profile: profileOf(user) };
     }
 
@@ -616,7 +633,7 @@ async function account(action: string, body: any, now: number) {
       return { ok: true };
     }
   }
-  throw new HttpError(404, "Azione sconosciuta.");
+  throw new HttpError(404, "unknown_action");
 }
 
 async function handle(action: string, body: any) {
@@ -646,16 +663,16 @@ async function handle(action: string, body: any) {
       await s.setJSON(`g/${code}/p/${id}`, player);
       return { code, id, token };
     }
-    throw new HttpError(503, "Non sono riuscito a creare la partita, riprova.");
+    throw new HttpError(503, "create_failed");
   }
 
   const code = cleanCode(body.code);
-  if (code.length !== 5) throw new HttpError(400, "Il codice partita ha 5 lettere.");
+  if (code.length !== 5) throw new HttpError(400, "code_length");
 
   if (action === "join") {
     const name = cleanName(body.name);
     const { players } = await loadGame(code);
-    if (Object.keys(players).length >= 40) throw new HttpError(409, "La partita è piena (max 40 giocatori).");
+    if (Object.keys(players).length >= 40) throw new HttpError(409, "game_full");
     const id = newId();
     const token = newToken();
     await s.setJSON(`g/${code}/p/${id}`, { id, token, name, joinedAt: now, lastSeen: now } satisfies Player);
@@ -703,13 +720,13 @@ async function handle(action: string, body: any) {
       }
       await s.setJSON(`g/${code}/p/${me.id}`, me);
 
-      if (phase === "hunt" && game.settings.autoCatch) await autoCatchPass(code, game, players, catches, nears, now);
+      if (phase === "hunt") await autoCatchPass(code, game, players, catches, nears, now);
       return buildState(game, players, catches, me, now, nears);
     }
 
     case "config": {
       requireHost(game, me);
-      if (game.status !== "lobby") throw new HttpError(409, "Puoi cambiare le regole solo prima di iniziare.");
+      if (game.status !== "lobby") throw new HttpError(409, "lobby_only");
       if ("zone" in body) game.zone = cleanZone(body.zone);
       if (body.settings) game.settings = cleanSettings(body.settings, game.settings);
       if (body.roles && typeof body.roles === "object") {
@@ -717,6 +734,7 @@ async function handle(action: string, body: any) {
           if (players[pid] && ["hunter", "runner", "referee"].includes(role as string)) game.roles[pid] = role as Role;
         }
       }
+      if (!kamikazeAvailable(game, players)) game.settings.kamikaze = false;
       await saveGame();
       break;
     }
@@ -724,16 +742,16 @@ async function handle(action: string, body: any) {
     case "start": {
       requireHost(game, me);
       if (game.status === "running" && phaseOf(game, players, catches, now).phase !== "ended") break;
-      if (!game.zone) throw new HttpError(409, "Prima disegna la zona di gioco sulla mappa.");
+      if (!game.zone) throw new HttpError(409, "need_zone");
       const ids = Object.keys(players);
-      if (!ids.some((id) => baseRole(game, id) === "hunter")) throw new HttpError(409, "Serve almeno un cacciatore.");
-      if (!ids.some((id) => baseRole(game, id) === "runner")) throw new HttpError(409, "Serve almeno una preda.");
+      if (!ids.some((id) => baseRole(game, id) === "hunter")) throw new HttpError(409, "need_hunter");
+      if (!ids.some((id) => baseRole(game, id) === "runner")) throw new HttpError(409, "need_runner");
       await clearCatches();
       game.status = "running";
       game.startedAt = now;
       game.endedAt = undefined;
       game.kamikazeId = undefined;
-      if (game.settings.kamikaze && ids.filter((id) => baseRole(game, id) !== "referee").length >= KAMIKAZE_MIN_PLAYERS) {
+      if (game.settings.kamikaze && kamikazeAvailable(game, players)) {
         const runners = ids.filter((id) => baseRole(game, id) === "runner");
         game.kamikazeId = runners[crypto.getRandomValues(new Uint32Array(1))[0] % runners.length];
       }
@@ -764,17 +782,17 @@ async function handle(action: string, body: any) {
 
     case "catch": {
       const target = players[String(body.target)];
-      if (!target) throw new HttpError(404, "Giocatore non trovato.");
+      if (!target) throw new HttpError(404, "player_not_found");
       const { phase } = phaseOf(game, players, catches, now);
-      if (phase !== "hunt") throw new HttpError(409, "Ora non si può catturare nessuno.");
-      if (effectiveRole(game, catches, target.id) !== "runner") throw new HttpError(409, `${target.name} non è una preda in gioco.`);
+      if (phase !== "hunt") throw new HttpError(409, "no_catch_now");
+      if (effectiveRole(game, catches, target.id) !== "runner") throw new HttpError(409, "target_not_runner", { name: target.name });
       const myRole = effectiveRole(game, catches, me.id);
       const self = target.id === me.id;
       if (!self && myRole !== "referee") {
-        if (myRole !== "hunter") throw new HttpError(403, "Solo i cacciatori possono catturare.");
-        if (!isFresh(me, now) || !isFresh(target, now)) throw new HttpError(409, "Posizione non aggiornata, riprova tra poco.");
+        if (myRole !== "hunter") throw new HttpError(403, "hunters_only");
+        if (!isFresh(me, now) || !isFresh(target, now)) throw new HttpError(409, "stale_position");
         const d = distanceM(me.pos!, target.pos!);
-        if (d > game.settings.catchRadiusM * 1.5) throw new HttpError(409, `${target.name} è a ${Math.round(d)} m: avvicinati.`);
+        if (d > game.settings.catchRadiusM * 1.5) throw new HttpError(409, "too_far", { name: target.name, dist: Math.round(d) });
       }
       const c: Catch = { target: target.id, by: me.id, at: now, self };
       const { modified } = await s.setJSON(`g/${code}/c/${target.id}`, c, { onlyIfNew: true });
@@ -792,7 +810,7 @@ async function handle(action: string, body: any) {
     case "kick": {
       requireHost(game, me);
       const target = String(body.target);
-      if (target === me.id) throw new HttpError(400, "Non puoi espellere te stesso.");
+      if (target === me.id) throw new HttpError(400, "cant_kick_self");
       await s.delete(`g/${code}/p/${target}`);
       await s.delete(`g/${code}/c/${target}`);
       await s.delete(`g/${code}/c/${elimKey(target)}`);
@@ -801,7 +819,7 @@ async function handle(action: string, body: any) {
     }
 
     case "leave": {
-      if (me.id === game.hostId) throw new HttpError(409, "Sei l'host: chiudi la partita invece di uscire.");
+      if (me.id === game.hostId) throw new HttpError(409, "host_cant_leave");
       await s.delete(`g/${code}/p/${me.id}`);
       await s.delete(`g/${code}/c/${me.id}`);
       await s.delete(`g/${code}/c/${elimKey(me.id)}`);
@@ -816,7 +834,7 @@ async function handle(action: string, body: any) {
     }
 
     default:
-      throw new HttpError(404, "Azione sconosciuta.");
+      throw new HttpError(404, "unknown_action");
   }
 
   // Dopo ogni azione l'interfaccia riceve lo stato aggiornato.
@@ -830,9 +848,9 @@ export default async (req: Request) => {
     const body = await req.json().catch(() => ({}));
     return json(await handle(action, body));
   } catch (err) {
-    if (err instanceof HttpError) return json({ error: err.message }, err.status);
+    if (err instanceof HttpError) return json({ error: err.code, params: err.params }, err.status);
     console.error(err);
-    return json({ error: "Errore del server, riprova." }, 500);
+    return json({ error: "server_error" }, 500);
   }
 };
 

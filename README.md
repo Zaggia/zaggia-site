@@ -1,8 +1,8 @@
-# Manhunt Roma
+# Manhunt Italia
 
-Caccia all'uomo per le strade di Roma, giocata dal browser del telefono.
+Caccia all'uomo nelle città italiane, giocata dal browser del telefono. App in italiano, inglese, spagnolo, francese e tedesco.
 
-- **Mappa di Roma** (OpenStreetMap, scurita con un filtro CSS) con zone già pronte: Centro storico, Trastevere, Villa Borghese, Mura Aureliane, Colosseo.
+- **Mappa di tutta Italia** (OpenStreetMap, scurita con un filtro CSS). 41 città con zone pronte: a Roma Centro storico, Trastevere, Villa Borghese, Mura Aureliane, Colosseo; nelle altre un cerchio di 1 o 2 km attorno al centro. Si può anche usare "attorno a me" o disegnare la zona a mano. Durante la partita la mappa resta sulla città di gioco.
 - **Zona di gioco** a cerchio o poligono disegnata dall'host, con restringimento opzionale nel tempo.
 - **Posizioni live** di tutti i giocatori, filtrate per ruolo:
   - i cacciatori vedono le prede solo a intervalli ("segnale ogni N minuti", oppure in diretta);
@@ -10,17 +10,18 @@ Caccia all'uomo per le strade di Roma, giocata dal browser del telefono.
   - anche i cacciatori possono essere mostrati alle prede a intervalli ("segnale cacciatori ogni N minuti");
   - le prede ricevono un allarme quando un cacciatore è vicino;
   - arbitri e giocatori catturati vedono tutto.
-- **Catture**: il pulsante appare al cacciatore quando è entro la distanza di cattura; la preda può anche arrendersi. Con la regola "cattura automatica" la preda viene presa da sola dopo 5 secondi con un cacciatore entro la distanza.
-- **Kamikaze**: regola opzionale. Con più di 10 giocatori una preda a caso diventa kamikaze in segreto; il cacciatore che la prende viene eliminato. Se restano senza cacciatori vincono le prede.
-- **Account facoltativo** (nome, cognome, età, lingua, email, password): le password sono salvate solo come hash PBKDF2, dopo 5 tentativi sbagliati l'account si blocca per 10 minuti, si può eliminare dall'app. Nessuna email viene inviata. La lingua è salvata nel profilo, ma l'interfaccia per ora è solo in italiano.
+- **Catture**: il pulsante appare al cacciatore quando è entro la distanza di cattura; la preda può anche arrendersi. La cattura è automatica: con un cacciatore entro la distanza di cattura per 3 secondi la preda viene presa da sola (il pulsante resta come riserva).
+- **Kamikaze**: regola opzionale che esiste solo con più di 10 giocatori (arbitri esclusi); con meno non compare. Con più di 10 giocatori una preda a caso diventa kamikaze in segreto; il cacciatore che la prende viene eliminato. Se restano senza cacciatori vincono le prede.
+- **Account facoltativo** (nome, cognome, età, lingua, email, password): le password sono salvate solo come hash PBKDF2, dopo 5 tentativi sbagliati l'account si blocca per 10 minuti, si può eliminare dall'app. Nessuna email viene inviata. La lingua scelta nell'account diventa la lingua dell'app.
 - Vantaggio iniziale, timer, modalità infezione, cronaca degli eventi, vibrazione, schermo sempre acceso, installabile come app.
 
 ## Come funziona
 
 ```
 public/                 frontend statico (HTML, CSS, JS, Leaflet incluso)
-  geo.js                geometria condivisa tra browser e server
-netlify/functions/api.mts   API /api/:action (create, join, sync, config, start, catch, ...)
+  geo.js                geometria e città, condivise tra browser e server
+  i18n.js               traduzioni (it, en, es, fr, de)
+netlify/functions/api.mts   API /api/:action (create, join, sync, config, start, catch, ...); gli errori e gli eventi viaggiano come codici
 scripts/dev.mjs         server locale con emulatore di Netlify Blobs
 ```
 
