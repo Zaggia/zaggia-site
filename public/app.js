@@ -8,6 +8,8 @@ const SESSION_KEY = "manhunt.session";
 const NAME_KEY = "manhunt.name";
 const LANG_KEY = "manhunt.lang";
 const ACCOUNT_KEY = "manhunt.account";
+// Da aggiornare a ogni modifica: compare in fondo alla schermata iniziale e serve a capire quale versione ha il telefono.
+const APP_VERSION = "2026-10-27.1";
 
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) =>
@@ -1251,6 +1253,7 @@ $("#delete-form").addEventListener("submit", (e) =>
 );
 
 // ---------- Avvio ----------
+$("#app-version").textContent = `v${APP_VERSION}`;
 fillLangSelect($("#lang-select"));
 fillLangSelect($("#reg-lang"));
 $("#lang-select").addEventListener("change", (e) => changeLang(e.target.value));
