@@ -1,6 +1,6 @@
 // Service worker minimo: rende l'app installabile e tiene in cache la grafica.
 // Le chiamate /api passano sempre dalla rete.
-const CACHE = "manhunt-v3";
+const CACHE = "manhunt-v4";
 const SHELL = ["/", "/index.html", "/style.css", "/app.js", "/geo.js", "/i18n.js", "/icon.svg", "/manifest.webmanifest", "/vendor/leaflet/leaflet.js", "/vendor/leaflet/leaflet.css"];
 
 self.addEventListener("install", (e) => {

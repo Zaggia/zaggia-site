@@ -14,6 +14,14 @@ export function distanceM(a, b) {
   return 2 * EARTH_RADIUS_M * Math.asin(Math.sqrt(h));
 }
 
+// Punto a `dist` metri da `p` nella direzione `bearing` (radianti, 0 = nord).
+export function offsetM(p, dist, bearing) {
+  return {
+    lat: p.lat + (dist * Math.cos(bearing)) / 111320,
+    lng: p.lng + (dist * Math.sin(bearing)) / (111320 * Math.cos(rad(p.lat))),
+  };
+}
+
 export function centroid(points) {
   const n = points.length;
   return {

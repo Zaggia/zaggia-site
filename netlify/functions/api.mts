@@ -1,6 +1,6 @@
 import type { Config } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
-import { currentZone, distanceM, insideZone, timeline } from "../../public/geo.js";
+import { centroid, currentZone, distanceM, insideZone, offsetM, timeline } from "../../public/geo.js";
 
 // Layout dello store (ogni chiave ha un solo scrittore, niente read-modify-write condiviso):
 //   g/{code}/game     -> configurazione partita, la scrive solo l'host
@@ -8,6 +8,7 @@ import { currentZone, distanceM, insideZone, timeline } from "../../public/geo.j
 //   g/{code}/c/{id}   -> cattura del giocatore {id}, creata una sola volta
 //   g/{code}/c/x-{id} -> eliminazione del cacciatore {id} da parte del kamikaze
 //   g/{code}/n/{id}   -> preda {id} con un cacciatore vicino (cattura automatica)
+//   g/{code}/z/{k}    -> k-esima zona di interesse, creata una sola volta da chi fa sync per primo
 //   u/{sha256(email)} -> account (password con PBKDF2), s/{sha256(token)} -> sessione dell'account
 
 type LatLng = { lat: number; lng: number };
@@ -21,6 +22,7 @@ type Settings = {
   runnersSeeHunters: boolean;
   hunterRevealEveryMin: number;
   kamikaze: boolean;
+  poiEveryMin: number;
   catchRadiusM: number;
   dangerRadiusM: number;
   infection: boolean;
@@ -52,10 +54,20 @@ type Player = {
   pingKey?: string;
   pingTick?: number;
   outsideSince?: number | null;
+  // Zone di interesse e bonus della partita in corso (validi solo se bonusRound === game.startedAt).
+  bonusRound?: number;
+  poi?: { index: number; since: number | null; done: boolean };
+  bonuses?: { index: number; type: BonusType; at: number }[];
+  stealthUntil?: number;
+  seeHuntersUntil?: number;
+  radarUntil?: number;
+  quickIndex?: number;
 };
 
 type Catch = { target: string; by: string; at: number; self?: boolean; auto?: boolean; eliminated?: boolean };
 type Near = { since: number };
+type BonusType = "stealth" | "seeHunters" | "radar" | "quick";
+type Poi = { index: number; center: LatLng; radius: number; openedAt: number; arriveBy: number; endsAt: number };
 
 const GAME_TTL_MS = 24 * 3600 * 1000;
 const ONLINE_MS = 45 * 1000;
@@ -65,6 +77,19 @@ const AUTO_HOLD_MS = 3 * 1000;
 const AUTO_FRESH_MS = 25 * 1000;
 // Kamikaze: serve più di 10 giocatori (arbitri esclusi).
 const KAMIKAZE_MIN_PLAYERS = 11;
+// Zone di interesse: compaiono vicino a una preda; 40 s per entrare, 30 s dentro per il bonus.
+const POI_ARRIVE_MS = 40 * 1000;
+const POI_HOLD_MS = 30 * 1000;
+const POI_QUICK_MS = 4 * 1000; // bonus "4 secondi in meno" nella zona successiva
+const POI_GRACE_MS = 15 * 1000; // margine per chi completa tra un sync e l'altro
+const POI_RADIUS_M = 40;
+const POI_NEAR_MIN_M = 60;
+const POI_NEAR_MAX_M = 200;
+const BONUS_STEALTH_TURNS = 3;
+const BONUS_STEALTH_LIVE_MS = 3 * 60 * 1000; // se le prede sono in diretta non ci sono "turni": 3 minuti
+const BONUS_SEE_HUNTERS_MS = 60 * 1000;
+const BONUS_RADAR_MS = 5 * 60 * 1000;
+const BONUS_RADAR_M = 300;
 
 const DEFAULT_SETTINGS: Settings = {
   durationMin: 60,
@@ -73,6 +98,7 @@ const DEFAULT_SETTINGS: Settings = {
   runnersSeeHunters: false,
   hunterRevealEveryMin: 0,
   kamikaze: false,
+  poiEveryMin: 5,
   catchRadiusM: 30,
   dangerRadiusM: 200,
   infection: false,
@@ -145,6 +171,7 @@ const cleanSettings = (v: any, prev: Settings): Settings => ({
   runnersSeeHunters: typeof v?.runnersSeeHunters === "boolean" ? v.runnersSeeHunters : prev.runnersSeeHunters,
   hunterRevealEveryMin: clamp(v?.hunterRevealEveryMin, 0, 60, prev.hunterRevealEveryMin),
   kamikaze: typeof v?.kamikaze === "boolean" ? v.kamikaze : prev.kamikaze,
+  poiEveryMin: clamp(v?.poiEveryMin, 0, 30, prev.poiEveryMin ?? DEFAULT_SETTINGS.poiEveryMin),
   catchRadiusM: clamp(v?.catchRadiusM, 5, 200, prev.catchRadiusM),
   dangerRadiusM: clamp(v?.dangerRadiusM, 0, 2000, prev.dangerRadiusM),
   infection: typeof v?.infection === "boolean" ? v.infection : prev.infection,
@@ -166,6 +193,7 @@ async function loadGame(code: string) {
   const players: Record<string, Player> = {};
   const catches: Record<string, Catch> = {};
   const nears: Record<string, Near> = {};
+  const pois: Record<number, Poi> = {};
   for (const [key, value] of entries) {
     if (!value) continue;
     const rest = key.slice(prefix.length);
@@ -173,6 +201,7 @@ async function loadGame(code: string) {
     else if (rest.startsWith("p/")) players[rest.slice(2)] = value as Player;
     else if (rest.startsWith("c/")) catches[rest.slice(2)] = value as Catch;
     else if (rest.startsWith("n/")) nears[rest.slice(2)] = value as Near;
+    else if (rest.startsWith("z/")) pois[Number(rest.slice(2))] = value as Poi;
   }
   if (!game) throw new HttpError(404, "game_not_found");
 
@@ -180,7 +209,7 @@ async function loadGame(code: string) {
     await Promise.all(blobs.map((b) => s.delete(b.key)));
     throw new HttpError(404, "game_expired");
   }
-  return { game, players, catches, nears, keys: blobs.map((b) => b.key) };
+  return { game, players, catches, nears, pois, keys: blobs.map((b) => b.key) };
 }
 
 function auth(players: Record<string, Player>, id: unknown, token: unknown) {
@@ -232,6 +261,26 @@ function phaseOf(game: Game, players: Record<string, Player>, catches: Record<st
   return { phase: "hunt" as const };
 }
 
+const rand = () => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32;
+
+// I bonus valgono solo per la partita in corso: dopo "Nuova partita" i vecchi campi vengono ignorati.
+const hasBonus = (game: Game, p: Player, field: "stealthUntil" | "seeHuntersUntil" | "radarUntil", now: number) =>
+  p.bonusRound === game.startedAt && (p[field] ?? 0) > now;
+
+function poiIndexAt(game: Game, now: number) {
+  const every = (game.settings.poiEveryMin ?? 0) * 60000;
+  return every ? Math.floor((now - timeline(game).huntStart) / every) : 0;
+}
+
+// La zona di interesse attiva adesso, se è già stata creata.
+function activePoi(game: Game, pois: Record<number, Poi>, now: number) {
+  const poi = pois[poiIndexAt(game, now)];
+  return poi && now >= poi.openedAt && now <= poi.endsAt + POI_GRACE_MS ? poi : null;
+}
+
+const poiHoldMs = (game: Game, me: Player, poi: Poi) =>
+  POI_HOLD_MS - (me.bonusRound === game.startedAt && me.quickIndex === poi.index ? POI_QUICK_MS : 0);
+
 const isFresh = (p: Player, now: number) => !!p.pos && now - p.pos.at < 2 * ONLINE_MS;
 
 function buildState(
@@ -241,12 +290,16 @@ function buildState(
   me: Player,
   now: number,
   nears: Record<string, Near> = {},
+  pois: Record<number, Poi> = {},
 ) {
   const { phase, ...end } = phaseOf(game, players, catches, now) as any;
   const t = game.status === "lobby" ? null : timeline(game);
   const myRole = effectiveRole(game, catches, me.id);
   const playing = phase === "headstart" || phase === "hunt";
   const seesAll = !playing || myRole === "referee" || myRole === "caught" || myRole === "eliminated";
+  const poi = phase === "hunt" ? activePoi(game, pois, now) : null;
+  // Dentro la zona di interesse si è sempre visibili, prede e cacciatori.
+  const inPoi = (p: Player) => !!poi && !!p.pos && now - p.pos.at < AUTO_FRESH_MS && distanceM(p.pos, poi.center) <= poi.radius;
 
   const list = Object.values(players).map((p) => {
     const role = effectiveRole(game, catches, p.id);
@@ -258,6 +311,7 @@ function buildState(
       isHost: p.id === game.hostId,
       online: now - p.lastSeen < ONLINE_MS,
       outside: playing && !!p.outsideSince,
+      inPoi: inPoi(p),
       visibility: "hidden",
     };
     let pos: any = null;
@@ -267,9 +321,11 @@ function buildState(
     } else if (myRole === "hunter" && role === "runner") {
       if (phase === "headstart") {
         // Vantaggio iniziale: i cacciatori non vedono nulla.
-      } else if (game.settings.outsideReveal && p.outsideSince) {
+      } else if (inPoi(p) || (game.settings.outsideReveal && p.outsideSince)) {
         pos = p.pos ?? null;
         out.visibility = "live";
+      } else if (hasBonus(game, p, "stealthUntil", now)) {
+        // Bonus: non viene rilevata per qualche turno.
       } else if (game.settings.revealEveryMin === 0) {
         pos = p.pos ?? null;
         out.visibility = "live";
@@ -278,7 +334,7 @@ function buildState(
         out.visibility = "ping";
       }
     } else if (myRole === "runner" && role === "hunter") {
-      if (game.settings.runnersSeeHunters) {
+      if (game.settings.runnersSeeHunters || inPoi(p) || hasBonus(game, me, "seeHuntersUntil", now)) {
         pos = p.pos ?? null;
         out.visibility = "live";
       } else if (phase === "hunt" && game.settings.hunterRevealEveryMin > 0 && p.ping && p.pingKey === `${game.startedAt}:hunter`) {
@@ -301,12 +357,16 @@ function buildState(
   let catchable: { id: string; name: string; dist: number }[] = [];
   if (phase === "hunt" && me.pos && isFresh(me, now)) {
     const others = Object.values(players).filter((p) => p.id !== me.id && isFresh(p, now));
-    if (myRole === "runner" && game.settings.dangerRadiusM > 0) {
+    // Bonus radar: allarme a 300 m (o più, se la regola della partita è già più larga).
+    const dangerRadius = hasBonus(game, me, "radarUntil", now)
+      ? Math.max(BONUS_RADAR_M, game.settings.dangerRadiusM)
+      : game.settings.dangerRadiusM;
+    if (myRole === "runner" && dangerRadius > 0) {
       const d = others
         .filter((p) => effectiveRole(game, catches, p.id) === "hunter")
         .map((p) => distanceM(me.pos!, p.pos!));
       const min = d.length ? Math.min(...d) : Infinity;
-      if (min <= game.settings.dangerRadiusM) danger = Math.ceil(min / 25) * 25;
+      if (min <= dangerRadius) danger = Math.ceil(min / 25) * 25;
     }
     if (myRole === "runner" && nears[me.id]) {
       capturing = Math.max(0, Math.ceil((nears[me.id].since + AUTO_HOLD_MS - now) / 1000));
@@ -337,6 +397,11 @@ function buildState(
           : { at: c.at, kind: "catch", code: "catch", a: name(c.by), b: name(c.target) },
       );
     }
+    for (const z of Object.values(pois)) if (z.openedAt <= now) events.push({ at: z.openedAt, kind: "poi", code: "poi" });
+    for (const p of Object.values(players)) {
+      if (p.bonusRound !== game.startedAt) continue;
+      for (const b of p.bonuses ?? []) events.push({ at: b.at, kind: "bonus", code: "bonus", a: p.name });
+    }
     if (playing) {
       for (const p of Object.values(players)) {
         if (p.outsideSince) events.push({ at: p.outsideSince, kind: "outside", code: "outside", a: p.name });
@@ -356,7 +421,7 @@ function buildState(
       events.push({ at: end.endedAt, kind: "end", code });
     }
   }
-  const rank: Record<string, number> = { start: 0, hunt: 1, outside: 2, catch: 3, boom: 4, end: 5 };
+  const rank: Record<string, number> = { start: 0, hunt: 1, poi: 2, outside: 3, bonus: 4, catch: 5, boom: 6, end: 7 };
   events.sort((a, b) => b.at - a.at || rank[b.kind] - rank[a.kind]);
 
   return {
@@ -373,7 +438,18 @@ function buildState(
       role: myRole,
       baseRole: baseRole(game, me.id),
       kamikaze: game.status !== "lobby" && game.kamikazeId === me.id,
+      poi: poi ? myPoiProgress(game, me, poi) : null,
+      bonus: me.bonusRound === game.startedAt
+        ? {
+            stealthUntil: me.stealthUntil ?? null,
+            seeHuntersUntil: me.seeHuntersUntil ?? null,
+            radarUntil: me.radarUntil ?? null,
+            quickNext: me.quickIndex != null && me.quickIndex >= poiIndexAt(game, now),
+            list: me.bonuses ?? [],
+          }
+        : { stealthUntil: null, seeHuntersUntil: null, radarUntil: null, quickNext: false, list: [] },
     },
+    poi: poi ? { index: poi.index, center: poi.center, radius: poi.radius, openedAt: poi.openedAt, arriveBy: poi.arriveBy, endsAt: poi.endsAt } : null,
     kamikazeActive: game.status !== "lobby" && !!game.kamikazeId,
     kamikazeName: phase === "ended" && game.kamikazeId ? (players[game.kamikazeId]?.name ?? null) : null,
     settings: { ...game.settings, kamikaze: game.settings.kamikaze && kamikazeAvailable(game, players) },
@@ -395,6 +471,92 @@ const json = (data: unknown, status = 200) =>
     status,
     headers: { "content-type": "application/json", "cache-control": "no-store" },
   });
+
+// Crea la zona di interesse del turno, se non c'è ancora: vicino a una preda scelta a caso, dentro la zona di gioco.
+// La crea chi fa sync per primo; onlyIfNew garantisce che ne esista una sola.
+async function ensurePoi(code: string, game: Game, players: Record<string, Player>, catches: Record<string, Catch>, pois: Record<number, Poi>, now: number) {
+  const every = (game.settings.poiEveryMin ?? 0) * 60000;
+  if (!every) return;
+  const tl = timeline(game);
+  const k = Math.floor((now - tl.huntStart) / every);
+  if (k < 1 || pois[k]) return;
+  const openedAt = tl.huntStart + k * every;
+  const endsAt = openedAt + POI_ARRIVE_MS + POI_HOLD_MS;
+  if (now > endsAt || endsAt > tl.endsAt) return;
+
+  const zone = currentZone(game, now) as Zone | null;
+  const runners = Object.values(players).filter(
+    (p) => effectiveRole(game, catches, p.id) === "runner" && p.pos && now - p.pos.at < 60000,
+  );
+  let center: LatLng | null = null;
+  if (runners.length) {
+    const r = runners[Math.floor(rand() * runners.length)];
+    for (let i = 0; i < 12 && !center; i++) {
+      const p = offsetM(r.pos!, POI_NEAR_MIN_M + rand() * (POI_NEAR_MAX_M - POI_NEAR_MIN_M), rand() * 2 * Math.PI);
+      if (insideZone(zone, p)) center = p;
+    }
+    if (!center && insideZone(zone, r.pos!)) center = { lat: r.pos!.lat, lng: r.pos!.lng };
+  }
+  if (!center && zone) center = zone.type === "circle" ? zone.center : centroid(zone.points);
+  if (!center) return;
+
+  const poi: Poi = {
+    index: k,
+    center: { lat: +center.lat.toFixed(6), lng: +center.lng.toFixed(6) },
+    radius: POI_RADIUS_M,
+    openedAt,
+    arriveBy: openedAt + POI_ARRIVE_MS,
+    endsAt,
+  };
+  const s = store();
+  const key = `g/${code}/z/${k}`;
+  const { modified } = await s.setJSON(key, poi, { onlyIfNew: true });
+  pois[k] = modified ? poi : (((await s.get(key, { type: "json" })) as Poi | null) ?? poi);
+}
+
+// Una preda deve entrare entro 40 s e restare dentro 30 s di fila; se esce, il conto riparte (solo entro i 40 s).
+function trackPoi(game: Game, me: Player, poi: Poi, now: number) {
+  const track = me.poi?.index === poi.index ? me.poi : { index: poi.index, since: null, done: false };
+  if (!track.done && me.pos) {
+    const inside = distanceM(me.pos, poi.center) <= poi.radius;
+    if (!inside) track.since = null;
+    else if (track.since == null) {
+      if (now <= poi.arriveBy) track.since = now;
+    } else if (now - track.since >= poiHoldMs(game, me, poi)) {
+      track.done = true;
+      awardBonus(game, me, poi, now);
+    }
+  }
+  me.poi = track;
+}
+
+// Bonus estratto a caso; "4 secondi in meno" non può uscire due volte di fila.
+function awardBonus(game: Game, me: Player, poi: Poi, now: number) {
+  const last = me.bonuses?.[me.bonuses.length - 1]?.type;
+  const options = (["stealth", "seeHunters", "radar", "quick"] as BonusType[]).filter((b) => b !== "quick" || last !== "quick");
+  const type = options[Math.floor(rand() * options.length)];
+  if (type === "stealth") {
+    // Salta i prossimi 3 segnali: invisibile fino all'inizio del quarto turno.
+    const every = game.settings.revealEveryMin * 60000;
+    const huntStart = timeline(game).huntStart;
+    me.stealthUntil = every
+      ? huntStart + (Math.floor((now - huntStart) / every) + BONUS_STEALTH_TURNS + 1) * every
+      : now + BONUS_STEALTH_LIVE_MS;
+  } else if (type === "seeHunters") me.seeHuntersUntil = now + BONUS_SEE_HUNTERS_MS;
+  else if (type === "radar") me.radarUntil = now + BONUS_RADAR_MS;
+  else me.quickIndex = poi.index + 1;
+  me.bonuses = [...(me.bonuses ?? []), { index: poi.index, type, at: now }];
+}
+
+function myPoiProgress(game: Game, me: Player, poi: Poi) {
+  const track = me.bonusRound === game.startedAt && me.poi?.index === poi.index ? me.poi : null;
+  return {
+    since: track?.since ?? null,
+    done: !!track?.done,
+    holdMs: poiHoldMs(game, me, poi),
+    inside: !!me.pos && distanceM(me.pos, poi.center) <= poi.radius,
+  };
+}
 
 // Kamikaze: se la preda segreta viene presa da un cacciatore, il cacciatore viene eliminato.
 async function maybeBoom(code: string, game: Game, catches: Record<string, Catch>, targetId: string, byId: string, now: number) {
@@ -679,11 +841,11 @@ async function handle(action: string, body: any) {
     return { code, id, token };
   }
 
-  const { game, players, catches, nears, keys } = await loadGame(code);
+  const { game, players, catches, nears, pois, keys } = await loadGame(code);
   const me = auth(players, body.id, body.token);
   const saveGame = () => s.setJSON(`g/${code}/game`, game);
   const clearCatches = () =>
-    Promise.all(keys.filter((k) => /^g\/[A-Z]+\/[cn]\//.test(k)).map((k) => s.delete(k)));
+    Promise.all(keys.filter((k) => /^g\/[A-Z]+\/[cnz]\//.test(k)).map((k) => s.delete(k)));
 
   switch (action) {
     case "sync": {
@@ -694,6 +856,15 @@ async function handle(action: string, body: any) {
       const { phase } = phaseOf(game, players, catches, now);
       const playing = phase === "headstart" || phase === "hunt";
       const role = effectiveRole(game, catches, me.id);
+      if (game.status === "running" && me.bonusRound !== game.startedAt) {
+        me.bonusRound = game.startedAt;
+        me.poi = undefined;
+        me.bonuses = [];
+        me.stealthUntil = undefined;
+        me.seeHuntersUntil = undefined;
+        me.radarUntil = undefined;
+        me.quickIndex = undefined;
+      }
       if (playing && me.pos && role === "runner") {
         me.outsideSince = insideZone(currentZone(game, now), me.pos) ? null : (me.outsideSince ?? now);
       } else {
@@ -704,7 +875,8 @@ async function handle(action: string, body: any) {
       // Vale per le prede (verso i cacciatori) e, se l'host lo vuole, per i cacciatori (verso le prede).
       if (phase === "hunt" && me.pos && (role === "runner" || role === "hunter")) {
         const every = (role === "hunter" ? game.settings.hunterRevealEveryMin : game.settings.revealEveryMin) * 60000;
-        if (every > 0) {
+        // Con il bonus "invisibile" la preda non lascia segnali finché dura.
+        if (every > 0 && !(role === "runner" && hasBonus(game, me, "stealthUntil", now))) {
           const key = `${game.startedAt}:${role}`;
           if (me.pingKey !== key) {
             me.pingKey = key;
@@ -718,10 +890,15 @@ async function handle(action: string, body: any) {
           }
         }
       }
+      if (phase === "hunt") {
+        await ensurePoi(code, game, players, catches, pois, now);
+        const poi = activePoi(game, pois, now);
+        if (poi && role === "runner") trackPoi(game, me, poi, now);
+      }
       await s.setJSON(`g/${code}/p/${me.id}`, me);
 
       if (phase === "hunt") await autoCatchPass(code, game, players, catches, nears, now);
-      return buildState(game, players, catches, me, now, nears);
+      return buildState(game, players, catches, me, now, nears, pois);
     }
 
     case "config": {
@@ -839,7 +1016,7 @@ async function handle(action: string, body: any) {
 
   // Dopo ogni azione l'interfaccia riceve lo stato aggiornato.
   const fresh = await loadGame(code);
-  return buildState(fresh.game, fresh.players, fresh.catches, fresh.players[me.id] ?? me, Date.now(), fresh.nears);
+  return buildState(fresh.game, fresh.players, fresh.catches, fresh.players[me.id] ?? me, Date.now(), fresh.nears, fresh.pois);
 }
 
 export default async (req: Request) => {
