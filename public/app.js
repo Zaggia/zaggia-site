@@ -42,6 +42,7 @@ const app = {
   cityChosen: false,
   userMovedMap: false,
   boundsKey: "",
+  bonusCount: null,
 };
 
 const storage = {
@@ -187,7 +188,7 @@ $("#resume-forget").addEventListener("click", () => {
 
 // ---------- Mappa ----------
 let map;
-const layers = { zone: null, draft: null, markers: new Map(), accuracy: null };
+const layers = { zone: null, draft: null, poi: null, markers: new Map(), accuracy: null };
 
 function initMap() {
   if (map) return;
@@ -249,6 +250,20 @@ function drawZone(original, current) {
   }).addTo(group);
   group.addTo(map);
   layers.zone = { key, group };
+}
+
+// Zona di interesse: cerchio turchese finché è aperta.
+function drawPoi(poi) {
+  const key = poi ? JSON.stringify([poi.index, poi.center]) : "";
+  if ((layers.poi?.key ?? "") === key) return;
+  layers.poi?.circle.remove();
+  layers.poi = null;
+  if (!poi) return;
+  const color = css("--poi");
+  const circle = L.circle([poi.center.lat, poi.center.lng], {
+    radius: poi.radius, color, weight: 3, dashArray: "6 6", fillColor: color, fillOpacity: 0.2, interactive: false,
+  }).addTo(map);
+  layers.poi = { key, circle };
 }
 
 // Durante la partita la mappa resta sulla città di gioco: non si può andare in giro per l'Italia.
@@ -420,6 +435,7 @@ function startGame(session) {
   app.cityChosen = false;
   app.userMovedMap = false;
   app.boundsKey = "";
+  app.bonusCount = null;
   $("#home").hidden = true;
   $("#game").hidden = false;
   initMap();
@@ -430,7 +446,10 @@ function startGame(session) {
   keepAwake();
   scheduleSync(0);
   clearInterval(app.tick);
-  app.tick = setInterval(renderHud, 1000);
+  app.tick = setInterval(() => {
+    renderHud();
+    renderAlerts();
+  }, 1000);
 }
 
 function stopGame() {
@@ -448,6 +467,8 @@ function stopGame() {
   layers.zone = null;
   layers.draft?.remove();
   layers.draft = null;
+  layers.poi?.circle.remove();
+  layers.poi = null;
   map?.setMaxBounds(null);
   app.wakeLock?.release?.();
 }
@@ -518,6 +539,12 @@ function applyState(s) {
     vibrate([200, 100, 200, 100, 400]);
   }
   app.wasKamikaze = !!s.me.kamikaze;
+  const bonuses = s.me.bonus?.list ?? [];
+  if (app.bonusCount != null && bonuses.length > app.bonusCount) {
+    toast(t("toast.bonus", { name: t(`bonus.${bonuses[bonuses.length - 1].type}`) }), 6000);
+    vibrate([100, 60, 100, 60, 100]);
+  }
+  app.bonusCount = bonuses.length;
 
   // La città dell'editor segue la zona già scelta, finché l'host non ne sceglie un'altra.
   if (s.zone && !app.cityChosen) app.city = nearestCity(zoneCenter(s.zone)).id;
@@ -530,6 +557,7 @@ function applyState(s) {
 
   limitMap(s);
   drawZone(s.zone, s.currentZone);
+  drawPoi(s.poi);
   drawPlayers();
   renderHud();
   renderAlerts();
@@ -610,6 +638,24 @@ function renderAlerts() {
   const meP = s.players.find((p) => p.id === s.me.id);
   outside.hidden = !meP?.outside;
   outside.textContent = s.settings.outsideReveal ? t("alert.outside_reveal") : t("alert.outside");
+  const poiText = poiAlertText(s);
+  $("#alert-poi").hidden = !poiText;
+  $("#alert-poi").textContent = poiText;
+}
+
+// Conto alla rovescia della zona di interesse: per le prede arrivare/restare, per i cacciatori un avviso.
+function poiAlertText(s) {
+  const poi = s.poi;
+  if (!poi || s.phase !== "hunt" || now() > poi.endsAt) return "";
+  const role = s.me.role;
+  const dist = app.myPos ? fmtDist(distanceM(app.myPos, poi.center)) : "?";
+  if (role === "hunter") return t("poi.hunter", { d: dist });
+  if (role !== "runner") return "";
+  const prog = s.me.poi;
+  if (prog?.done) return t("poi.done");
+  if (prog?.since != null) return t("poi.hold", { t: fmtClock(prog.since + prog.holdMs - now()) });
+  if (now() <= poi.arriveBy) return t("poi.go", { d: dist, t: fmtClock(poi.arriveBy - now()) });
+  return "";
 }
 
 function renderCatchBar() {
@@ -768,6 +814,7 @@ function playerStatus(s, p) {
   if (p.isHost) bits.push(t("players.host"));
   if (!p.online) bits.push(t("players.offline"));
   if (p.outside) bits.push(t("players.outside"));
+  if (p.inPoi) bits.push(t("players.in_poi"));
   if (p.visibility === "ping" && p.pos) bits.push(t("players.signal", { ago: agoLabel(p.pos.at) }));
   if (p.id !== s.me.id && p.pos && app.myPos && s.phase !== "lobby") bits.push(fmtDist(distanceM(app.myPos, p.pos)));
   return bits.join(" · ");
@@ -820,6 +867,7 @@ const SETTING_FIELDS = [
   ["catchRadiusM", 5, 200],
   ["dangerRadiusM", 0, 2000],
   ["shrinkTo", 10, 100],
+  ["poiEveryMin", 0, 30],
 ];
 const SETTING_TOGGLES = ["runnersSeeHunters", "outsideReveal", "infection", "kamikaze"];
 
@@ -845,6 +893,7 @@ function rulesSummaryHtml(s) {
     [t("sum.capture"), t("val.capture", { m: st.catchRadiusM, s: AUTO_HOLD_S })],
     [t("sum.alarm"), st.dangerRadiusM ? `${st.dangerRadiusM} m` : t("val.off")],
     [t("sum.zone"), st.shrinkTo < 100 ? t("val.shrinks", { n: st.shrinkTo }) : t("val.fixed")],
+    [t("sum.poi"), st.poiEveryMin ? t("val.every_min", { n: st.poiEveryMin }) : t("val.off")],
     [t("sum.infection"), st.infection ? t("val.yes") : t("val.no")],
   ];
   if (st.kamikaze || s.kamikazeActive) items.push([t("sum.kamikaze"), t("val.active")]);
@@ -880,6 +929,17 @@ function gameActionsHtml(s) {
   }
   if (role === "hunter" && s.kamikazeActive && s.phase === "hunt") {
     parts.push(`<p class="hint">${esc(t("act.hunter_kamikaze"))}</p>`);
+  }
+  const b = s.me.bonus;
+  if (role === "runner" && b) {
+    const items = [];
+    if (b.stealthUntil > now()) items.push(t("bonus.stealth_until", { t: fmtTime(b.stealthUntil) }));
+    if (b.seeHuntersUntil > now()) items.push(t("bonus.see_until", { t: fmtTime(b.seeHuntersUntil) }));
+    if (b.radarUntil > now()) items.push(t("bonus.radar_until", { t: fmtTime(b.radarUntil) }));
+    if (b.quickNext) items.push(t("bonus.quick_next"));
+    if (items.length) {
+      parts.push(`<div class="bonus-box"><strong>${esc(t("bonus.title"))}</strong><ul>${items.map((i) => `<li>${esc(i)}</li>`).join("")}</ul></div>`);
+    }
   }
   if (role === "caught") parts.push(`<p class="hint">${esc(t("act.caught"))}</p>`);
   if (role === "eliminated") parts.push(`<p class="hint">${esc(t("act.eliminated"))}</p>`);

@@ -11,6 +11,8 @@
   --runner: #f0b542;
   --referee: #8fb8de;
   --ok: #5fbf8a;
+  --poi: #4cc9bd;
+  --poi-bg: #0e3532;
   --danger-bg: #5a1712;
 
   --font-display: "Saira Condensed", "Arial Narrow", system-ui, sans-serif;
@@ -410,3 +412,8 @@ input:focus { border-color: var(--runner); outline: none; }
 .lang-row { display: flex; justify-content: flex-end; }
 .lang { display: flex; align-items: center; gap: 8px; }
 .lang select { width: auto; min-height: 36px; padding: 4px 10px; }
+
+/* ---------- Zone di interesse ---------- */
+.alert-poi { background: var(--poi-bg); border: 1px solid var(--poi); }
+.bonus-box { border: 1px solid var(--poi); background: var(--poi-bg); border-radius: var(--radius); padding: 10px 12px; display: grid; gap: 4px; }
+.bonus-box ul { margin: 0; padding-left: 18px; }
