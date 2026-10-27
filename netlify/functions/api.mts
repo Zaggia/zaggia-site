@@ -77,14 +77,12 @@ const AUTO_HOLD_MS = 3 * 1000;
 const AUTO_FRESH_MS = 25 * 1000;
 // Kamikaze: serve più di 10 giocatori (arbitri esclusi).
 const KAMIKAZE_MIN_PLAYERS = 11;
-// Zone di interesse: compaiono vicino a una preda; 40 s per entrare, 30 s dentro per il bonus.
+// Zone di interesse: compaiono in un punto a caso della zona di gioco; 40 s per entrare, 30 s dentro per il bonus.
 const POI_ARRIVE_MS = 40 * 1000;
 const POI_HOLD_MS = 30 * 1000;
 const POI_QUICK_MS = 4 * 1000; // bonus "4 secondi in meno" nella zona successiva
 const POI_GRACE_MS = 15 * 1000; // margine per chi completa tra un sync e l'altro
 const POI_RADIUS_M = 40;
-const POI_NEAR_MIN_M = 60;
-const POI_NEAR_MAX_M = 200;
 const BONUS_STEALTH_TURNS = 3;
 const BONUS_STEALTH_LIVE_MS = 3 * 60 * 1000; // se le prede sono in diretta non ci sono "turni": 3 minuti
 const BONUS_SEE_HUNTERS_MS = 60 * 1000;
@@ -298,8 +296,8 @@ function buildState(
   const playing = phase === "headstart" || phase === "hunt";
   const seesAll = !playing || myRole === "referee" || myRole === "caught" || myRole === "eliminated";
   const poi = phase === "hunt" ? activePoi(game, pois, now) : null;
-  // Dentro la zona di interesse si è sempre visibili, prede e cacciatori.
-  const inPoi = (p: Player) => !!poi && !!p.pos && now - p.pos.at < AUTO_FRESH_MS && distanceM(p.pos, poi.center) <= poi.radius;
+  // Dentro la zona di interesse le prede sono sempre visibili ai cacciatori (i cacciatori no).
+  const inPoi = (p: Player) => !!poi && effectiveRole(game, catches, p.id) === "runner" && !!p.pos && now - p.pos.at < AUTO_FRESH_MS && distanceM(p.pos, poi.center) <= poi.radius;
 
   const list = Object.values(players).map((p) => {
     const role = effectiveRole(game, catches, p.id);
@@ -334,7 +332,7 @@ function buildState(
         out.visibility = "ping";
       }
     } else if (myRole === "runner" && role === "hunter") {
-      if (game.settings.runnersSeeHunters || inPoi(p) || hasBonus(game, me, "seeHuntersUntil", now)) {
+      if (game.settings.runnersSeeHunters || hasBonus(game, me, "seeHuntersUntil", now)) {
         pos = p.pos ?? null;
         out.visibility = "live";
       } else if (phase === "hunt" && game.settings.hunterRevealEveryMin > 0 && p.ping && p.pingKey === `${game.startedAt}:hunter`) {
@@ -472,7 +470,7 @@ const json = (data: unknown, status = 200) =>
     headers: { "content-type": "application/json", "cache-control": "no-store" },
   });
 
-// Crea la zona di interesse del turno, se non c'è ancora: vicino a una preda scelta a caso, dentro la zona di gioco.
+// Crea la zona di interesse del turno, se non c'è ancora.
 // La crea chi fa sync per primo; onlyIfNew garantisce che ne esista una sola.
 async function ensurePoi(code: string, game: Game, players: Record<string, Player>, catches: Record<string, Catch>, pois: Record<number, Poi>, now: number) {
   const every = (game.settings.poiEveryMin ?? 0) * 60000;
@@ -484,21 +482,27 @@ async function ensurePoi(code: string, game: Game, players: Record<string, Playe
   const endsAt = openedAt + POI_ARRIVE_MS + POI_HOLD_MS;
   if (now > endsAt || endsAt > tl.endsAt) return;
 
+  // Punto a caso dentro la zona di gioco (cerchio di 40 m interamente dentro): nessun aiuto di vicinanza,
+  // se la zona capita vicino a te ci arrivi, altrimenti no.
   const zone = currentZone(game, now) as Zone | null;
-  const runners = Object.values(players).filter(
-    (p) => effectiveRole(game, catches, p.id) === "runner" && p.pos && now - p.pos.at < 60000,
-  );
+  if (!zone) return;
+  const ring = zone.type === "circle" ? [zone.center] : zone.points;
+  const lat0 = Math.min(...ring.map((p) => p.lat)), lat1 = Math.max(...ring.map((p) => p.lat));
+  const lng0 = Math.min(...ring.map((p) => p.lng)), lng1 = Math.max(...ring.map((p) => p.lng));
+  const fits = (p: LatLng) =>
+    insideZone(zone, p) && [0, 1, 2, 3].every((i) => insideZone(zone, offsetM(p, POI_RADIUS_M, (i * Math.PI) / 2)));
   let center: LatLng | null = null;
-  if (runners.length) {
-    const r = runners[Math.floor(rand() * runners.length)];
-    for (let i = 0; i < 12 && !center; i++) {
-      const p = offsetM(r.pos!, POI_NEAR_MIN_M + rand() * (POI_NEAR_MAX_M - POI_NEAR_MIN_M), rand() * 2 * Math.PI);
-      if (insideZone(zone, p)) center = p;
+  if (zone.type === "circle") {
+    const reach = Math.max(0, zone.radius - POI_RADIUS_M);
+    const p = offsetM(zone.center, reach * Math.sqrt(rand()), rand() * 2 * Math.PI);
+    center = p;
+  } else {
+    for (let n = 0; n < 200 && !center; n++) {
+      const p = { lat: lat0 + rand() * (lat1 - lat0), lng: lng0 + rand() * (lng1 - lng0) };
+      if (fits(p)) center = p;
     }
-    if (!center && insideZone(zone, r.pos!)) center = { lat: r.pos!.lat, lng: r.pos!.lng };
+    if (!center) center = centroid(zone.points);
   }
-  if (!center && zone) center = zone.type === "circle" ? zone.center : centroid(zone.points);
-  if (!center) return;
 
   const poi: Poi = {
     index: k,
