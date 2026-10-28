@@ -9,7 +9,7 @@ const NAME_KEY = "manhunt.name";
 const LANG_KEY = "manhunt.lang";
 const ACCOUNT_KEY = "manhunt.account";
 // Da aggiornare a ogni modifica: compare in fondo alla schermata iniziale e serve a capire quale versione ha il telefono.
-const APP_VERSION = "2026-10-28.1";
+const APP_VERSION = "2026-10-28.2";
 
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) =>
@@ -1056,7 +1056,7 @@ $("#sheet-body").addEventListener("click", async (e) => {
         [pool[i], pool[j]] = [pool[j], pool[i]];
       }
       const roles = Object.fromEntries(pool.map((id, i) => [id, i < hunters ? "hunter" : "runner"]));
-      return act("config", { roles }, t("toast.shuffled"));
+      return act("config", { roles, random: true }, t("toast.shuffled"));
     }
     case "surrender":
     case "stop":
