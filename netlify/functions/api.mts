@@ -41,6 +41,7 @@ type Game = {
   settings: Settings;
   roles: Record<string, Role>;
   kamikazeId?: string;
+  noHunter?: Record<string, boolean>; // calcolato a ogni caricamento dai giocatori, non è uno stato da salvare
 };
 
 type Player = {
@@ -54,6 +55,7 @@ type Player = {
   pingKey?: string;
   pingTick?: number;
   outsideSince?: number | null;
+  noHunter?: boolean; // account che non può mai essere cacciatore (vedi NEVER_HUNTER_HASHES)
   // Zone di interesse e bonus della partita in corso (validi solo se bonusRound === game.startedAt).
   bonusRound?: number;
   poi?: { index: number; since: number | null; done: boolean };
@@ -77,6 +79,9 @@ const AUTO_HOLD_MS = 3 * 1000;
 const AUTO_FRESH_MS = 25 * 1000;
 // Kamikaze: serve più di 10 giocatori (arbitri esclusi).
 const KAMIKAZE_MIN_PLAYERS = 11;
+// Account che non possono mai essere cacciatori. Sono indicati dall'hash SHA-256 dell'email (in minuscolo) per non
+// pubblicare l'indirizzo nel repo. Vale per chi crea o entra in una partita dopo aver fatto l'accesso all'account.
+const NEVER_HUNTER_HASHES = ["aa1b384238b4917d8d6cb798e316eb50a4ff17808f9ce4409e69850a1f8ece24"];
 // Zone di interesse: compaiono in un punto a caso della zona di gioco; 40 s per entrare, 30 s dentro per il bonus.
 const POI_ARRIVE_MS = 40 * 1000;
 const POI_HOLD_MS = 30 * 1000;
@@ -202,6 +207,7 @@ async function loadGame(code: string) {
     else if (rest.startsWith("z/")) pois[Number(rest.slice(2))] = value as Poi;
   }
   if (!game) throw new HttpError(404, "game_not_found");
+  game.noHunter = Object.fromEntries(Object.values(players).filter((p) => p.noHunter).map((p) => [p.id, true]));
 
   if (Date.now() - game.createdAt > GAME_TTL_MS) {
     await Promise.all(blobs.map((b) => s.delete(b.key)));
@@ -220,7 +226,10 @@ function requireHost(game: Game, me: Player) {
   if (game.hostId !== me.id) throw new HttpError(403, "host_only");
 }
 
-const baseRole = (game: Game, id: string): Role => game.roles[id] ?? "runner";
+const baseRole = (game: Game, id: string): Role => {
+  const role = game.roles[id] ?? "runner";
+  return role === "hunter" && game.noHunter?.[id] ? "runner" : role;
+};
 
 // L'opzione kamikaze esiste solo con più di 10 giocatori (arbitri esclusi).
 const kamikazeAvailable = (game: Game, players: Record<string, Player>) =>
@@ -233,7 +242,7 @@ const elimKey = (id: string) => `x-${id}`;
 function effectiveRole(game: Game, catches: Record<string, Catch>, id: string) {
   if (catches[elimKey(id)]) return "eliminated";
   const base = baseRole(game, id);
-  if (base === "runner" && catches[id]) return game.settings.infection && id !== game.kamikazeId ? "hunter" : "caught";
+  if (base === "runner" && catches[id]) return game.settings.infection && id !== game.kamikazeId && !game.noHunter?.[id] ? "hunter" : "caught";
   return base;
 }
 
@@ -802,6 +811,16 @@ async function account(action: string, body: any, now: number) {
   throw new HttpError(404, "unknown_action");
 }
 
+// Vero se chi crea/entra è collegato a un account escluso dal ruolo di cacciatore.
+async function isNeverHunter(userToken: unknown, now: number) {
+  if (typeof userToken !== "string" || userToken.length < 20) return false;
+  const s = store();
+  const session = (await s.get(`s/${await sha256(userToken)}`, { type: "json" })) as Session | null;
+  if (!session || now - session.createdAt > SESSION_TTL_MS) return false;
+  const user = (await s.get(session.userKey, { type: "json" })) as User | null;
+  return !!user && NEVER_HUNTER_HASHES.includes(await sha256(user.email));
+}
+
 async function handle(action: string, body: any) {
   const s = store();
   const now = Date.now();
@@ -814,6 +833,7 @@ async function handle(action: string, body: any) {
       const code = newCode();
       const id = newId();
       const token = newToken();
+      const noHunter = await isNeverHunter(body.userToken, now);
       const game: Game = {
         code,
         hostId: id,
@@ -821,11 +841,11 @@ async function handle(action: string, body: any) {
         status: "lobby",
         zone: null,
         settings: { ...DEFAULT_SETTINGS },
-        roles: { [id]: "hunter" },
+        roles: { [id]: noHunter ? "runner" : "hunter" },
       };
       const { modified } = await s.setJSON(`g/${code}/game`, game, { onlyIfNew: true });
       if (!modified) continue;
-      const player: Player = { id, token, name, joinedAt: now, lastSeen: now };
+      const player: Player = { id, token, name, joinedAt: now, lastSeen: now, ...(noHunter ? { noHunter: true } : {}) };
       await s.setJSON(`g/${code}/p/${id}`, player);
       return { code, id, token };
     }
@@ -841,7 +861,8 @@ async function handle(action: string, body: any) {
     if (Object.keys(players).length >= 40) throw new HttpError(409, "game_full");
     const id = newId();
     const token = newToken();
-    await s.setJSON(`g/${code}/p/${id}`, { id, token, name, joinedAt: now, lastSeen: now } satisfies Player);
+    const noHunter = await isNeverHunter(body.userToken, now);
+    await s.setJSON(`g/${code}/p/${id}`, { id, token, name, joinedAt: now, lastSeen: now, ...(noHunter ? { noHunter: true } : {}) } satisfies Player);
     return { code, id, token };
   }
 
@@ -913,6 +934,13 @@ async function handle(action: string, body: any) {
       if (body.roles && typeof body.roles === "object") {
         for (const [pid, role] of Object.entries(body.roles)) {
           if (players[pid] && ["hunter", "runner", "referee"].includes(role as string)) game.roles[pid] = role as Role;
+        }
+        // Un account escluso non diventa cacciatore: il ruolo passa a un'altra preda della stessa richiesta.
+        for (const pid of Object.keys(body.roles)) {
+          if (!game.noHunter?.[pid] || body.roles[pid] !== "hunter") continue;
+          game.roles[pid] = "runner";
+          const others = Object.keys(body.roles).filter((q) => q !== pid && players[q] && !game.noHunter?.[q] && body.roles[q] === "runner");
+          if (others.length) game.roles[others[Math.floor(rand() * others.length)]] = "hunter";
         }
       }
       if (!kamikazeAvailable(game, players)) game.settings.kamikaze = false;
