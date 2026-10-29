@@ -9,7 +9,7 @@ const NAME_KEY = "manhunt.name";
 const LANG_KEY = "manhunt.lang";
 const ACCOUNT_KEY = "manhunt.account";
 // Da aggiornare a ogni modifica: compare in fondo alla schermata iniziale e serve a capire quale versione ha il telefono.
-const APP_VERSION = "2026-10-28.2";
+const APP_VERSION = "2026-10-29.1";
 
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) =>

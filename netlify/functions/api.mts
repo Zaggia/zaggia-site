@@ -82,12 +82,12 @@ const KAMIKAZE_MIN_PLAYERS = 11;
 // Account esclusi dal sorteggio dei ruoli ("Ruoli a caso"), indicati dall'hash SHA-256 dell'email (in minuscolo)
 // per non pubblicare l'indirizzo. Vale per chi crea o entra in una partita dopo aver fatto l'accesso.
 const NEVER_HUNTER_HASHES = ["aa1b384238b4917d8d6cb798e316eb50a4ff17808f9ce4409e69850a1f8ece24"];
-// Zone di interesse: compaiono in un punto a caso della zona di gioco; 40 s per entrare, 30 s dentro per il bonus.
-const POI_ARRIVE_MS = 40 * 1000;
+// Zone di interesse: compaiono in un punto a caso della zona di gioco; 50 s per entrare, 30 s dentro per il bonus.
+const POI_ARRIVE_MS = 50 * 1000;
 const POI_HOLD_MS = 30 * 1000;
 const POI_QUICK_MS = 4 * 1000; // bonus "4 secondi in meno" nella zona successiva
 const POI_GRACE_MS = 15 * 1000; // margine per chi completa tra un sync e l'altro
-const POI_RADIUS_M = 40;
+const POI_RADIUS_M = 200;
 const BONUS_STEALTH_TURNS = 3;
 const BONUS_STEALTH_LIVE_MS = 3 * 60 * 1000; // se le prede sono in diretta non ci sono "turni": 3 minuti
 const BONUS_SEE_HUNTERS_MS = 60 * 1000;
@@ -488,7 +488,7 @@ async function ensurePoi(code: string, game: Game, players: Record<string, Playe
   const endsAt = openedAt + POI_ARRIVE_MS + POI_HOLD_MS;
   if (now > endsAt || endsAt > tl.endsAt) return;
 
-  // Punto a caso dentro la zona di gioco (cerchio di 40 m interamente dentro): nessun aiuto di vicinanza,
+  // Punto a caso dentro la zona di gioco (cerchio interamente dentro): nessun aiuto di vicinanza,
   // se la zona capita vicino a te ci arrivi, altrimenti no.
   const zone = currentZone(game, now) as Zone | null;
   if (!zone) return;
@@ -524,7 +524,7 @@ async function ensurePoi(code: string, game: Game, players: Record<string, Playe
   pois[k] = modified ? poi : (((await s.get(key, { type: "json" })) as Poi | null) ?? poi);
 }
 
-// Una preda deve entrare entro 40 s e restare dentro 30 s di fila; se esce, il conto riparte (solo entro i 40 s).
+// Una preda deve entrare entro 50 s e restare dentro 30 s di fila; se esce, il conto riparte (solo entro i 50 s).
 function trackPoi(game: Game, me: Player, poi: Poi, now: number) {
   const track = me.poi?.index === poi.index ? me.poi : { index: poi.index, since: null, done: false };
   if (!track.done && me.pos) {
