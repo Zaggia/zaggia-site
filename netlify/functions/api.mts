@@ -41,6 +41,7 @@ type Game = {
   settings: Settings;
   roles: Record<string, Role>;
   kamikazeId?: string;
+  noHunter?: Record<string, boolean>; // calcolato a ogni caricamento dai giocatori, non è uno stato da salvare
 };
 
 type Player = {
@@ -54,6 +55,7 @@ type Player = {
   pingKey?: string;
   pingTick?: number;
   outsideSince?: number | null;
+  noHunter?: boolean; // escluso dal sorteggio dei ruoli (vedi NEVER_HUNTER_HASHES)
   // Zone di interesse e bonus della partita in corso (validi solo se bonusRound === game.startedAt).
   bonusRound?: number;
   poi?: { index: number; since: number | null; done: boolean };
@@ -77,12 +79,15 @@ const AUTO_HOLD_MS = 3 * 1000;
 const AUTO_FRESH_MS = 25 * 1000;
 // Kamikaze: serve più di 10 giocatori (arbitri esclusi).
 const KAMIKAZE_MIN_PLAYERS = 11;
-// Zone di interesse: compaiono in un punto a caso della zona di gioco; 40 s per entrare, 30 s dentro per il bonus.
-const POI_ARRIVE_MS = 40 * 1000;
+// Account esclusi dal sorteggio dei ruoli ("Ruoli a caso"), indicati dall'hash SHA-256 dell'email (in minuscolo)
+// per non pubblicare l'indirizzo. Vale per chi crea o entra in una partita dopo aver fatto l'accesso.
+const NEVER_HUNTER_HASHES = ["aa1b384238b4917d8d6cb798e316eb50a4ff17808f9ce4409e69850a1f8ece24"];
+// Zone di interesse: compaiono in un punto a caso della zona di gioco; 50 s per entrare, 30 s dentro per il bonus.
+const POI_ARRIVE_MS = 50 * 1000;
 const POI_HOLD_MS = 30 * 1000;
 const POI_QUICK_MS = 4 * 1000; // bonus "4 secondi in meno" nella zona successiva
 const POI_GRACE_MS = 15 * 1000; // margine per chi completa tra un sync e l'altro
-const POI_RADIUS_M = 40;
+const POI_RADIUS_M = 200;
 const BONUS_STEALTH_TURNS = 3;
 const BONUS_STEALTH_LIVE_MS = 3 * 60 * 1000; // se le prede sono in diretta non ci sono "turni": 3 minuti
 const BONUS_SEE_HUNTERS_MS = 60 * 1000;
@@ -202,6 +207,7 @@ async function loadGame(code: string) {
     else if (rest.startsWith("z/")) pois[Number(rest.slice(2))] = value as Poi;
   }
   if (!game) throw new HttpError(404, "game_not_found");
+  game.noHunter = Object.fromEntries(Object.values(players).filter((p) => p.noHunter).map((p) => [p.id, true]));
 
   if (Date.now() - game.createdAt > GAME_TTL_MS) {
     await Promise.all(blobs.map((b) => s.delete(b.key)));
@@ -482,7 +488,7 @@ async function ensurePoi(code: string, game: Game, players: Record<string, Playe
   const endsAt = openedAt + POI_ARRIVE_MS + POI_HOLD_MS;
   if (now > endsAt || endsAt > tl.endsAt) return;
 
-  // Punto a caso dentro la zona di gioco (cerchio di 40 m interamente dentro): nessun aiuto di vicinanza,
+  // Punto a caso dentro la zona di gioco (cerchio interamente dentro): nessun aiuto di vicinanza,
   // se la zona capita vicino a te ci arrivi, altrimenti no.
   const zone = currentZone(game, now) as Zone | null;
   if (!zone) return;
@@ -518,7 +524,7 @@ async function ensurePoi(code: string, game: Game, players: Record<string, Playe
   pois[k] = modified ? poi : (((await s.get(key, { type: "json" })) as Poi | null) ?? poi);
 }
 
-// Una preda deve entrare entro 40 s e restare dentro 30 s di fila; se esce, il conto riparte (solo entro i 40 s).
+// Una preda deve entrare entro 50 s e restare dentro 30 s di fila; se esce, il conto riparte (solo entro i 50 s).
 function trackPoi(game: Game, me: Player, poi: Poi, now: number) {
   const track = me.poi?.index === poi.index ? me.poi : { index: poi.index, since: null, done: false };
   if (!track.done && me.pos) {
@@ -802,6 +808,16 @@ async function account(action: string, body: any, now: number) {
   throw new HttpError(404, "unknown_action");
 }
 
+// Vero se chi crea/entra è collegato a un account escluso dal ruolo di cacciatore.
+async function isNeverHunter(userToken: unknown, now: number) {
+  if (typeof userToken !== "string" || userToken.length < 20) return false;
+  const s = store();
+  const session = (await s.get(`s/${await sha256(userToken)}`, { type: "json" })) as Session | null;
+  if (!session || now - session.createdAt > SESSION_TTL_MS) return false;
+  const user = (await s.get(session.userKey, { type: "json" })) as User | null;
+  return !!user && NEVER_HUNTER_HASHES.includes(await sha256(user.email));
+}
+
 async function handle(action: string, body: any) {
   const s = store();
   const now = Date.now();
@@ -814,6 +830,7 @@ async function handle(action: string, body: any) {
       const code = newCode();
       const id = newId();
       const token = newToken();
+      const noHunter = await isNeverHunter(body.userToken, now);
       const game: Game = {
         code,
         hostId: id,
@@ -825,7 +842,7 @@ async function handle(action: string, body: any) {
       };
       const { modified } = await s.setJSON(`g/${code}/game`, game, { onlyIfNew: true });
       if (!modified) continue;
-      const player: Player = { id, token, name, joinedAt: now, lastSeen: now };
+      const player: Player = { id, token, name, joinedAt: now, lastSeen: now, ...(noHunter ? { noHunter: true } : {}) };
       await s.setJSON(`g/${code}/p/${id}`, player);
       return { code, id, token };
     }
@@ -841,7 +858,8 @@ async function handle(action: string, body: any) {
     if (Object.keys(players).length >= 40) throw new HttpError(409, "game_full");
     const id = newId();
     const token = newToken();
-    await s.setJSON(`g/${code}/p/${id}`, { id, token, name, joinedAt: now, lastSeen: now } satisfies Player);
+    const noHunter = await isNeverHunter(body.userToken, now);
+    await s.setJSON(`g/${code}/p/${id}`, { id, token, name, joinedAt: now, lastSeen: now, ...(noHunter ? { noHunter: true } : {}) } satisfies Player);
     return { code, id, token };
   }
 
@@ -913,6 +931,14 @@ async function handle(action: string, body: any) {
       if (body.roles && typeof body.roles === "object") {
         for (const [pid, role] of Object.entries(body.roles)) {
           if (players[pid] && ["hunter", "runner", "referee"].includes(role as string)) game.roles[pid] = role as Role;
+        }
+        // Nel sorteggio un account escluso non esce cacciatore: il ruolo passa a un'altra preda dello stesso sorteggio.
+        // Le scelte a mano dell'host non sono toccate.
+        for (const pid of body.random === true ? Object.keys(body.roles) : []) {
+          if (!game.noHunter?.[pid] || body.roles[pid] !== "hunter") continue;
+          game.roles[pid] = "runner";
+          const others = Object.keys(body.roles).filter((q) => q !== pid && players[q] && !game.noHunter?.[q] && body.roles[q] === "runner");
+          if (others.length) game.roles[others[Math.floor(rand() * others.length)]] = "hunter";
         }
       }
       if (!kamikazeAvailable(game, players)) game.settings.kamikaze = false;
