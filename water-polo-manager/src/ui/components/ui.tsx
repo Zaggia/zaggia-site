@@ -1,4 +1,5 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { NATIONS } from '../../engine/data/names';
 import { cls, ratingColor } from '../format';
 import { Icon } from './icons';
@@ -131,8 +132,19 @@ export function Tabs<T extends string>({ tabs, value, onChange, className }: { t
 }
 
 export function Modal({ open, onClose, title, children, wide, footer }: { open: boolean; onClose: () => void; title: ReactNode; children: ReactNode; wide?: boolean; footer?: ReactNode }) {
+  // Esc chiude la finestra e la pagina sotto non scorre mentre è aperta.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prev; };
+  }, [open, onClose]);
   if (!open) return null;
-  return (
+  // Portale su <body>: un antenato con animazione o transform (come i pannelli) farebbe diventare
+  // "fixed" relativo a lui, e la finestra finirebbe centrata su un pannello alto, fuori dallo schermo.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm fade-in" onClick={onClose}>
       <div
         className={cls('panel w-full max-h-[92vh] flex flex-col', wide ? 'sm:max-w-4xl' : 'sm:max-w-lg')}
@@ -148,7 +160,7 @@ export function Modal({ open, onClose, title, children, wide, footer }: { open: 
         {footer && <footer className="px-5 py-3 border-t border-line flex flex-wrap justify-end gap-2">{footer}</footer>}
       </div>
     </div>
-  );
+  , document.body);
 }
 
 export function Empty({ children }: { children: ReactNode }) {

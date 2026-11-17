@@ -61,3 +61,21 @@ describe('minutaggio dei panchinari', () => {
     expect(minutesPlan(w, l)[l.bench[0]]).toBe(11);
   });
 });
+
+describe('ingaggio dell’allenatore', () => {
+  it('dopo un esonero esiste almeno un allenatore disposto ad accettare e la firma riesce', async () => {
+    const { fireCoach, hireCoach, coachDemand, coachHireIssue, COACH_MIN_INTEREST, coachInterest } = await import('../engine/club/manage');
+    const w = newWorld();
+    const user = w.clubs[w.userClubId];
+    expect(fireCoach(w, user)).toBeNull();
+    const free = Object.values(w.coaches).filter((c) => !c.clubId);
+    const ok = free.filter((c) => coachInterest(w, c, user) >= COACH_MIN_INTEREST);
+    expect(ok.length).toBeGreaterThan(3);
+    const no = free.find((c) => coachInterest(w, c, user) < COACH_MIN_INTEREST);
+    if (no) expect(coachHireIssue(w, user, no.id)).toMatch(/non è interessato/);
+    const pick = ok[0];
+    expect(coachHireIssue(w, user, pick.id, coachDemand(w, pick, user))).toBeNull();
+    expect(hireCoach(w, user, pick.id, coachDemand(w, pick, user), 2)).toBeNull();
+    expect(user.coachId).toBe(pick.id);
+  });
+});

@@ -66,13 +66,24 @@ export function coachDemand(world: World, c: Coach, club: Club): number {
   return niceMoney(base * (1 + Math.max(0, c.attrs.reputazione - club.reputation) / 150));
 }
 
-export function hireCoach(world: World, club: Club, coachId: string, wage: number, years: number): string | null {
+/** Interesse minimo perché un allenatore accetti di trattare. */
+export const COACH_MIN_INTEREST = 30;
+
+/** Motivo per cui non si può ingaggiare (o null se si può): usato dall'interfaccia prima ancora di firmare. */
+export function coachHireIssue(world: World, club: Club, coachId: string, wage?: number): string | null {
   const c = world.coaches[coachId];
   if (!c) return 'Allenatore non trovato.';
   if (c.clubId && c.clubId !== club.id) return 'L’allenatore è sotto contratto con un altro club.';
-  if (coachInterest(world, c, club) < 30) return `${c.firstName} ${c.lastName} non è interessato al progetto.`;
-  if (wage < coachDemand(world, c, club) * 0.95) return `Chiede almeno ${fmtMoney(coachDemand(world, c, club))} l’anno.`;
   if (club.coachId && club.coachId !== coachId) return 'Devi prima esonerare l’allenatore attuale.';
+  if (coachInterest(world, c, club) < COACH_MIN_INTEREST) return `${c.firstName} ${c.lastName} non è interessato al progetto: la tua società è troppo piccola per lui. Prova con un tecnico meno quotato.`;
+  if (wage != null && wage < coachDemand(world, c, club) * 0.95) return `Chiede almeno ${fmtMoney(coachDemand(world, c, club))} l’anno.`;
+  return null;
+}
+
+export function hireCoach(world: World, club: Club, coachId: string, wage: number, years: number): string | null {
+  const issue = coachHireIssue(world, club, coachId, wage);
+  if (issue) return issue;
+  const c = world.coaches[coachId]!;
   c.clubId = club.id;
   c.contract = { wage, endSeason: world.season + years - 1 };
   c.security = 70;

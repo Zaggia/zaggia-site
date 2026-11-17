@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useGame, useWorld } from '../../store/game';
 import { ArtBanner, Badge, Bar, Button, DataTable, Empty, Field, Flag, Kv, Modal, Panel, Tabs } from '../components/ui';
 import { COACH_ATTR_LABELS, PHILOSOPHY_DESC, PHILOSOPHY_LABELS, STAFF_EFFECTS, STAFF_LABELS, STAFF_ROLES, coachRating } from '../../engine/staff/coach';
-import { coachDemand, coachInterest, coachSeverance, fireCoach, fireStaff, hireCoach, hireStaff, renewCoach, staffDemand, staffInterest } from '../../engine/club/manage';
+import { COACH_MIN_INTEREST, coachDemand, coachHireIssue, coachInterest, coachSeverance, fireCoach, fireStaff, hireCoach, hireStaff, renewCoach, staffDemand, staffInterest } from '../../engine/club/manage';
 import type { Coach, CoachAttributes, StaffMember, StaffRole } from '../../engine/types';
 import { fmtMoney, ratingColor } from '../format';
 import { Ovr } from '../components/ui';
@@ -132,7 +132,11 @@ function CoachMarket() {
   const [pick, setPick] = useState<Coach | null>(null);
   const [wage, setWage] = useState(0);
   const [years, setYears] = useState(2);
-  const list = Object.values(world.coaches).filter((c) => !c.clubId).sort((a, b) => coachRating(b) - coachRating(a));
+  const [onlyInterested, setOnlyInterested] = useState(true);
+  const free = Object.values(world.coaches).filter((c) => !c.clubId);
+  const list = free.filter((c) => !onlyInterested || coachInterest(world, c, club) >= COACH_MIN_INTEREST).sort((a, b) => coachRating(b) - coachRating(a));
+  const hidden = free.length - free.filter((c) => coachInterest(world, c, club) >= COACH_MIN_INTEREST).length;
+  const issue = pick ? coachHireIssue(world, club, pick.id, wage) : null;
   const cols = [
     { key: 'n', label: 'Allenatore', render: (c: Coach) => <span className="font-medium">{c.firstName} {c.lastName} <Flag code={c.nationality} /></span>, sort: (c: Coach) => c.lastName },
     { key: 'r', label: 'Valutazione', render: (c: Coach) => <Ovr v={coachRating(c)} size="sm" />, sort: (c: Coach) => coachRating(c) },
@@ -142,20 +146,35 @@ function CoachMarket() {
     { key: 'a', label: 'Età', render: (c: Coach) => world.season - c.birthYear, sort: (c: Coach) => -c.birthYear, hideOnMobile: true },
     { key: 'i', label: 'Interesse', render: (c: Coach) => { const v = coachInterest(world, c, club); return <Badge tone={v >= 60 ? 'good' : v >= 30 ? 'warn' : 'bad'}>{v}%</Badge>; } },
     { key: 'w', label: 'Richiesta', render: (c: Coach) => fmtMoney(coachDemand(world, c, club)), sort: (c: Coach) => coachDemand(world, c, club) },
-    { key: 'b', label: '', render: (c: Coach) => <Button size="sm" onClick={() => { setPick(c); setWage(coachDemand(world, c, club)); }}>Tratta</Button> },
+    {
+      key: 'b', label: '',
+      render: (c: Coach) => {
+        const no = coachInterest(world, c, club) < COACH_MIN_INTEREST;
+        return <Button size="sm" variant={no ? 'ghost' : 'primary'} title={no ? 'Non è interessato alla tua società' : undefined} onClick={() => { setPick(c); setWage(coachDemand(world, c, club)); }}>{no ? 'Non interessato' : 'Tratta'}</Button>;
+      },
+    },
   ];
   return (
-    <Panel title="Allenatori senza squadra" subtitle={club.coachId ? 'Per assumere un nuovo tecnico devi prima esonerare quello attuale.' : 'Scegli il nuovo allenatore.'}>
+    <Panel
+      title="Allenatori senza squadra"
+      subtitle={club.coachId ? 'Per assumere un nuovo tecnico devi prima esonerare quello attuale.' : 'Scegli il nuovo allenatore: l’interesse indica quanto è disposto ad accettare la tua società.'}
+      actions={<label className="flex items-center gap-2 text-xs text-mute cursor-pointer"><input type="checkbox" checked={onlyInterested} onChange={(e) => setOnlyInterested(e.target.checked)} /> Solo chi è interessato{hidden > 0 && onlyInterested ? ` (${hidden} nascosti)` : ''}</label>}
+    >
       <DataTable rows={list} columns={cols} rowKey={(c) => c.id} initialSort="r" dense />
       {pick && (
         <Modal open onClose={() => setPick(null)} title={`Contratto per ${pick.firstName} ${pick.lastName}`} wide
-          footer={<><Button variant="ghost" onClick={() => setPick(null)}>Annulla</Button><Button onClick={() => { if (s.act((w) => hireCoach(w, w.clubs[w.userClubId], pick.id, wage, years), `${pick.lastName} è il nuovo allenatore!`)) setPick(null); }}>Firma</Button></>}>
+          footer={<><Button variant="ghost" onClick={() => setPick(null)}>Annulla</Button><Button disabled={!!issue} title={issue ?? undefined} onClick={() => { if (s.act((w) => hireCoach(w, w.clubs[w.userClubId], pick.id, wage, years), `${pick.lastName} è il nuovo allenatore!`)) setPick(null); }}>Firma</Button></>}>
+          <div className="flex items-center gap-2 mb-3 text-sm">
+            <Badge tone={coachInterest(world, pick, club) >= 60 ? 'good' : coachInterest(world, pick, club) >= COACH_MIN_INTEREST ? 'warn' : 'bad'}>Interesse {coachInterest(world, pick, club)}%</Badge>
+            <span className="text-mute">{coachRating(pick) >= 0 ? `Valutazione ${coachRating(pick)}` : ''}</span>
+          </div>
           <CoachAttrs attrs={pick.attrs} />
           <p className="text-xs text-mute my-3">{PHILOSOPHY_LABELS[pick.philosophy]}: {PHILOSOPHY_DESC[pick.philosophy]}</p>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Stipendio annuo (€)" hint={`Richiesta: ${fmtMoney(coachDemand(world, pick, club))}`}><input type="number" className="w-full" value={wage} step={500} onChange={(e) => setWage(Number(e.target.value))} /></Field>
             <Field label="Durata"><select className="w-full" value={years} onChange={(e) => setYears(Number(e.target.value))}>{[1, 2, 3].map((y) => <option key={y} value={y}>{y} stagion{y > 1 ? 'i' : 'e'}</option>)}</select></Field>
           </div>
+          {issue && <p role="alert" className="mt-3 text-sm text-warn">{issue}</p>}
         </Modal>
       )}
     </Panel>
@@ -174,7 +193,14 @@ function StaffMarket() {
     { key: 'a', label: 'Età', render: (m: StaffMember) => world.season - m.birthYear },
     { key: 'i', label: 'Interesse', render: (m: StaffMember) => { const v = staffInterest(m, club); return <Badge tone={v >= 60 ? 'good' : v >= 30 ? 'warn' : 'bad'}>{v}%</Badge>; } },
     { key: 'w', label: 'Stipendio', render: (m: StaffMember) => fmtMoney(staffDemand(m, club)), sort: (m: StaffMember) => staffDemand(m, club) },
-    { key: 'b', label: '', render: (m: StaffMember) => <Button size="sm" disabled={!!club.staff[role]} onClick={() => s.act((w) => hireStaff(w, w.clubs[w.userClubId], m.id, 2), `${m.lastName} entra nello staff.`)}>Assumi</Button> },
+    {
+      key: 'b', label: '',
+      render: (m: StaffMember) => {
+        const no = staffInterest(m, club) < 30;
+        const covered = !!club.staff[role];
+        return <Button size="sm" variant={no ? 'ghost' : 'primary'} disabled={no || covered} title={covered ? 'Ruolo già coperto' : no ? 'Preferisce un club più ambizioso' : undefined} onClick={() => s.act((w) => hireStaff(w, w.clubs[w.userClubId], m.id, 2), `${m.lastName} entra nello staff.`)}>{no ? 'Non interessato' : 'Assumi'}</Button>;
+      },
+    },
   ];
   return (
     <Panel title="Collaboratori disponibili" actions={
