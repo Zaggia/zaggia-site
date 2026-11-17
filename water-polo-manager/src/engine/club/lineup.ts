@@ -146,7 +146,8 @@ export function repairLineup(world: World, club: Club): Lineup {
     if (bench.length >= world.rules.matchSquadSize - 7) break;
     if (id && !used.has(id)) { bench.push(id); used.add(id); }
   }
-  const fixed: Lineup = { slots, bench, captainId: used.has(l.captainId ?? '') ? l.captainId : auto.captainId, penaltyTakers: l.penaltyTakers.filter((id) => used.has(id)) };
+  const minutes = l.minutes ? Object.fromEntries(Object.entries(l.minutes).filter(([id]) => bench.includes(id))) : undefined;
+  const fixed: Lineup = { slots, bench, captainId: used.has(l.captainId ?? '') ? l.captainId : auto.captainId, penaltyTakers: l.penaltyTakers.filter((id) => used.has(id)), minutes };
   if (validateLineup(world, club, fixed).some((i) => i.level === 'error')) return auto;
   return fixed;
 }
@@ -162,4 +163,25 @@ export function teamStrength(world: World, club: Club): number {
   const t6 = top6.length ? top6.reduce((s, p) => s + p.overall, 0) / top6.length : 20;
   const b = bench.length ? bench.reduce((s, p) => s + p.overall, 0) / bench.length : t6 - 15;
   return Math.round(gk * 0.22 + t6 * 0.6 + b * 0.18);
+}
+
+/** Quota di partita che un giocatore si aspetta di giocare, in base al suo ruolo in squadra. */
+export const EXPECTED_TIME: Record<string, number> = { fondamentale: 0.72, titolare: 0.58, rotazione: 0.33, riserva: 0.15, giovane: 0.2 };
+
+/** Minuti (su 32) che un giocatore si aspetta di giocare. */
+export function expectedMinutes(p: Player): number {
+  const share = EXPECTED_TIME[p.contract?.status ?? 'rotazione'] ?? 0.3;
+  return Math.round(share * 24);
+}
+
+/** Minutaggio previsto per ogni panchinaro: quello scelto dall'utente, altrimenti quello che il giocatore si aspetta. */
+export function minutesPlan(world: World, lineup: Lineup): Record<string, number> {
+  const plan: Record<string, number> = {};
+  for (const id of lineup.bench) {
+    const p = world.players[id];
+    if (!p) continue;
+    const set = lineup.minutes?.[id];
+    plan[id] = set != null ? set : Math.min(p.role === 'POR' ? 8 : 24, expectedMinutes(p));
+  }
+  return plan;
 }

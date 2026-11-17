@@ -58,6 +58,8 @@ export interface MatchTeamInput {
   /** L'allenatore può cambiare tattica da solo durante la gara. */
   coachAdjusts: boolean;
   autoSubs: boolean;
+  /** Minuti previsti (su tutta la gara) per i panchinari, per id giocatore. */
+  minutesPlan?: Record<string, number>;
 }
 
 export interface MatchSetup {
@@ -548,11 +550,82 @@ function benchCandidates(st: MatchState, s: number, slot: number): number[] {
   return list.sort((a, b) => b.v - a.v).map((x) => x.i);
 }
 
+/**
+ * Rotazioni decise dall'allenatore per rispettare il minutaggio previsto dei panchinari.
+ * A gioco fermo, chi è in ritardo sul suo programma entra al posto del compagno meno penalizzante;
+ * chi ha superato il programma esce. Al massimo due cambi per interruzione.
+ */
+function rotationSubs(st: MatchState, s: number): number {
+  const tm = team(st, s);
+  const plan = tm.minutesPlan;
+  if (!plan) return 0;
+  const side = st.sides[s];
+  const total = st.setup.periodSeconds * 4;
+  const elapsed = (st.period - 1) * st.setup.periodSeconds + (st.setup.periodSeconds - st.clock);
+  const frac = Math.min(1, Math.max(0, elapsed / total));
+  const played = (i: number) => side.p[i].line.seconds / 60;
+  const target = (i: number) => plan[tm.players[i].id];
+  let done = 0;
+  // 1) Esce chi ha già giocato più del suo programma.
+  for (let slot = 0; slot <= 6 && done < 2; slot++) {
+    const cur = side.slots[slot];
+    if (cur < 0) continue;
+    const t = target(cur);
+    if (t == null || played(cur) < t * frac + 1.2) continue;
+    const cand = benchCandidates(st, s, slot).filter((b) => {
+      const tb = target(b);
+      return tb == null || played(b) < tb * frac + 1.2;
+    });
+    if (!cand.length) continue;
+    side.slots[slot] = cand[0];
+    refreshSuit(st, s);
+    done++;
+    push(st, { type: 'sub', side: s as 0 | 1, p1: tm.players[cand[0]].id, p2: tm.players[cur].id, tag: 'info' });
+  }
+  // 2) Entra chi è in ritardo sul programma.
+  const water = new Set(side.slots);
+  const behind: { i: number; gap: number }[] = [];
+  for (let i = 0; i < tm.players.length; i++) {
+    if (water.has(i) || side.p[i].out) continue;
+    const t = target(i);
+    if (t == null || t <= 0) continue;
+    const gap = t * frac - played(i);
+    if (gap >= 0.8 || (frac >= 0.97 && played(i) < t - 0.5)) behind.push({ i, gap });
+  }
+  behind.sort((a, b) => b.gap - a.gap);
+  for (const { i } of behind) {
+    if (done >= 2) break;
+    const pl = tm.players[i];
+    const slots = pl.role === 'POR' ? [0] : [1, 2, 3, 4, 5, 6];
+    let best: { slot: number; loss: number } | null = null;
+    for (const slot of slots) {
+      const cur = side.slots[slot];
+      if (cur < 0) continue;
+      const cp = tm.players[cur];
+      if ((cp.role === 'POR') !== (pl.role === 'POR')) continue;
+      // Non si toglie chi deve ancora giocare il suo programma.
+      const tc = target(cur);
+      if (tc != null && played(cur) < tc * frac) continue;
+      const curV = cp.overall * slotSuitability(cp.role, cp.hand, slot) * (0.6 + 0.4 * side.p[cur].energy);
+      const newV = pl.overall * slotSuitability(pl.role, pl.hand, slot) * (0.6 + 0.4 * side.p[i].energy);
+      const loss = curV - newV;
+      if (!best || loss < best.loss) best = { slot, loss };
+    }
+    if (!best) continue;
+    const out = side.slots[best.slot];
+    side.slots[best.slot] = i;
+    refreshSuit(st, s);
+    done++;
+    push(st, { type: 'sub', side: s as 0 | 1, p1: pl.id, p2: tm.players[out].id, tag: 'info' });
+  }
+  return done;
+}
+
 /** Cambi automatici: si fanno a gioco fermo (dopo un gol, nell'intervallo, nei time-out). */
 function autoSubs(st: MatchState, s: number, rng: Rng, interval = false) {
   const side = st.sides[s];
   const tm = team(st, s);
-  let changes = 0;
+  let changes = rotationSubs(st, s);
   for (let slot = 1; slot <= 6 && changes < 3; slot++) {
     const cur = side.slots[slot];
     if (cur < 0) continue;

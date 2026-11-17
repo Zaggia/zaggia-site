@@ -4,7 +4,7 @@ import { useGame, useWorld } from '../../store/game';
 import { Avatar } from '../components/Avatar';
 import { Badge, Bar, Button, Modal, Ovr, PageHeader, Panel } from '../components/ui';
 import { SLOT_LABELS, SLOT_NAMES, SLOT_SHORT, slotSuitability, ROLE_SHORT } from '../../engine/player/attributes';
-import { autoLineup, isAvailable, validateLineup, isForeign } from '../../engine/club/lineup';
+import { autoLineup, expectedMinutes, isAvailable, minutesPlan, validateLineup, isForeign } from '../../engine/club/lineup';
 import type { Lineup, Player } from '../../engine/types';
 import { cls } from '../format';
 import { nextFixture } from '../../engine/world/queries';
@@ -51,6 +51,8 @@ export function LineupScreen() {
     if (sel !== 'bench') setSel(null);
   };
 
+  const plan = minutesPlan(world, l);
+  const totalPlanned = l.bench.reduce((t, id) => t + (plan[id] ?? 0), 0);
   const removeFromBench = (id: string) => update((lin) => { lin.bench = lin.bench.filter((x) => x !== id); });
   const clearSlot = (i: number) => update((lin) => { lin.slots[i] = null; });
 
@@ -115,16 +117,45 @@ export function LineupScreen() {
               </div>
             )}
           </Panel>
-          <Panel title={`Panchina (${l.bench.length}/${world.rules.matchSquadSize - 7})`} actions={<Button size="sm" variant={sel === 'bench' ? 'gold' : 'outline'} onClick={() => setSel(sel === 'bench' ? null : 'bench')}>{sel === 'bench' ? 'Scegli dall’elenco…' : 'Aggiungi in panchina'}</Button>}>
+          <Panel
+            title={`Panchina (${l.bench.length}/${world.rules.matchSquadSize - 7})`}
+            subtitle={<>Decidi quanto gioca ogni panchinaro: l’allenatore lo fa entrare a gioco fermo per rispettare i minuti, anche quando simuli la partita. Minuti previsti alla panchina: <b className="text-ink">{totalPlanned}</b> (il resto dei 224 della gara tocca ai titolari).</>}
+            actions={<Button size="sm" variant={sel === 'bench' ? 'gold' : 'outline'} onClick={() => setSel(sel === 'bench' ? null : 'bench')}>{sel === 'bench' ? 'Scegli dall’elenco…' : 'Aggiungi in panchina'}</Button>}
+          >
             <div className="grid sm:grid-cols-2 gap-2">
               {l.bench.map((id) => {
                 const p = world.players[id];
                 if (!p) return null;
+                const planned = plan[id] ?? 0;
+                const wanted = expectedMinutes(p);
+                const chosen = l.minutes?.[id] != null;
+                const diff = planned - wanted;
                 return (
-                  <div key={id} className="panel-flat flex items-center gap-2 px-2 py-1.5">
-                    <Avatar player={p} color={club.colors[0]} size={30} />
-                    <div className="flex-1 min-w-0 text-sm"><div className="font-medium truncate">{p.lastName}</div><div className="text-[11px] text-mute">{ROLE_SHORT[p.role]} · {p.overall}</div></div>
-                    <button className="text-mute hover:text-bad px-1" onClick={() => removeFromBench(id)} aria-label="Togli">×</button>
+                  <div key={id} className="panel-flat px-2.5 py-2">
+                    <div className="flex items-center gap-2">
+                      <Avatar player={p} color={club.colors[0]} size={30} />
+                      <div className="flex-1 min-w-0 text-sm"><div className="font-medium truncate">{p.lastName}</div><div className="text-[11px] text-mute">{ROLE_SHORT[p.role]} · {p.overall}</div></div>
+                      <button className="text-mute hover:text-bad px-1" onClick={() => removeFromBench(id)} aria-label="Togli">×</button>
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <label className="text-[11px] text-mute shrink-0" htmlFor={`min-${id}`}>Minuti</label>
+                      <select
+                        id={`min-${id}`}
+                        className="flex-1 min-w-0 h-8 text-sm"
+                        value={chosen ? String(l.minutes![id]) : 'auto'}
+                        onChange={(e) => update((lin) => {
+                          const m = { ...(lin.minutes ?? {}) };
+                          if (e.target.value === 'auto') delete m[id]; else m[id] = Number(e.target.value);
+                          lin.minutes = m;
+                        })}
+                      >
+                        <option value="auto">Consigliato ({Math.min(p.role === 'POR' ? 8 : 24, wanted)} min)</option>
+                        {[0, 2, 4, 6, 8, 10, 12, 14, 16, 20, 24].map((m) => <option key={m} value={m}>{m === 0 ? 'Non gioca (solo emergenze)' : `${m} minuti`}</option>)}
+                      </select>
+                    </div>
+                    <div className={cls('text-[11px] mt-1', diff < -3 ? 'text-warn' : 'text-faint')}>
+                      Si aspetta circa {wanted} min{diff < -3 ? ': giocando meno rischia di scontentarsi' : ''}.
+                    </div>
                   </div>
                 );
               })}

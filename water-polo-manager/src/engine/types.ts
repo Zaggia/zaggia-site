@@ -225,6 +225,8 @@ export interface Lineup {
   bench: ID[];
   captainId: ID | null;
   penaltyTakers: ID[];
+  /** Minutaggio previsto (in minuti su 32) dei panchinari. Se manca un giocatore, si usa quello che si aspetta dal suo ruolo in squadra. */
+  minutes?: Record<ID, number>;
 }
 
 export interface SavedLineup {

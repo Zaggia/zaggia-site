@@ -15,7 +15,7 @@ import { youthTalentEvent } from '../events/events';
 import { ageOf } from '../player/value';
 import { fullName } from '../player/generate';
 import { leagueComp, userClub } from '../world/queries';
-import { teamStrength } from '../club/lineup';
+import { EXPECTED_TIME, teamStrength } from '../club/lineup';
 import { releasePlayer, removeFromClub } from '../transfer/contracts';
 import { worldRng } from '../world/context';
 import { dayOf } from '../calendar';
@@ -72,7 +72,6 @@ export function weeklyTraining(world: World, rng: Rng) {
   }
 }
 
-const EXPECTED_TIME: Record<string, number> = { fondamentale: 0.72, titolare: 0.58, rotazione: 0.33, riserva: 0.15, giovane: 0.2 };
 
 /** Morale settimanale: minutaggio rispetto alle aspettative, stipendi, allenatore. */
 export function weeklyMorale(world: World) {

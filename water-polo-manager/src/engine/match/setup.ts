@@ -2,7 +2,7 @@
 
 import { hashSeed } from '../rng';
 import type { Club, Fixture, Lineup, World } from '../types';
-import { autoLineup, repairLineup } from '../club/lineup';
+import { autoLineup, minutesPlan, repairLineup } from '../club/lineup';
 import { availableTactics, chooseTactics } from '../ai/tactics';
 import { ensureMinimumSquad } from '../ai/clubAI';
 import { worldRng } from '../world/context';
@@ -63,6 +63,7 @@ export function buildTeamInput(world: World, club: Club, opponent: Club, lineup?
     available: availableTactics(world, club),
     coachAdjusts: club.isUser ? world.flags.coachAdjusts !== false : true,
     autoSubs: true,
+    minutesPlan: club.isUser ? minutesPlan(world, l) : undefined,
   };
 }
 
