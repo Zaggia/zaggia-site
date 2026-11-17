@@ -112,7 +112,7 @@ export function monthlyClubs(world: World) {
     club.fans = Math.max(30, Math.round(club.fans + (fanTarget - club.fans) * 0.02 + club.fans * (wins - losses) * 0.004));
     if (div) {
       const mid = (div.reputation[0] + div.reputation[1]) / 2;
-      club.reputation = clamp(club.reputation + (mid - club.reputation) * 0.005 + (wins - losses) * 0.06, 1, 100);
+      club.reputation = clamp(club.reputation + (mid - club.reputation) * 0.015 + (wins - losses) * 0.06, 1, 100);
     }
   }
 }

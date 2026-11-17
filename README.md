@@ -46,3 +46,7 @@ Collega il repository a Netlify (publish directory `public`, nessun comando di b
 ## Limiti
 
 Il browser aggiorna la posizione solo con l'app aperta: tenere lo schermo acceso (l'app lo chiede in automatico dove supportato).
+
+## Water Polo Manager
+
+Nella cartella `water-polo-manager/` c'è un gestionale di pallanuoto (React + TypeScript + Vite), indipendente da Manhunt. La versione compilata è in `public/pallanuoto/` e viene quindi pubblicata dal sito all'indirizzo `/pallanuoto/`. Per aggiornarla dopo una modifica: `cd water-polo-manager && npm install && npm run build:site`. Dettagli nel [README del gioco](water-polo-manager/README.md).

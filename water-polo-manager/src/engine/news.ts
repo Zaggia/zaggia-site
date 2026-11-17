@@ -27,5 +27,5 @@ export function addMessage(
 export const fmtMoney = (v: number) => {
   const abs = Math.abs(v);
   const s = abs >= 1_000_000 ? `${(abs / 1_000_000).toFixed(abs >= 10_000_000 ? 1 : 2).replace('.', ',')} mln €` : `${Math.round(abs).toLocaleString('it-IT')} €`;
-  return v < 0 ? `−${s}` : s;
+  return v < 0 && Math.round(abs) > 0 ? `−${s}` : s;
 };

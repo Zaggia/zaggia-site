@@ -738,12 +738,20 @@ export function checkPromises(world: World) {
 
 export function objectiveEvent(world: World) {
   const club = userClub(world);
-  const opts = suggestedObjectives(world, club);
+  const suggested = suggestedObjectives(world, club);
+  const all: ObjectiveKind[] = club.division === 'A1'
+    ? ['titolo', 'europa', 'top4', 'metaClassifica', 'salvezza']
+    : ['promozione', 'playoff', 'metaClassifica', 'salvezza'];
+  const opts = all.filter((o, i) => suggested.includes(o) || i >= all.length - 3 || o === suggested[0]);
   const ev: GameEvent = {
     id: newId(world, 'e'), kind: 'objective', title: `Obiettivo della stagione ${world.season}/${(world.season + 1) % 100}`,
     body: 'Annuncia a tifosi e stampa l’obiettivo stagionale. Un obiettivo ambizioso fa crescere abbonamenti e attese; mancarlo costa reputazione e tifosi.',
     day: world.day, season: world.season, resolved: false, blocking: true, data: {},
-    choices: opts.slice(0, 4).map((o, i) => ({ id: o, label: OBJECTIVE_LABELS[o], hint: i === 0 ? 'Il più ambizioso alla tua portata' : undefined })),
+    choices: opts.map((o) => ({
+      id: o,
+      label: OBJECTIVE_LABELS[o],
+      hint: o === suggested[0] ? 'Il più ambizioso alla tua portata secondo i tecnici' : !suggested.includes(o) ? 'Molto rischioso: tifosi entusiasti, ma delusione se fallisci' : undefined,
+    })),
   };
   world.events.unshift(ev);
   addMessage(world, 'societa', ev.title, ev.body, { eventId: ev.id, important: true });

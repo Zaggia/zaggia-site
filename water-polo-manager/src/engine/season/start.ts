@@ -184,7 +184,8 @@ export function startSeason(world: World, rng: Rng, first = false) {
     if (p?.contract && p.contract.wage < 300) p.contract.wage = expectedWage(p, world.season);
   }
   refreshUserSponsorOffers(world, rng, !first);
-  objectiveEvent(world);
+  // Alla prima stagione l'obiettivo è già stato scelto alla creazione del club.
+  if (!first) objectiveEvent(world);
   if (!first) {
     const div = world.rules.leagues.find((l) => l.key === user.division)?.name ?? user.division;
     addMessage(world, 'societa', `Inizia la stagione ${world.season}/${(world.season + 1) % 100}`,

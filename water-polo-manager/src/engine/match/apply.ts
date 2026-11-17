@@ -122,7 +122,8 @@ export function applyMatch(world: World, f: Fixture, st: MatchState): MatchRepor
       if (c) c.security = clamp(c.security + (won ? 2 : lost ? -3 : 0), 0, 100);
     }
   }
-  f.scorers = scorers;
+  // I marcatori dettagliati si conservano solo per le partite dell'utente (il resto è nelle statistiche).
+  if (f.homeId === world.userClubId || f.awayId === world.userClubId) f.scorers = scorers;
   // Squalifiche scontate: chi era squalificato e non poteva giocare.
   for (const cid of clubsIds) {
     for (const id of world.clubs[cid].playerIds) {

@@ -128,7 +128,7 @@ export function endSeason(world: World, rng: Rng) {
         club.reputation = clamp(club.reputation + (ambitious ? 3 : 1), 1, 100);
       } else {
         club.fans = Math.round(club.fans * (ambitious ? 0.9 : 0.95));
-        club.reputation = clamp(club.reputation - (ambitious ? 2 : 3), 1, 100);
+        club.reputation = clamp(club.reputation - (ambitious ? 2.5 : 1.5), 1, 100);
       }
       addMessage(world, 'societa', met ? 'Obiettivo stagionale raggiunto!' : 'Obiettivo stagionale mancato',
         `${OBJECTIVE_LABELS[club.objective]}: ${met ? 'tifosi entusiasti, la reputazione cresce.' : 'i tifosi sono delusi.'}`, { important: true });

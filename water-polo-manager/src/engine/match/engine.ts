@@ -711,7 +711,7 @@ function possession(st: MatchState, rng: Rng) {
     logit(0.26) + 0.12 * d10(centerPow, rD.centerDef) + ofx.exclusion + dfx.exclConceded + interact - 0.05 * d10(rD.discipline, 50) + (homeEdge > 0 ? 0.03 : 0),
   );
   if (!hurried && rng.chance(pFoul)) {
-    const penP = clamp(0.085 * ofx.penalty * (centerPow / Math.max(20, rD.centerDef)), 0.03, 0.2);
+    const penP = clamp(0.08 * ofx.penalty * Math.sqrt(centerPow / Math.max(20, rD.centerDef)), 0.03, 0.14);
     if (rng.chance(penP)) {
       const fouler = pickDefender(st, D, rng, true);
       registerFoul(st, D, fouler, rng, 'penalty');
@@ -728,14 +728,14 @@ function possession(st: MatchState, rng: Rng) {
   // 4) Tiro
   tick(st, Math.min(time * 0.4, st.clock), A, rng);
   const weights: [ShotType, number][] = [
-    ['distanza', ofx.mix.distanza * dfx.distance],
-    ['centro', ofx.mix.centro * dfx.center * clamp(rA.centerPower / 50, 0.5, 1.5)],
-    ['ala', ofx.mix.ala * dfx.wing],
-    ['penetrazione', ofx.mix.penetrazione * dfx.drive],
+    ['distanza', ofx.mix.distanza * Math.pow(dfx.distance, 1.5)],
+    ['centro', ofx.mix.centro * Math.pow(dfx.center, 1.5) * clamp(rA.centerPower / 50, 0.5, 1.5)],
+    ['ala', ofx.mix.ala * Math.pow(dfx.wing, 1.5)],
+    ['penetrazione', ofx.mix.penetrazione * Math.pow(dfx.drive, 1.5)],
   ];
   const type = weights[rng.weightedIndex(weights.map((w) => w[1]))][0];
   const conc = type === 'distanza' ? dfx.distance : type === 'centro' ? dfx.center : type === 'ala' ? dfx.wing : dfx.drive;
-  const qual = ofx.quality + 0.45 * Math.log(conc) + homeEdge + mom + (hurried ? -0.4 : 0) - disorg * 0.5;
+  const qual = ofx.quality + 0.6 * Math.log(conc) + homeEdge + mom + (hurried ? -0.4 : 0) - disorg * 0.5;
   shoot(st, rng, A, D, type, qual, ofx.blockAgainst, rD, null);
 }
 
@@ -835,7 +835,7 @@ function shooterFor(st: MatchState, s: number, type: ShotType, rng: Rng, prefer:
   const w = f.map((i) => {
     const slot = side.slots.indexOf(i);
     const skill = cv(st, s, i, shotKey(type));
-    let v = slotW[type][slot] * Math.pow(Math.max(5, skill), 2) / 1000;
+    let v = slotW[type][slot] * Math.pow(Math.max(5, skill), 1.5) / 100;
     if (prefer.includes(tm.players[i].id)) v *= 3;
     if (avoid && tm.players[i].id === avoid) v *= 0.35;
     return v;
