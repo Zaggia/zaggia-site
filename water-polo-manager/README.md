@@ -27,6 +27,7 @@ Gestionale di pallanuoto giocabile nel browser. Sei il presidente di una piccola
 - **Illustrazioni 2D** generate con l'AI di Canva in uno stile unico (menu, dashboard, strutture, mercato, staff, vivaio, partite, coppe, fine stagione): `src/assets/art/`.
 - **Più intuitivo**: navigazione raggruppata (Squadra, Gare, Società), pannello "Da fare adesso" con le prossime mosse utili, guida rapida al primo avvio (riapribile con "?"), spiegazioni contestuali.
 - **Identità visiva**: logo del gioco (scudo con pallone giallo-blu che emerge dall'acqua e le tre stelle della "road to glory"), favicon e kit grafico in [`brand/`](brand/BRAND.md); ogni società ha stemma generato nei suoi colori e le tre calottine regolamentari (scura, chiara, rossa del portiere).
+- **Account e cloud** (facoltativi): con email e password le carriere si salvano anche online (funzione Netlify `netlify/functions/pallanuoto.mts`, Netlify Blobs) e si riprendono da un altro computer o dal telefono. Se la stessa carriera viene giocata su due dispositivi, il gioco lo rileva e fa scegliere quale versione tenere. Password con PBKDF2, blocco dopo 5 tentativi sbagliati, nessuna email inviata, account eliminabile con tutti i dati. Prova di integrazione: `npm run test:pallanuoto` (dalla radice del repository).
 - **Salvataggi** automatici in IndexedDB: più carriere, carica, rinomina, elimina, esporta/importa su file. Il gioco riparte da dove l'avevi lasciato anche dopo la chiusura del browser.
 
 ## Architettura

@@ -22,12 +22,17 @@ process.env.NETLIFY_BLOBS_CONTEXT = Buffer.from(
 ).toString("base64");
 
 const { default: handler } = await import("../netlify/functions/api.mts");
+const { default: pallanuotoHandler } = await import("../netlify/functions/pallanuoto.mts");
 
 const TYPES = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".svg": "image/svg+xml",
+  ".webp": "image/webp",
+  ".png": "image/png",
+  ".woff2": "font/woff2",
+  ".woff": "font/woff",
   ".webmanifest": "application/manifest+json",
 };
 
@@ -36,13 +41,14 @@ createServer(async (req, res) => {
   if (url.pathname.startsWith("/api/")) {
     const chunks = [];
     for await (const c of req) chunks.push(c);
-    const response = await handler(
+    const response = await (url.pathname.startsWith("/api/pallanuoto/") ? pallanuotoHandler : handler)(
       new Request(url, { method: req.method, headers: req.headers, body: req.method === "POST" ? Buffer.concat(chunks) : undefined }),
     );
     res.writeHead(response.status, Object.fromEntries(response.headers));
     return res.end(Buffer.from(await response.arrayBuffer()));
   }
-  const path = normalize(join(root, url.pathname === "/" ? "index.html" : url.pathname));
+  const rel = url.pathname === "/" ? "index.html" : url.pathname.endsWith("/") ? url.pathname + "index.html" : url.pathname;
+  const path = normalize(join(root, rel));
   if (!path.startsWith(root)) return res.writeHead(403).end();
   try {
     const body = await readFile(path);

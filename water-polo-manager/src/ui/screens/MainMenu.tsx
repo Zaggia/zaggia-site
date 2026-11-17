@@ -4,7 +4,8 @@ import { Crest } from '../components/Crest';
 import { ClubCaps } from '../components/Cap';
 import { Logo } from '../components/Logo';
 import { ART } from '../art';
-import { Button, Field, Modal, Panel } from '../components/ui';
+import { Badge, Button, Field, Modal, Panel } from '../components/ui';
+import { AccountButton, CloudBadge } from '../components/Account';
 import { ITALIAN_CITIES, FANS_NAMES } from '../../engine/data/cities';
 import { DIFFICULTIES } from '../../engine/data/config';
 import { CREST_PATTERNS, CREST_SHAPES, CREST_SYMBOLS, PALETTES } from '../../engine/club/crest';
@@ -14,9 +15,13 @@ import { OBJECTIVE_LABELS } from '../../engine/economy/sponsors';
 
 export function MainMenu() {
   const careers = useGame((s) => s.careers);
+  const account = useGame((s) => s.account);
+  const cloudList = useGame((s) => s.cloud.list);
+  const cloudOnly = account ? cloudList.filter((c) => !careers.some((l) => l.id === c.id)) : [];
   const [wizard, setWizard] = useState(false);
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleteCloud, setDeleteCloud] = useState(true);
   const s = useGame.getState();
   if (wizard) return <NewCareer onCancel={() => setWizard(false)} />;
   return (
@@ -26,6 +31,7 @@ export function MainMenu() {
         <div className="absolute inset-0 bg-gradient-to-r from-abyss via-abyss/85 to-abyss/10" />
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-abyss to-transparent" />
         <div className="relative max-w-6xl mx-auto px-6 pt-16 pb-20 sm:pt-24 sm:pb-28 min-h-[min(640px,88dvh)] flex flex-col justify-center">
+          <div className="absolute top-5 right-5 sm:top-6 sm:right-8"><AccountButton /></div>
           <h1 className="sr-only">Water Polo Manager, The Road to Glory</h1>
           <Logo size="xl" className="items-center" />
           <p className="text-ink/80 mt-6 max-w-md text-lg leading-relaxed">
@@ -38,8 +44,8 @@ export function MainMenu() {
         </div>
       </section>
       <div className="max-w-5xl w-full mx-auto px-6 py-8">
-        <Panel title="Carriere salvate" subtitle="I salvataggi restano nel browser anche dopo la chiusura del gioco.">
-          {!careers.length && <p className="text-mute text-sm py-4">Nessuna carriera: creane una nuova per iniziare.</p>}
+        <Panel title="Carriere salvate" subtitle={account ? 'Salvate su questo dispositivo e nel cloud: puoi riprenderle da qualsiasi computer o telefono.' : 'I salvataggi restano nel browser. Crea un account per averli anche online e giocare da più dispositivi.'}>
+          {!careers.length && !cloudOnly.length && <p className="text-mute text-sm py-4">Nessuna carriera: creane una nuova per iniziare.</p>}
           <div className="grid sm:grid-cols-2 gap-3">
             {careers.map((c) => (
               <div key={c.id} className="panel-flat p-3 flex items-center gap-3">
@@ -48,6 +54,7 @@ export function MainMenu() {
                   <div className="font-semibold truncate">{c.name}</div>
                   <div className="text-xs text-mute truncate">{c.clubName} · {c.division === 'C' ? 'Serie C' : c.division === 'B' ? 'Serie B' : `Serie ${c.division}`} · {seasonLabel(c.season)}</div>
                   <div className="text-[11px] text-faint">{formatDate(c.season, c.day)} · {DIFFICULTIES[c.difficulty]?.label}</div>
+                  <div className="mt-1"><CloudBadge id={c.id} /></div>
                 </div>
                 <div className="flex flex-col gap-1">
                   <Button size="sm" onClick={() => void s.openCareer(c.id)}>Carica</Button>
@@ -58,6 +65,17 @@ export function MainMenu() {
                 </div>
               </div>
             ))}
+            {cloudOnly.map((c) => (
+              <div key={c.id} className="panel-flat p-3 flex items-center gap-3">
+                <Crest spec={c.crest} size={44} />
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold truncate">{c.name}</div>
+                  <div className="text-xs text-mute truncate">{c.clubName} · {c.division === 'C' ? 'Serie C' : c.division === 'B' ? 'Serie B' : `Serie ${c.division}`} · {seasonLabel(c.season)}</div>
+                  <div className="mt-1"><Badge tone="aqua">Solo nel cloud</Badge></div>
+                </div>
+                <Button size="sm" onClick={() => void s.pullCareer(c.id)}>Scarica e gioca</Button>
+              </div>
+            ))}
           </div>
         </Panel>
       </div>
@@ -66,8 +84,11 @@ export function MainMenu() {
         <input className="w-full" value={renaming?.name ?? ''} onChange={(e) => setRenaming(renaming && { ...renaming, name: e.target.value })} autoFocus />
       </Modal>
       <Modal open={!!deleting} onClose={() => setDeleting(null)} title="Eliminare la carriera?"
-        footer={<><Button variant="ghost" onClick={() => setDeleting(null)}>Annulla</Button><Button variant="danger" onClick={() => { if (deleting) void s.removeCareer(deleting); setDeleting(null); }}>Elimina definitivamente</Button></>}>
+        footer={<><Button variant="ghost" onClick={() => setDeleting(null)}>Annulla</Button><Button variant="danger" onClick={() => { if (deleting) void s.removeCareer(deleting, deleteCloud); setDeleting(null); }}>Elimina definitivamente</Button></>}>
         <p className="text-sm text-mute">La carriera e tutti i suoi dati verranno cancellati. L’operazione non si può annullare.</p>
+        {account && deleting && cloudList.some((c) => c.id === deleting) && (
+          <label className="flex items-center gap-2 text-sm mt-3 cursor-pointer"><input type="checkbox" checked={deleteCloud} onChange={(e) => setDeleteCloud(e.target.checked)} /> Elimina anche la copia nel cloud</label>
+        )}
       </Modal>
     </div>
   );

@@ -49,4 +49,4 @@ Il browser aggiorna la posizione solo con l'app aperta: tenere lo schermo acceso
 
 ## Water Polo Manager
 
-Nella cartella `water-polo-manager/` c'è un gestionale di pallanuoto (React + TypeScript + Vite), indipendente da Manhunt. La versione compilata è in `public/pallanuoto/` e viene quindi pubblicata dal sito all'indirizzo `/pallanuoto/`. Per aggiornarla dopo una modifica: `cd water-polo-manager && npm install && npm run build:site`. Dettagli nel [README del gioco](water-polo-manager/README.md).
+Nella cartella `water-polo-manager/` c'è un gestionale di pallanuoto (React + TypeScript + Vite), indipendente da Manhunt. La versione compilata è in `public/pallanuoto/` e viene quindi pubblicata dal sito all'indirizzo `/pallanuoto/`. Per aggiornarla dopo una modifica: `cd water-polo-manager && npm install && npm run build:site`. Gli account e i salvataggi nel cloud del gioco usano la funzione `netlify/functions/pallanuoto.mts` (store Blobs `pallanuoto`, separato da quello di Manhunt). Dettagli nel [README del gioco](water-polo-manager/README.md).

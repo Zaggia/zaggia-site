@@ -1,0 +1,43 @@
+// Prova di integrazione degli account e dei salvataggi nel cloud di Water Polo Manager (emulatore di Blobs su disco).
+// Uso: node scripts/test-pallanuoto.mjs  (Node 22.18+)
+import { BlobsServer } from "@netlify/blobs/server";
+import { gzipSync } from "node:zlib";
+const blobs = new BlobsServer({ directory: ".netlify/test-blobs", port: 9911, token: "local" });
+await blobs.start();
+process.env.NETLIFY_BLOBS_CONTEXT = Buffer.from(JSON.stringify({ edgeURL: "http://localhost:9911", uncachedEdgeURL: "http://localhost:9911", siteID: "local", token: "local" })).toString("base64");
+const { default: h } = await import("../netlify/functions/pallanuoto.mts");
+const call = async (action, { body, token, query = "", headers = {}, raw } = {}) => {
+  const r = await h(new Request(`http://x/api/pallanuoto/${action}${query}`, { method: "POST", headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...headers }, body: raw ?? (body ? JSON.stringify(body) : undefined) }));
+  const ct = r.headers.get("content-type");
+  return { status: r.status, data: ct?.includes("json") ? await r.json() : new Uint8Array(await r.arrayBuffer()), headers: r.headers };
+};
+const ok = (c, m) => { console.log(c ? "OK  " : "FAIL", m); if (!c) process.exitCode = 1; };
+const email = `prova${Date.now()}@example.com`;
+let r = await call("register", { body: { email, password: "corta" , consent: true } }); ok(r.status === 400 && r.data.error === "password_short", "password corta rifiutata");
+r = await call("register", { body: { email, password: "passwordlunga1" } }); ok(r.data.error === "consent_required", "serve il consenso");
+r = await call("register", { body: { email: "non-email", password: "passwordlunga1", consent: true } }); ok(r.data.error === "email_invalid", "email non valida");
+r = await call("register", { body: { email, password: "passwordlunga1", consent: true } }); ok(r.status === 200 && r.data.token, "registrazione");
+const token = r.data.token;
+r = await call("register", { body: { email, password: "passwordlunga1", consent: true } }); ok(r.status === 409, "email già usata");
+r = await call("login", { body: { email, password: "sbagliata123" } }); ok(r.status === 401, "login con password errata");
+r = await call("login", { body: { email, password: "passwordlunga1" } }); ok(r.status === 200, "login"); const token2 = r.data.token;
+r = await call("me", { token }); ok(r.data.email === email, "me");
+r = await call("list"); ok(r.status === 401, "senza token non si entra");
+const world = JSON.stringify({ hello: "mondo", pad: "x".repeat(200000) });
+const gz = gzipSync(world);
+const meta = { name: "Carriera 1", clubName: "Aquatica", division: "C", season: 2026, day: 10, difficulty: "normale", crest: { shape: "scudo" }, updatedAt: 2000 };
+r = await call("put", { token, query: "?id=car123abc", raw: gz, headers: { "x-wpm-meta": encodeURIComponent(JSON.stringify(meta)) } }); ok(r.status === 200 && r.data.meta.size === gz.length, "salvataggio nel cloud");
+r = await call("put", { token, query: "?id=car123abc", raw: Buffer.from("non gzip!!!"), headers: { "x-wpm-meta": "{}" } }); ok(r.data.error === "not_gzip", "solo gzip");
+r = await call("list", { token: token2 }); ok(r.data.careers.length === 1 && r.data.careers[0].clubName === "Aquatica", "elenco da altra sessione");
+r = await call("get", { token: token2, query: "?id=car123abc" }); ok(r.status === 200 && Buffer.compare(Buffer.from(r.data), gz) === 0, "scarico identico");
+r = await call("put", { token, query: "?id=car123abc", raw: gz, headers: { "x-wpm-meta": encodeURIComponent(JSON.stringify({ ...meta, updatedAt: 3000 })) } }); ok(r.status === 409 && r.data.error === "cloud_newer", "conflitto: nessuna base nota");
+r = await call("put", { token, query: "?id=car123abc", raw: gz, headers: { "x-wpm-base": "1500", "x-wpm-meta": encodeURIComponent(JSON.stringify({ ...meta, updatedAt: 3000 })) } }); ok(r.status === 409, "conflitto: base diversa dal cloud");
+r = await call("put", { token, query: "?id=car123abc", raw: gz, headers: { "x-wpm-base": "2000", "x-wpm-meta": encodeURIComponent(JSON.stringify({ ...meta, updatedAt: 3000 })) } }); ok(r.status === 200 && r.data.meta.updatedAt === 3000, "aggiornamento con base corretta");
+r = await call("put", { token, query: "?id=car123abc", raw: gz, headers: { "x-wpm-force": "1", "x-wpm-meta": encodeURIComponent(JSON.stringify({ ...meta, updatedAt: 4000 })) } }); ok(r.status === 200, "sovrascrittura forzata");
+r = await call("put", { token, query: "?id=../../x", raw: gz }); ok(r.data.error === "bad_id", "id non valido");
+r = await call("remove", { token, query: "?id=car123abc" }); ok(r.status === 200, "elimina carriera");
+r = await call("list", { token }); ok(r.data.careers.length === 0, "elenco vuoto");
+r = await call("logout", { token }); r = await call("me", { token }); ok(r.status === 401, "dopo il logout il token non vale");
+for (let i = 0; i < 5; i++) await call("login", { body: { email, password: "sbagliata123" } });
+r = await call("login", { body: { email, password: "passwordlunga1" } }); ok(r.status === 429, "blocco dopo 5 tentativi");
+await blobs.stop();

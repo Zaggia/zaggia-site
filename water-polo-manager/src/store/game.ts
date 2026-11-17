@@ -12,6 +12,8 @@ import { deleteCareer, getLastCareer, listCareers, loadCareer, renameCareer, sav
 import { resolveEvent } from '../engine/events/events';
 import { worldRng } from '../engine/world/context';
 import { autoLineup } from '../engine/club/lineup';
+import * as cloud from '../cloud/cloud';
+import { CloudError, type Account, type CloudMeta } from '../cloud/cloud';
 
 export type ViewName =
   | 'dashboard' | 'rosa' | 'formazione' | 'tattiche' | 'partite' | 'calendario' | 'classifica' | 'mercato' | 'staff'
@@ -31,6 +33,19 @@ export interface MarketUi {
 }
 
 export const DEFAULT_MARKET_UI: MarketUi = { tab: 'cerca', role: '', minAge: 16, maxAge: 36, minOvr: 30, maxValue: 0, scope: 'all', name: '' };
+
+export interface CloudState {
+  list: CloudMeta[];
+  status: 'idle' | 'syncing' | 'ok' | 'error';
+  error?: string;
+  lastSync?: number;
+}
+
+/** Una carriera modificata su due dispositivi: l'utente sceglie quale versione tenere. */
+export interface CloudConflict {
+  id: string;
+  cloudUpdatedAt: number;
+}
 
 export interface Toast {
   id: number;
@@ -64,13 +79,24 @@ interface Store {
   saveError: string | null;
   careers: CareerMeta[];
   menuOpen: boolean;
+  account: Account | null;
+  cloud: CloudState;
+  conflict: CloudConflict | null;
 
   refreshCareers: () => Promise<void>;
   newCareer: (opts: NewCareerOptions) => Promise<void>;
   openCareer: (id: string) => Promise<boolean>;
   resumeLast: () => Promise<boolean>;
   closeCareer: () => Promise<void>;
-  removeCareer: (id: string) => Promise<void>;
+  removeCareer: (id: string, alsoCloud?: boolean) => Promise<void>;
+  initAccount: () => Promise<void>;
+  signIn: (mode: 'login' | 'register', email: string, password: string, consent: boolean) => Promise<string | null>;
+  signOut: () => Promise<void>;
+  removeAccount: (password: string) => Promise<string | null>;
+  refreshCloud: () => Promise<void>;
+  syncNow: (force?: boolean) => Promise<void>;
+  pullCareer: (id: string) => Promise<boolean>;
+  resolveConflict: (keep: 'cloud' | 'local') => Promise<void>;
   renameCareer: (id: string, name: string) => Promise<void>;
   go: (view: ViewName, param?: string) => void;
   back: () => void;
@@ -91,6 +117,11 @@ interface Store {
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
+let pushTimer: ReturnType<typeof setTimeout> | null = null;
+let lastPush = 0;
+/** Versione (`v`) già salvata: senza modifiche non si riscrive la carriera, così `updatedAt` conta solo i cambiamenti veri. */
+let savedV = -1;
+const PUSH_EVERY_MS = 20_000;
 let toastId = 1;
 
 function metaFrom(world: World, prev: CareerMeta | null, name?: string): CareerMeta {
@@ -126,6 +157,9 @@ export const useGame = create<Store>((set, get) => ({
   saveError: null,
   careers: [],
   menuOpen: false,
+  account: null,
+  cloud: { list: [], status: 'idle' },
+  conflict: null,
 
   refreshCareers: async () => {
     try {
@@ -141,7 +175,8 @@ export const useGame = create<Store>((set, get) => ({
     try {
       const world = createWorld(opts);
       const meta = metaFrom(world, null, opts.careerName);
-      set({ world, meta, view: 'dashboard', stack: [], market: { ...DEFAULT_MARKET_UI }, v: get().v + 1, live: null });
+      set({ world, meta, view: 'dashboard', stack: [], market: { ...DEFAULT_MARKET_UI }, v: get().v + 1, live: null, conflict: null });
+      savedV = -1;
       await get().saveNow();
     } catch (e) {
       console.error(e);
@@ -159,8 +194,31 @@ export const useGame = create<Store>((set, get) => ({
         get().toast('Salvataggio non trovato.', 'err');
         return false;
       }
-      if (migrateWorld(res.world)) get().toast('Salvataggio aggiornato alla nuova versione: ruoli della pallanuoto e rose da 15.', 'info');
-      set({ world: res.world, meta: res.meta, view: 'dashboard', stack: [], market: { ...DEFAULT_MARKET_UI }, v: get().v + 1, live: null });
+      let { world, meta } = res;
+      // Con un account: se un altro dispositivo ha salvato una versione più recente, si prende quella.
+      let conflict: CloudConflict | null = null;
+      const acc = get().account;
+      if (acc) {
+        await get().refreshCloud();
+        const cm = get().cloud.list.find((c) => c.id === id);
+        const synced = cloud.syncedAt(id);
+        if (cm && cm.updatedAt > synced) {
+          if (meta.updatedAt <= synced) {
+            try {
+              const down = await cloud.downloadCareer(acc, id);
+              world = down.world;
+              meta = down.meta;
+              await saveCareer(world, meta);
+              get().toast('Carriera aggiornata con la versione più recente del cloud.', 'info');
+            } catch { /* si gioca con la copia locale */ }
+          } else {
+            conflict = { id, cloudUpdatedAt: cm.updatedAt };
+          }
+        }
+      }
+      if (migrateWorld(world)) get().toast('Salvataggio aggiornato alla nuova versione: ruoli della pallanuoto e rose da 15.', 'info');
+      set({ world, meta, view: 'dashboard', stack: [], market: { ...DEFAULT_MARKET_UI }, v: get().v + 1, live: null, conflict });
+      savedV = get().v;
       return true;
     } catch (e) {
       get().toast(`Impossibile caricare: ${(e as Error).message}`, 'err');
@@ -178,13 +236,154 @@ export const useGame = create<Store>((set, get) => ({
 
   closeCareer: async () => {
     await get().saveNow();
-    set({ world: null, meta: null, live: null, view: 'dashboard', stack: [] });
+    if (get().account && get().world && !get().conflict) await get().syncNow();
+    set({ world: null, meta: null, live: null, view: 'dashboard', stack: [], conflict: null });
+    await get().refreshCareers();
+    void get().refreshCloud();
+  },
+
+  removeCareer: async (id, alsoCloud = false) => {
+    await deleteCareer(id);
+    const acc = get().account;
+    if (acc && alsoCloud) {
+      try {
+        await cloud.removeCloud(acc, id);
+        await get().refreshCloud();
+      } catch (e) {
+        get().toast(`Eliminata da questo dispositivo, ma non dal cloud: ${(e as Error).message}`, 'err');
+      }
+    }
     await get().refreshCareers();
   },
 
-  removeCareer: async (id) => {
-    await deleteCareer(id);
-    await get().refreshCareers();
+  // ─── Account e cloud ──────────────────────────────────────────────────────
+
+  initAccount: async () => {
+    const acc = cloud.loadAccount();
+    if (!acc) return;
+    if (!(await cloud.checkSession(acc))) {
+      cloud.storeAccount(null);
+      return;
+    }
+    set({ account: acc });
+    await get().refreshCloud();
+  },
+
+  signIn: async (mode, email, password, consent) => {
+    try {
+      const acc = mode === 'register' ? await cloud.register(email, password, consent) : await cloud.login(email, password);
+      cloud.storeAccount(acc);
+      set({ account: acc });
+      await get().refreshCloud();
+      // Le carriere di questo dispositivo che nel cloud non ci sono ancora vengono caricate in background.
+      void (async () => {
+        for (const c of get().careers) {
+          if (get().cloud.list.some((x) => x.id === c.id)) continue;
+          try {
+            const res = await loadCareer(c.id);
+            if (res) await cloud.uploadCareer(acc, res.world, res.meta);
+          } catch { /* si riproverà al prossimo salvataggio */ }
+        }
+        await get().refreshCloud();
+      })();
+      return null;
+    } catch (e) {
+      return (e as Error).message;
+    }
+  },
+
+  signOut: async () => {
+    const acc = get().account;
+    if (acc) await cloud.logout(acc);
+    cloud.storeAccount(null);
+    if (pushTimer) clearTimeout(pushTimer);
+    set({ account: null, cloud: { list: [], status: 'idle' }, conflict: null });
+  },
+
+  removeAccount: async (password) => {
+    const acc = get().account;
+    if (!acc) return null;
+    try {
+      await cloud.deleteAccount(acc, password);
+      cloud.storeAccount(null);
+      for (const c of get().careers) cloud.setSyncedAt(c.id, null);
+      set({ account: null, cloud: { list: [], status: 'idle' }, conflict: null });
+      return null;
+    } catch (e) {
+      return (e as Error).message;
+    }
+  },
+
+  refreshCloud: async () => {
+    const acc = get().account;
+    if (!acc) return;
+    try {
+      const list = await cloud.listCloud(acc);
+      set({ cloud: { ...get().cloud, list, status: get().cloud.status === 'error' ? 'idle' : get().cloud.status, error: undefined } });
+    } catch (e) {
+      if (e instanceof CloudError && e.status === 401) {
+        cloud.storeAccount(null);
+        set({ account: null, cloud: { list: [], status: 'idle' } });
+        get().toast('La sessione è scaduta: accedi di nuovo per usare il cloud.', 'info');
+      } else {
+        set({ cloud: { ...get().cloud, status: 'error', error: (e as Error).message } });
+      }
+    }
+  },
+
+  syncNow: async (force = false) => {
+    const { account: acc, world, meta } = get();
+    if (!acc || !world || !meta) return;
+    if (get().conflict && !force) return;
+    if (pushTimer) { clearTimeout(pushTimer); pushTimer = null; }
+    set({ cloud: { ...get().cloud, status: 'syncing', error: undefined } });
+    try {
+      const saved = await cloud.uploadCareer(acc, world, meta, force);
+      lastPush = Date.now();
+      set({ conflict: null, cloud: { list: [saved, ...get().cloud.list.filter((c) => c.id !== saved.id)], status: 'ok', lastSync: Date.now() } });
+    } catch (e) {
+      if (e instanceof CloudError && e.code === 'cloud_newer') {
+        set({ conflict: { id: meta.id, cloudUpdatedAt: Number(e.params?.updatedAt ?? 0) }, cloud: { ...get().cloud, status: 'error', error: e.message } });
+      } else if (e instanceof CloudError && e.status === 401) {
+        cloud.storeAccount(null);
+        set({ account: null, cloud: { list: [], status: 'idle' } });
+        get().toast('La sessione è scaduta: accedi di nuovo per usare il cloud.', 'info');
+      } else {
+        set({ cloud: { ...get().cloud, status: 'error', error: (e as Error).message } });
+      }
+    }
+  },
+
+  pullCareer: async (id) => {
+    const acc = get().account;
+    if (!acc) return false;
+    set({ busy: 'Scarico la carriera dal cloud…' });
+    try {
+      const { world, meta } = await cloud.downloadCareer(acc, id);
+      await saveCareer(world, meta);
+      await get().refreshCareers();
+      set({ busy: null });
+      return get().openCareer(id);
+    } catch (e) {
+      get().toast(`Download non riuscito: ${(e as Error).message}`, 'err');
+      return false;
+    } finally {
+      set({ busy: null });
+    }
+  },
+
+  resolveConflict: async (keep) => {
+    const { conflict } = get();
+    if (!conflict) return;
+    if (keep === 'local') {
+      set({ conflict: null });
+      await get().saveNow();
+      await get().syncNow(true);
+      get().toast('Versione di questo dispositivo salvata nel cloud.', 'ok');
+    } else {
+      const ok = await get().pullCareer(conflict.id);
+      if (ok) get().toast('Caricata la versione più recente del cloud.', 'ok');
+    }
   },
 
   renameCareer: async (id, name) => {
@@ -340,10 +539,17 @@ export const useGame = create<Store>((set, get) => ({
     const { world, meta } = get();
     if (!world) return;
     if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+    if (meta && get().v === savedV) return;
     const m = metaFrom(world, meta);
+    const v = get().v;
     try {
       await saveCareer(world, m);
+      savedV = v;
       set({ meta: m, lastSaved: Date.now(), saveError: null });
+      if (get().account && !get().conflict) {
+        if (pushTimer) clearTimeout(pushTimer);
+        pushTimer = setTimeout(() => void get().syncNow(), Math.max(1500, PUSH_EVERY_MS - (Date.now() - lastPush)));
+      }
     } catch (e) {
       set({ saveError: (e as Error).message });
     }

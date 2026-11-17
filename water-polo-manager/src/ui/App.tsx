@@ -7,6 +7,7 @@ import { cls, fmtMoney, formatDate, seasonLabel } from './format';
 import { blocker } from '../engine/season/advance';
 import { Logo, LogoMark } from './components/Logo';
 import { FirstRunGuide, GuideModal } from './components/Guide';
+import { CloudStatus, ConflictModal } from './components/Account';
 import { transferWindowOpen } from '../engine/transfer/market';
 import { Dashboard } from './screens/Dashboard';
 import { Squad } from './screens/Squad';
@@ -73,7 +74,7 @@ export function App() {
   useEffect(() => {
     const s = useGame.getState();
     void s.refreshCareers();
-    void s.resumeLast().finally(() => setBooted(true));
+    void s.initAccount().then(() => s.resumeLast()).finally(() => setBooted(true));
   }, []);
   return (
     <>
@@ -143,6 +144,7 @@ function Shell() {
           <View view={view} />
         </main>
         <FirstRunGuide />
+        <ConflictModal />
       </div>
     </div>
   );
@@ -247,6 +249,7 @@ function Sidebar() {
         <SideLink view="notizie" label="Notizie" icon="notizie" />
         <SideLink view="impostazioni" label="Salvataggi" icon="save" />
       </nav>
+      <CloudStatus />
       <div className="px-4 py-3 border-t border-line flex items-center gap-2.5">
         <LogoMark size={26} />
         <div className="min-w-0 leading-tight">
