@@ -187,16 +187,16 @@ export const SPONSOR_NAMES = [
 export const KIT_SPONSORS = ['Swimrun', 'Aquatek', 'Polofit', 'Hydrogear', 'WaveLine', 'Delfinia', 'Tritone Wear', 'Blucap'];
 
 export const INJURIES: { name: string; min: number; max: number; weight: number }[] = [
-  { name: 'Affaticamento muscolare', min: 3, max: 7, weight: 30 },
-  { name: 'Contrattura alla spalla', min: 5, max: 14, weight: 20 },
-  { name: 'Distorsione al dito', min: 4, max: 12, weight: 14 },
-  { name: 'Lombalgia', min: 6, max: 18, weight: 10 },
-  { name: 'Trauma al ginocchio', min: 10, max: 30, weight: 8 },
-  { name: 'Lesione alla cuffia dei rotatori', min: 30, max: 90, weight: 3 },
-  { name: 'Frattura al dito', min: 25, max: 45, weight: 4 },
-  { name: 'Colpo al volto', min: 3, max: 10, weight: 8 },
-  { name: 'Stiramento all’adduttore', min: 10, max: 25, weight: 7 },
-  { name: 'Infiammazione al gomito', min: 7, max: 21, weight: 6 },
-  { name: 'Lussazione alla spalla', min: 40, max: 100, weight: 2 },
-  { name: 'Influenza', min: 3, max: 8, weight: 10 },
+  { name: 'Affaticamento muscolare', min: 2, max: 5, weight: 34 },
+  { name: 'Contrattura alla spalla', min: 4, max: 10, weight: 20 },
+  { name: 'Distorsione al dito', min: 3, max: 8, weight: 14 },
+  { name: 'Lombalgia', min: 4, max: 12, weight: 9 },
+  { name: 'Trauma al ginocchio', min: 8, max: 20, weight: 4 },
+  { name: 'Lesione alla cuffia dei rotatori', min: 25, max: 60, weight: 1 },
+  { name: 'Frattura al dito', min: 20, max: 35, weight: 2 },
+  { name: 'Colpo al volto', min: 2, max: 7, weight: 10 },
+  { name: 'Stiramento all’adduttore', min: 7, max: 18, weight: 4 },
+  { name: 'Infiammazione al gomito', min: 5, max: 14, weight: 4 },
+  { name: 'Lussazione alla spalla', min: 30, max: 70, weight: 0.5 },
+  { name: 'Influenza', min: 2, max: 6, weight: 10 },
 ];

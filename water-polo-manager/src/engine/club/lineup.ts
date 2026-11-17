@@ -2,7 +2,6 @@
 
 import type { Club, Lineup, Player, World } from '../types';
 import { slotSuitability } from '../player/attributes';
-import { leagueRules } from '../data/config';
 
 export function isAvailable(p: Player | undefined): p is Player {
   return !!p && !p.injury && p.suspension <= 0 && !p.retired;
@@ -13,15 +12,6 @@ export function slotValue(p: Player, slot: number): number {
   const cond = 0.75 + 0.25 * (p.condition / 100);
   const morale = 0.95 + 0.1 * (p.morale / 100);
   return p.overall * slotSuitability(p.role, p.hand, slot) * cond * morale;
-}
-
-export function foreignLimit(world: World, club: Club): number {
-  if (club.country !== 'ITA') return 13;
-  try {
-    return leagueRules(world.rules, club.division).foreignersOnSheet;
-  } catch {
-    return 13;
-  }
 }
 
 export function isForeign(p: Player, club: Club): boolean {
@@ -39,14 +29,11 @@ export function autoLineup(world: World, club: Club, opts: { rotate?: boolean } 
       squad.push(y);
     }
   }
-  const limit = foreignLimit(world, club);
-  let foreigners = 0;
   const used = new Set<string>();
   const slots: (string | null)[] = [null, null, null, null, null, null, null];
-  const canUse = (p: Player) => !used.has(p.id) && (!isForeign(p, club) || foreigners < limit);
+  const canUse = (p: Player) => !used.has(p.id);
   const take = (p: Player) => {
     used.add(p.id);
-    if (isForeign(p, club)) foreigners++;
   };
   // Rotazione: chi è molto stanco viene penalizzato.
   const fatigue = (p: Player) => (opts.rotate && p.condition < 75 ? 0.85 : 1);
@@ -117,9 +104,6 @@ export function validateLineup(world: World, club: Club, lineup: Lineup): Lineup
     if (p.injury) issues.push({ level: 'error', text: `${p.firstName} ${p.lastName} è infortunato.` });
     if (p.suspension > 0) issues.push({ level: 'error', text: `${p.firstName} ${p.lastName} è squalificato.` });
   }
-  const limit = foreignLimit(world, club);
-  const foreign = ids.filter((id) => world.players[id] && isForeign(world.players[id], club)).length;
-  if (foreign > limit) issues.push({ level: 'error', text: `Troppi stranieri a referto: ${foreign} (massimo ${limit}).` });
   if (!lineup.bench.some((id) => world.players[id]?.role === 'POR')) issues.push({ level: 'warning', text: 'Nessun portiere di riserva in panchina.' });
   for (let i = 0; i < 7; i++) {
     const p = lineup.slots[i] ? world.players[lineup.slots[i]!] : null;

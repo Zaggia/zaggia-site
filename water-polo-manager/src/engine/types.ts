@@ -436,7 +436,6 @@ export interface LeagueRules {
   startDate: string;
   prizeByPosition: number[];
   promotionPrize: number;
-  foreignersOnSheet: number;
   /** Livello medio delle rose (per la generazione del mondo). */
   strength: [number, number];
   /** Fasce di budget e reputazione (per la generazione). */

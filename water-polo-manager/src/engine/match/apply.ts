@@ -90,7 +90,7 @@ export function applyMatch(world: World, f: Fixture, st: MatchState): MatchRepor
       }
       // Condizione fisica: il calo dipende dai minuti e dalla resistenza.
       const mins = l.seconds / 60;
-      p.condition = clamp(p.condition - mins * (1.25 - p.attrs.resistenza / 220) * (1.1 - club.fitnessPrep / 500), 25, 100);
+      p.condition = clamp(p.condition - mins * 0.55 * (1.25 - p.attrs.resistenza / 220) * (1.1 - club.fitnessPrep / 500), 45, 100);
       p.experience = clamp(p.experience + mins * 0.01 * (0.5 + f.importance), 0, 100);
       p.playingTime = p.playingTime * 0.8 + 0.2 * clamp(mins / 24, 0, 1);
       // Morale: risultato, prestazione, premio di migliore in campo.

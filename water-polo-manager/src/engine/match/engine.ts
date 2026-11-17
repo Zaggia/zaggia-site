@@ -479,12 +479,12 @@ function tick(st: MatchState, seconds: number, attacker: 0 | 1, rng: Rng) {
       if (water.has(i)) {
         ps.line.seconds += t;
         const isGk = side.slots[0] === i;
-        const drain = 0.0105 * (t / 20) * (1.25 - pl.attrs.resistenza / 200) * fxE * prep * (isGk ? 0.3 : 1);
+        const drain = 0.0072 * (t / 20) * (1.25 - pl.attrs.resistenza / 200) * fxE * prep * (isGk ? 0.3 : 1);
         ps.energy = Math.max(0.15, ps.energy - drain);
-        // Infortunio (raro, più probabile se stanchi).
-        if (rng.chance(0.00022 * (t / 20) * (1.6 - ps.energy) * (isGk ? 0.4 : 1))) injure(st, s, i, rng);
+        // Infortunio: in pallanuoto è raro (sport senza impatti col terreno), un po' più probabile se stanchi.
+        if (rng.chance(0.00005 * (t / 20) * (1.6 - ps.energy) * (isGk ? 0.4 : 1))) injure(st, s, i, rng);
       } else {
-        ps.energy = Math.min(ps.maxEnergy, ps.energy + 0.014 * (t / 20) * (0.5 + pl.attrs.recupero / 100));
+        ps.energy = Math.min(ps.maxEnergy, ps.energy + 0.02 * (t / 20) * (0.5 + pl.attrs.recupero / 100));
       }
     }
     side.momentum *= 0.85;

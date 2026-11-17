@@ -4,7 +4,7 @@ import { useGame, useWorld } from '../../store/game';
 import { Avatar } from '../components/Avatar';
 import { Badge, Bar, Button, Modal, Ovr, PageHeader, Panel } from '../components/ui';
 import { SLOT_LABELS, SLOT_NAMES, SLOT_SHORT, slotSuitability, ROLE_SHORT } from '../../engine/player/attributes';
-import { autoLineup, isAvailable, validateLineup, foreignLimit, isForeign } from '../../engine/club/lineup';
+import { autoLineup, isAvailable, validateLineup, isForeign } from '../../engine/club/lineup';
 import type { Lineup, Player } from '../../engine/types';
 import { cls } from '../format';
 import { nextFixture } from '../../engine/world/queries';
@@ -61,7 +61,6 @@ export function LineupScreen() {
       return b.overall - a.overall;
     });
   const unavailable = squad.filter((p) => p.injury != null || p.suspension > 0);
-  const foreignCount = [...inUse].filter((id) => world.players[id] && isForeign(world.players[id], club)).length;
 
   return (
     <div>
@@ -164,7 +163,7 @@ export function LineupScreen() {
               </ul>
             </Panel>
           )}
-          <Panel title={sel == null ? 'Giocatori disponibili' : sel === 'bench' ? 'Scegli chi va in panchina' : `Scegli: ${SLOT_LABELS[sel]}`} subtitle={`Stranieri a referto: ${foreignCount}/${foreignLimit(world, club)}`}>
+          <Panel title={sel == null ? 'Giocatori disponibili' : sel === 'bench' ? 'Scegli chi va in panchina' : `Scegli: ${SLOT_LABELS[sel]}`} subtitle="Nessun limite di stranieri: schiera chi vuoi.">
             <div className="space-y-1 max-h-[640px] overflow-y-auto pr-1">
               {candidates.map((p) => {
                 const where = l.slots.indexOf(p.id) >= 0 ? SLOT_SHORT[l.slots.indexOf(p.id)] : l.bench.includes(p.id) ? 'PAN' : '';

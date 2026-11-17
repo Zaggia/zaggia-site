@@ -71,7 +71,6 @@ function Rules({ world }: { world: World }) {
               {l.postseason.map((p) => (
                 <li key={p.id}>• {p.name}: posizioni {p.positions.join(', ')} {p.scope === 'perGroup' ? 'di ogni girone' : ''} — {p.rounds.map((r) => `${r.name} (${r.bestOf > 1 ? `al meglio di ${r.bestOf}` : 'gara secca'})`).join(', ')}{p.purpose === 'promotion' ? ' → promozione' : p.purpose === 'playout' ? ' → chi perde retrocede' : ' → scudetto'}</li>
               ))}
-              <li>• Stranieri a referto: massimo {l.foreignersOnSheet}</li>
               <li>• Premio al primo posto {fmtMoney(l.prizeByPosition[0] ?? 0)}{l.promotionPrize ? ` · premio promozione ${fmtMoney(l.promotionPrize)}` : ''}</li>
             </ul>
           </Panel>

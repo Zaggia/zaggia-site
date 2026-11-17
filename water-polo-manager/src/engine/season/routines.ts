@@ -32,15 +32,15 @@ export function dailyPlayers(world: World) {
   for (const p of Object.values(world.players)) {
     if (p.retired) continue;
     const f = p.clubId ? clubRecovery.get(p.clubId) ?? 1 : 1;
-    if (p.condition < 100) p.condition = Math.min(100, p.condition + 6.5 * (0.6 + p.attrs.recupero / 150) * f);
+    if (p.condition < 100) p.condition = Math.min(100, p.condition + 12 * (0.6 + p.attrs.recupero / 150) * f);
     if (p.injury) {
       p.injury.daysLeft -= 1;
       if (p.injury.daysLeft <= 0) {
         if (p.clubId === world.userClubId) addMessage(world, 'infortuni', `${fullName(p)} è guarito`, 'Il giocatore è di nuovo a disposizione.', { link: { view: 'player', id: p.id } });
         p.injury = undefined;
-        p.condition = Math.min(p.condition, 80);
+        p.condition = Math.min(p.condition, 90);
       } else {
-        p.condition = Math.min(p.condition, 60);
+        p.condition = Math.min(p.condition, 75);
       }
     }
   }
@@ -66,7 +66,7 @@ export function weeklyTraining(world: World, rng: Rng) {
     developWeekly(world, p, ctx, rng);
     if (!p.clubId || p.injury) continue;
     const club = world.clubs[p.clubId];
-    const risk = 0.0018 * (club.training.intensity === 'alta' ? 1.6 : club.training.intensity === 'bassa' ? 0.6 : 1) *
+    const risk = 0.0003 * (club.training.intensity === 'alta' ? 1.6 : club.training.intensity === 'bassa' ? 0.6 : 1) *
       (1.25 - club.facilities.palestra.level * 0.06) * (p.condition < 70 ? 1.5 : 1);
     if (rng.chance(risk)) injuryFor(world, p, rng, 0.7);
   }
