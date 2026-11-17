@@ -1,3 +1,4 @@
+import { Icon } from '../components/icons';
 import { useWorld } from '../../store/game';
 import { Crest } from '../components/Crest';
 import { Badge, DataTable, Empty, PageHeader, Panel, Stat } from '../components/ui';
@@ -51,7 +52,7 @@ export function HistoryScreen() {
       <Panel title="Bacheca">
         {club.honours.length ? (
           <div className="flex flex-wrap gap-2">
-            {[...club.honours].reverse().map((h, i) => <Badge key={i} tone="gold">🏆 {h.label} {seasonLabel(h.season)}</Badge>)}
+            {[...club.honours].reverse().map((h, i) => <Badge key={i} tone="gold"><Icon name="competizioni" size={12} weight="fill" /> {h.label} {seasonLabel(h.season)}</Badge>)}
           </div>
         ) : <Empty>La bacheca è ancora vuota: la prima promozione sarà il primo trofeo.</Empty>}
       </Panel>

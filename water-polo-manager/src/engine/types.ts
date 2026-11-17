@@ -106,6 +106,8 @@ export interface Player {
   role: Role;
   hand: Hand;
   capNumber: number;
+  /** Giocatore reale (nome, ruolo e nazionalità dalle rose pubbliche); le caratteristiche sono stimate dal gioco. */
+  real?: boolean;
   attrs: Attributes;
   overall: number;
   /** Potenziale reale (nascosto: l'interfaccia mostra stime in base allo scouting). */

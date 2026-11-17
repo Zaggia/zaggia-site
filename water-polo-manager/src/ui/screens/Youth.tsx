@@ -1,5 +1,6 @@
 import { useGame, useWorld } from '../../store/game';
-import { Badge, Button, DataTable, Kv, PageHeader, Panel } from '../components/ui';
+import { ArtBanner, Badge, Button, DataTable, Kv, Panel } from '../components/ui';
+import { ART } from '../art';
 import { PlayerName } from '../components/game';
 import { ROLE_SHORT, GROUP_LABELS } from '../../engine/player/attributes';
 import { ageOf } from '../../engine/player/value';
@@ -52,7 +53,9 @@ export function YouthScreen() {
   ];
   return (
     <div className="space-y-5">
-      <PageHeader title="Settore giovanile" subtitle={`${youth.length} ragazzi · ${FACILITIES.giovanile.levels[lvl - 1]}`} actions={<Button variant="outline" onClick={() => s.go('strutture')}>Migliora il vivaio</Button>} />
+      <ArtBanner image={ART.giovanile} title="Settore giovanile" className="mb-5" actions={<Button variant="outline" onClick={() => s.go('strutture')}>Migliora il vivaio</Button>}>
+        {youth.length} ragazzi, {FACILITIES.giovanile.levels[lvl - 1].toLowerCase()}. I giovani non contano nei 15 della prima squadra.
+      </ArtBanner>
       <div className="grid lg:grid-cols-3 gap-5">
         <Panel title="Il vivaio">
           <Kv k="Livello" v={`${lvl} · ${FACILITIES.giovanile.levels[lvl - 1]}`} />

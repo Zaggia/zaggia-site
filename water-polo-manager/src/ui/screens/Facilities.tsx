@@ -1,5 +1,6 @@
 import { useGame, useWorld } from '../../store/game';
-import { Badge, Bar, Button, PageHeader, Panel } from '../components/ui';
+import { ArtBanner, Badge, Bar, Button, Panel } from '../components/ui';
+import { ART, FACILITY_ART } from '../art';
 import { FACILITIES, FACILITY_KEYS, MAX_FACILITY_LEVEL, maxFacilityLevel, upgradeCost, poolCapacity, sponsorSlots } from '../../engine/club/facilities';
 import { canUpgrade, startUpgrade } from '../../engine/club/manage';
 import { clubLevel, clubLevelThresholds } from '../../engine/tactics/tactics';
@@ -27,7 +28,7 @@ export function FacilitiesScreen() {
   const maxLvl = maxFacilityLevel(club);
   return (
     <div className="space-y-5">
-      <PageHeader title="Strutture" subtitle={`Livello società ${lvl} · costruibile fino al livello ${maxLvl}`} />
+      <ArtBanner image={ART.uffici} title="Strutture">Livello società {lvl}: puoi costruire fino al livello {maxLvl}. Strutture migliori significano più incassi, giocatori più forti e meno infortuni.</ArtBanner>
       <Panel title="Sviluppo della società" subtitle="I punti sviluppo arrivano da stagioni giocate, promozioni, trofei, coppe europee e lavori alle strutture.">
         <div className="grid grid-cols-5 lg:grid-cols-10 gap-2 pt-1">
           {th.map((t, i) => (
@@ -47,7 +48,16 @@ export function FacilitiesScreen() {
           const err = canUpgrade(world, club, k);
           const cost = f.level < MAX_FACILITY_LEVEL ? upgradeCost(club, k) : 0;
           return (
-            <Panel key={k} title={info.name} actions={<Badge tone="aqua">Livello {f.level}/{MAX_FACILITY_LEVEL}</Badge>}>
+            <Panel key={k} pad={false} className="overflow-hidden">
+              <div className="relative h-36">
+                <img src={FACILITY_ART[k]} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+                <div className="absolute inset-0 art-fade-bottom" />
+                <div className="absolute left-4 right-4 bottom-2 flex items-end justify-between gap-2">
+                  <h3 className="font-display text-2xl font-bold uppercase tracking-wide leading-none">{info.name}</h3>
+                  <Badge tone="aqua" className="bg-abyss/70">Livello {f.level}/{MAX_FACILITY_LEVEL}</Badge>
+                </div>
+              </div>
+              <div className="px-4 pb-4 pt-2">
               <p className="text-xs text-mute">{info.desc}</p>
               <div className="flex gap-1 my-3">
                 {Array.from({ length: MAX_FACILITY_LEVEL }).map((_, i) => <span key={i} className={`h-2 flex-1 rounded-full ${i < f.level ? 'bg-aqua' : i < maxLvl ? 'bg-white/15' : 'bg-white/5'}`} />)}
@@ -71,6 +81,7 @@ export function FacilitiesScreen() {
                   {err && <div className="text-[11px] text-warn mt-1">{err}</div>}
                 </div>
               ) : <div className="mt-3 text-xs text-gold">Livello massimo raggiunto.</div>}
+              </div>
             </Panel>
           );
         })}

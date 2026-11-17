@@ -1,3 +1,5 @@
+import { ART } from '../art';
+import { Icon } from '../components/icons';
 import { useGame, useWorld } from '../../store/game';
 import { Crest } from '../components/Crest';
 import { Badge, Button, Kv, Panel, Stat } from '../components/ui';
@@ -30,13 +32,14 @@ export function ReviewScreen() {
   return (
     <div className="space-y-5 max-w-5xl mx-auto">
       <section className="panel relative overflow-hidden text-center p-8 fade-in">
-        <div className="absolute inset-0 water-bg opacity-30" />
+        <img src={ART.trofeo} alt="" className="absolute inset-0 h-full w-full object-cover opacity-35" />
+        <div className="absolute inset-0 bg-gradient-to-b from-panel/60 via-panel/85 to-panel" />
         <div className="relative">
-          <div className="text-aqua uppercase tracking-[0.3em] text-xs font-semibold">Fine della stagione {seasonLabel(summary.season)}</div>
+          <div className="text-gold text-sm font-semibold">Fine della stagione {seasonLabel(summary.season)}</div>
           <Crest spec={club.crest} size={90} className="mx-auto mt-4" />
           <h1 className="font-display text-5xl font-extrabold mt-3">{rec.outcome}</h1>
           <p className="text-mute mt-2">{rec.division === 'C' ? 'Serie C' : rec.division === 'B' ? 'Serie B' : `Serie ${rec.division}`}{rec.group ? ` · ${rec.group}` : ''} · {rec.points} punti ({rec.w}V {rec.d}N {rec.l}P) · gol {rec.gf}-{rec.ga}</p>
-          {rec.cups.length > 0 && <div className="mt-3 flex justify-center gap-2">{rec.cups.map((c) => <Badge key={c} tone="gold">🏆 {c}</Badge>)}</div>}
+          {rec.cups.length > 0 && <div className="mt-3 flex justify-center gap-2">{rec.cups.map((c) => <Badge key={c} tone="gold"><Icon name="competizioni" size={12} weight="fill" /> {c}</Badge>)}</div>}
         </div>
       </section>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

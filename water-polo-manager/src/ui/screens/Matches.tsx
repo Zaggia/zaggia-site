@@ -1,6 +1,8 @@
+import { Icon } from '../components/icons';
+import { ART } from '../art';
 import { useGame, useWorld } from '../../store/game';
 import { Crest } from '../components/Crest';
-import { Badge, Button, Empty, PageHeader, Panel, ResultDots } from '../components/ui';
+import { ArtBanner, Badge, Button, Empty, Panel, ResultDots } from '../components/ui';
 import { ClubName, FixtureLine } from '../components/game';
 import { blocker, availableCount } from '../../engine/season/advance';
 import { RosterNotice } from '../components/RosterNotice';
@@ -27,7 +29,7 @@ export function MatchesScreen() {
   const focus = today ?? next;
   return (
     <div className="space-y-5">
-      <PageHeader title="Partite" subtitle={`${played.length} giocate · ${upcoming.length} da giocare in stagione`} />
+      <ArtBanner image={ART.partita} title="Partite">{played.length} giocate, {upcoming.length} da giocare in stagione.</ArtBanner>
       {b?.reason === 'roster' && <RosterNotice />}
       {focus ? <MatchPrep world={world} f={focus} isToday={!!today} /> : <Panel><Empty>Nessuna partita in programma: la stagione riprenderà presto.</Empty></Panel>}
       <div className="grid lg:grid-cols-2 gap-5">
@@ -80,7 +82,7 @@ function MatchPrep({ world, f, isToday }: { world: World; f: Fixture; isToday: b
           </div>
           {issues.length > 0 && (
             <ul className="mt-2 space-y-0.5 text-xs">
-              {issues.slice(0, 5).map((i, k) => <li key={k} className={i.level === 'error' ? 'text-bad' : 'text-warn'}>{i.level === 'error' ? '✖' : '⚠'} {i.text}</li>)}
+              {issues.slice(0, 5).map((i, k) => <li key={k} className={i.level === 'error' ? 'text-bad' : 'text-warn'}><Icon name={i.level === 'error' ? 'cross' : 'warn'} size={14} className="inline align-[-2px] mr-1" />{i.text}</li>)}
             </ul>
           )}
           <div className="flex flex-wrap gap-2 mt-3">

@@ -3,6 +3,7 @@
 import { ITALIAN_CITIES, type City } from '../data/cities';
 import { FOREIGN_CITY_SIZE, REAL_FOREIGN, REAL_LEAGUES } from '../data/realClubs';
 import { crestFor } from '../club/crest';
+import { REAL_ROSTERS } from '../data/realPlayers';
 import { DEFAULT_RULES, DIFFICULTIES } from '../data/config';
 import { NATIONS } from '../data/names';
 import { Rng } from '../rng';
@@ -131,6 +132,7 @@ export function createWorld(opts: NewCareerOptions): World {
         foreignChance: rules.tier === 1 ? 0.22 : rules.tier === 2 ? 0.08 : 0.03,
         staffRoles: rules.tier === 1 ? 8 : rules.tier === 2 ? 6 : rules.tier === 3 ? 4 : 2,
         colors: rc?.colors,
+        realRoster: rc ? REAL_ROSTERS[rc.name]?.players : undefined,
         crest: rc ? crestFor(rc.name, short, rc.colors) : undefined,
         founded: rc?.founded,
         philosophy: rc?.philosophy,
@@ -219,6 +221,7 @@ export function createWorld(opts: NewCareerOptions): World {
       staffRoles: 8,
       colors: fc.colors,
       crest: crestFor(fc.name, short, fc.colors),
+      realRoster: REAL_ROSTERS[fc.name]?.players,
       poolName: `Piscina di ${fc.city}`,
       rosterSize: world.rules.rosterSize,
     });

@@ -25,7 +25,7 @@ export function StandingsScreen() {
             <div className="flex flex-wrap gap-1.5">
               {comp.phases[0].groups.map((gr, i) => (
                 <button key={gr.name} onClick={() => setGroup(i)} className={cls('px-3 py-1.5 rounded-lg text-sm font-semibold border', g === i ? 'border-aqua text-aqua bg-aqua/10' : 'border-line text-mute hover:text-ink')}>
-                  {gr.name}{gr.clubIds.includes(user.id) ? ' ★' : ''}
+                  {gr.name}{gr.clubIds.includes(user.id) ? ' (il tuo girone)' : ''}
                 </button>
               ))}
             </div>

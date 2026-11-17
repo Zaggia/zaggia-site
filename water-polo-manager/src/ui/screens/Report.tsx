@@ -1,3 +1,4 @@
+import { Icon } from '../components/icons';
 import { useState } from 'react';
 import { useGame, useWorld } from '../../store/game';
 import { Crest } from '../components/Crest';
@@ -59,7 +60,7 @@ function ReportView({ r }: { r: MatchReport }) {
         </div>
         {mvp && (
           <div className="px-5 py-3 border-t border-line flex items-center gap-3 text-sm">
-            <Badge tone="gold">★ Migliore in acqua</Badge>
+            <Badge tone="gold"><Icon name="star" size={12} weight="fill" /> Migliore in acqua</Badge>
             <span className="font-semibold">{mvp.name}</span>
             <span className="text-mute">voto {mvp.rating.toFixed(1)} · {mvp.goals} gol · {mvp.assists} assist{mvp.saves ? ` · ${mvp.saves} parate` : ''}</span>
           </div>
@@ -117,7 +118,7 @@ function PlayerRatings({ title, lines, mvp }: { title: string; lines: PlayerMatc
                   <button className="hover:underline" onClick={() => go('player', l.id)}>
                     <span className="text-faint text-xs mr-1">{l.number}</span>{l.name}
                     <span className="text-faint text-[10px] ml-1">{ROLE_SHORT[l.role]}</span>
-                    {l.id === mvp && <span className="text-gold ml-1">★</span>}
+                    {l.id === mvp && <Icon name="star" size={12} weight="fill" className="inline text-gold ml-1 align-[-1px]" />}
                     {l.fouledOut && <span className="text-bad text-[10px] ml-1">3F</span>}
                     {l.injured && <span className="text-bad ml-1">✚</span>}
                     {l.redCard && <span className="text-bad ml-1">■</span>}

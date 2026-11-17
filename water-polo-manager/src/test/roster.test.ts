@@ -9,6 +9,7 @@ import { fillRoster } from '../engine/ai/clubAI';
 import { resolveEvent } from '../engine/events/events';
 import { worldRng } from '../engine/world/context';
 import { REAL_LEAGUES, REAL_FOREIGN } from '../engine/data/realClubs';
+import { REAL_ROSTERS } from '../engine/data/realPlayers';
 import { ROLES } from '../engine/player/attributes';
 import type { World } from '../engine/types';
 
@@ -29,6 +30,21 @@ describe('società reali, rose da 15 e ruoli della pallanuoto', () => {
     }
     const foreign = new Set(Object.values(w.clubs).filter((c) => c.country !== 'ITA').map((c) => c.name));
     for (const fc of REAL_FOREIGN) expect(foreign.has(fc.name), fc.name).toBe(true);
+  });
+
+  it('i club con una rosa pubblica schierano i loro giocatori veri', () => {
+    const w = newWorld();
+    for (const [name, roster] of Object.entries(REAL_ROSTERS)) {
+      const c = Object.values(w.clubs).find((x) => x.name === name);
+      if (!c) continue;
+      const real = new Set(roster.players.map((p) => p.n));
+      const players = c.playerIds.map((id) => w.players[id]);
+      const reali = players.filter((p) => p.real);
+      expect(reali.length, name).toBeGreaterThanOrEqual(Math.min(13, roster.players.length));
+      for (const p of reali) expect(real.has(`${p.firstName} ${p.lastName}`.trim()), `${name}: ${p.firstName} ${p.lastName}`).toBe(true);
+    }
+    const recco = Object.values(w.clubs).find((x) => x.name === 'Pro Recco')!;
+    expect(recco.playerIds.every((id) => w.players[id].real)).toBe(true);
   });
 
   it('tutte le squadre hanno 15 giocatori con una rosa equilibrata per ruolo', () => {

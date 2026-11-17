@@ -1,6 +1,7 @@
+import { ART } from '../art';
 import { useState } from 'react';
 import { useWorld } from '../../store/game';
-import { Badge, Empty, PageHeader, Panel, Tabs } from '../components/ui';
+import { ArtBanner, Badge, Empty, Panel, Tabs } from '../components/ui';
 import { StandingsTable, ClubName } from '../components/game';
 import { Bracket } from './Standings';
 import type { Competition, World } from '../../engine/types';
@@ -16,7 +17,7 @@ export function CompetitionsScreen() {
   const cur = comps.find((c) => c.id === tab);
   return (
     <div>
-      <PageHeader title="Competizioni" subtitle={`Stagione ${seasonLabel(world.season)}`} />
+      <ArtBanner image={ART.trofeo} title="Competizioni" className="mb-5">Campionato, Coppa Italia, Supercoppa e coppe europee della stagione {seasonLabel(world.season)}.</ArtBanner>
       <Tabs value={tab} onChange={setTab} tabs={[...comps.map((c) => ({ id: c.id, label: c.name })), { id: 'regole', label: 'Regolamenti' }, { id: 'albo', label: 'Albo d’oro' }]} />
       {cur && <CompView world={world} comp={cur} />}
       {tab === 'regole' && <Rules world={world} />}

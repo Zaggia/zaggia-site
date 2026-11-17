@@ -31,6 +31,18 @@ export const NATIONS: Record<string, Nation> = {
   JPN: { code: 'JPN', name: 'Giappone', flag: '🇯🇵', weight: 2, school: 1 },
   CAN: { code: 'CAN', name: 'Canada', flag: '🇨🇦', weight: 1, school: 1 },
   ARG: { code: 'ARG', name: 'Argentina', flag: '🇦🇷', weight: 1, school: 0 },
+  // Nazionalità presenti solo nelle rose reali (non usate per generare nuovi giocatori).
+  RUS: { code: 'RUS', name: 'Russia', flag: '🇷🇺', weight: 0, school: 2 },
+  SVK: { code: 'SVK', name: 'Slovacchia', flag: '🇸🇰', weight: 0, school: 1 },
+  SVN: { code: 'SVN', name: 'Slovenia', flag: '🇸🇮', weight: 0, school: 1 },
+  UKR: { code: 'UKR', name: 'Ucraina', flag: '🇺🇦', weight: 0, school: 1 },
+  ARM: { code: 'ARM', name: 'Armenia', flag: '🇦🇲', weight: 0, school: 0 },
+  BUL: { code: 'BUL', name: 'Bulgaria', flag: '🇧🇬', weight: 0, school: 0 },
+  BLR: { code: 'BLR', name: 'Bielorussia', flag: '🇧🇾', weight: 0, school: 0 },
+  ISR: { code: 'ISR', name: 'Israele', flag: '🇮🇱', weight: 0, school: 0 },
+  AUT: { code: 'AUT', name: 'Austria', flag: '🇦🇹', weight: 0, school: 0 },
+  GBR: { code: 'GBR', name: 'Gran Bretagna', flag: '🇬🇧', weight: 0, school: 0 },
+  CZE: { code: 'CZE', name: 'Repubblica Ceca', flag: '🇨🇿', weight: 0, school: 0 },
 };
 
 type Pool = { first: string[]; last: string[] };

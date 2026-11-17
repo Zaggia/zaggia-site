@@ -1,3 +1,4 @@
+import type { RealPlayer } from '../data/realPlayers';
 import { FANS_NAMES } from '../data/cities';
 import { NATIONS } from '../data/names';
 import { generatePlayer } from '../player/generate';
@@ -40,6 +41,8 @@ export interface ClubSeed {
   foreignChance: number;
   staffRoles: number;
   rosterSize?: number;
+  /** Rosa reale (se disponibile): i giocatori veri del club. */
+  realRoster?: RealPlayer[];
   balance?: number;
   philosophy?: ClubPhilosophy;
 }
@@ -76,6 +79,63 @@ export function generateRoster(ctx: GenCtx, clubId: string, level: number, count
     players.push(p);
   });
   assignNumbers(players);
+  assignStatuses(players);
+  return players;
+}
+
+const REAL_ROLE: Record<string, Role> = { P: 'POR', CB: 'CEN', CV: 'CVA', D: 'DIF', U: 'UNI' };
+const TARGET: Partial<Record<Role, number>> = { POR: 2, CEN: 2, DIF: 2, CVA: 2, MAN: 2, ALA: 3, UNI: 2 };
+
+/** Divide "Nome Cognome": il primo nome resta tale, il resto è il cognome (es. "Francesco Di Fulvio"). */
+export function splitName(full: string): [string, string] {
+  const parts = full.trim().split(/\s+/);
+  if (parts.length === 1) return ['', parts[0]];
+  return [parts[0], parts.slice(1).join(' ')];
+}
+
+/**
+ * Rosa con i giocatori reali del club: nomi, nazionalità, ruolo ed età vengono dalle rose pubbliche,
+ * le caratteristiche sono stimate dal livello della squadra. Si tengono 15 giocatori (2 portieri);
+ * se la rosa pubblica è incompleta, i posti mancanti vanno a giocatori generati.
+ */
+export function generateRealRoster(ctx: GenCtx, clubId: string, level: number, country: string, real: RealPlayer[], size: number, foreignChance: number): Player[] {
+  const gks = real.filter((r) => r.r === 'P').slice(0, 2);
+  const field = real.filter((r) => r.r !== 'P').slice(0, size - Math.max(2, gks.length));
+  const chosen = [...gks, ...field].slice(0, size);
+  const count = (roles: Role[], r: Role) => roles.filter((x) => x === r).length;
+  const roles: Role[] = [];
+  // Prima i ruoli dichiarati, poi gli attaccanti e chi non ha ruolo nei ruoli ancora scoperti.
+  const assigned = chosen.map((r) => REAL_ROLE[r.r] ?? null);
+  assigned.forEach((r) => { if (r) roles.push(r); });
+  const need = (pool: Role[]) => pool.reduce((best, r) => ((TARGET[r] ?? 0) - count(roles, r) > (TARGET[best] ?? 0) - count(roles, best) ? r : best), pool[0]);
+  chosen.forEach((r, i) => {
+    if (assigned[i]) return;
+    const role = r.r === 'A' ? need(['ALA', 'MAN', 'UNI']) : need(['ALA', 'MAN', 'UNI', 'CEN', 'DIF', 'CVA']);
+    assigned[i] = role;
+    roles.push(role);
+  });
+  const players: Player[] = chosen.map((r, i) => {
+    const role = assigned[i]!;
+    const [firstName, lastName] = splitName(r.n);
+    const age = r.y ? clamp(ctx.season - r.y, 16, 42) : clamp(Math.round(ctx.rng.gauss(25, 4)), 18, 35);
+    const nat = r.c && NATIONS[r.c] ? r.c : country;
+    // Gli stranieri nei club italiani sono di norma tra i più forti; i primi portieri sono i titolari.
+    // Chi ha una voce enciclopedica (nazionali, olimpionici) è un giocatore affermato: livello più alto.
+    const boost = (r.f ? 5 : -2) + (nat !== country ? 2 : 0) + (role === 'POR' && i === 0 ? 1 : 0) + ctx.rng.gauss(0, 3.5);
+    const p = generatePlayer(ctx, { level: level + boost, role, age, clubId, nationality: nat, firstName, lastName, real: true, contractYears: ctx.rng.int(1, 3) });
+    if (role === 'MAN') p.hand = 'L';
+    return p;
+  });
+  // Posti scoperti (rosa pubblica incompleta): giocatori generati nei ruoli mancanti.
+  const missing: Role[] = [];
+  for (const [r, n] of Object.entries(TARGET) as [Role, number][]) for (let k = count(roles, r); k < n; k++) missing.push(r);
+  while (players.length < size) {
+    const role = missing.shift() ?? 'UNI';
+    players.push(generatePlayer(ctx, { level: level - 3 + ctx.rng.gauss(0, 4), role, clubId, foreignChance, contractYears: ctx.rng.int(1, 2) }));
+  }
+  assignNumbers(players);
+  // Dove la rosa pubblica indica il numero di calottina, si usa quello.
+  chosen.forEach((r, i) => { if (r.num && r.num > 0 && r.num < 30 && !players.some((p, j) => j !== i && p.capNumber === r.num)) players[i].capNumber = r.num; });
   assignStatuses(players);
   return players;
 }
@@ -190,7 +250,9 @@ export function generateClub(ctx: GenCtx, seed: ClubSeed): GeneratedClub {
     pendingPenalty: 0,
   };
   const size = seed.rosterSize ?? 15;
-  const players = generateRoster(ctx, id, seed.level, seed.country, seed.foreignChance, size);
+  const players = seed.realRoster?.length
+    ? generateRealRoster(ctx, id, seed.level, seed.country, seed.realRoster, size, seed.foreignChance)
+    : generateRoster(ctx, id, seed.level, seed.country, seed.foreignChance, size);
   club.playerIds = players.map((p) => p.id);
   const youth = generateYouth(ctx, id, academyMean(facilities.giovanile.level, 30, club.reputation), seed.isUser ? 3 : ctx.rng.int(2, 4), facilities.giovanile.level);
   club.youthIds = youth.map((p) => p.id);

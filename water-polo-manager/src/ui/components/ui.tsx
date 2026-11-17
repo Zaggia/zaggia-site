@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { NATIONS } from '../../engine/data/names';
 import { cls, ratingColor } from '../format';
+import { Icon } from './icons';
 
 export function Button({
   children, onClick, variant = 'primary', size = 'md', disabled, title, className, type = 'button',
@@ -14,15 +15,15 @@ export function Button({
   className?: string;
   type?: 'button' | 'submit';
 }) {
-  const base = 'inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed select-none whitespace-nowrap';
-  const sizes = { sm: 'px-2.5 py-1 text-xs', md: 'px-3.5 py-2 text-sm', lg: 'px-5 py-3 text-base' };
+  const base = 'press inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed select-none whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aqua';
+  const sizes = { sm: 'h-7 px-2.5 text-xs', md: 'h-9 px-3.5 text-sm', lg: 'h-12 px-5 text-base' };
   const variants = {
-    primary: 'bg-gradient-to-b from-aqua to-aqua-2 text-abyss hover:brightness-110 shadow-[0_6px_20px_-8px_#22d3ee]',
-    ghost: 'text-mute hover:text-ink hover:bg-white/5',
-    outline: 'border border-line-2 text-ink hover:border-aqua hover:text-aqua bg-white/[0.02]',
-    danger: 'bg-bad/90 text-white hover:bg-bad',
-    gold: 'bg-gradient-to-b from-gold to-amber-500 text-abyss hover:brightness-110',
-    success: 'bg-good/90 text-abyss hover:bg-good',
+    primary: 'bg-aqua text-abyss hover:bg-[#4ddbee]',
+    ghost: 'text-mute hover:text-ink hover:bg-white/[0.05]',
+    outline: 'border border-line-2 text-ink hover:border-aqua/70 hover:text-aqua bg-transparent',
+    danger: 'bg-bad text-white hover:bg-[#f27272]',
+    gold: 'bg-gold text-abyss hover:bg-[#f6cf55]',
+    success: 'bg-good text-abyss hover:bg-[#4fd690]',
   };
   return (
     <button type={type} title={title} disabled={disabled} onClick={onClick} className={cls(base, sizes[size], variants[variant], className)}>
@@ -35,10 +36,10 @@ export function Panel({ title, children, actions, className, pad = true, subtitl
   return (
     <section className={cls('panel fade-in min-w-0', className)}>
       {(title || actions) && (
-        <header className="flex items-center justify-between gap-3 px-4 pt-3.5 pb-2">
+        <header className="flex items-center justify-between gap-3 px-4 pt-4 pb-2.5">
           <div className="min-w-0">
-            {title && <h3 className="font-display text-[15px] font-bold uppercase tracking-wider text-ink/90">{title}</h3>}
-            {subtitle && <p className="text-xs text-mute mt-0.5">{subtitle}</p>}
+            {title && <h3 className="text-[15px] font-semibold tracking-tight text-ink">{title}</h3>}
+            {subtitle && <p className="text-xs text-mute mt-0.5 leading-relaxed">{subtitle}</p>}
           </div>
           {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
         </header>
@@ -54,8 +55,8 @@ export function PageHeader({ title, subtitle, actions, icon }: { title: ReactNod
       <div className="flex items-center gap-3 min-w-0">
         {icon}
         <div className="min-w-0">
-          <h1 className="font-display text-3xl font-extrabold uppercase tracking-wide leading-none">{title}</h1>
-          {subtitle && <p className="text-sm text-mute mt-1.5">{subtitle}</p>}
+          <h1 className="font-display text-[34px] font-extrabold uppercase tracking-wide leading-none">{title}</h1>
+          {subtitle && <p className="text-sm text-mute mt-2">{subtitle}</p>}
         </div>
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
@@ -73,14 +74,17 @@ export function Badge({ children, tone = 'neutral', className, title }: { childr
     gold: 'bg-gold/15 text-gold border-gold/30',
     violet: 'bg-violet/15 text-violet border-violet/30',
   };
-  return <span title={title} className={cls('inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-semibold whitespace-nowrap', tones[tone], className)}>{children}</span>;
+  return <span title={title} className={cls('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap', tones[tone], className)}>{children}</span>;
 }
 
 export function Ovr({ v, size = 'md', range }: { v: number; size?: 'sm' | 'md' | 'lg'; range?: [number, number] }) {
-  const s = { sm: 'w-8 h-6 text-xs', md: 'w-10 h-8 text-sm', lg: 'w-14 h-12 text-2xl' }[size];
+  const isRange = !!range && range[0] !== range[1];
+  const s = isRange
+    ? { sm: 'min-w-8 px-1.5 h-6 text-[11px]', md: 'min-w-10 px-2 h-8 text-xs', lg: 'min-w-14 px-2.5 h-12 text-xl' }[size]
+    : { sm: 'w-8 h-6 text-xs', md: 'w-10 h-8 text-sm', lg: 'w-14 h-12 text-2xl' }[size];
   const c = ratingColor(v);
   return (
-    <span className={cls('inline-flex items-center justify-center rounded-md font-display font-extrabold num', s)} style={{ background: `${c}22`, color: c, border: `1px solid ${c}55` }}>
+    <span className={cls('inline-flex items-center justify-center rounded-md font-display font-extrabold num whitespace-nowrap', s)} style={{ background: `${c}22`, color: c, border: `1px solid ${c}55` }}>
       {range && range[0] !== range[1] ? `${range[0]}-${range[1]}` : Math.round(v)}
     </span>
   );
@@ -98,10 +102,10 @@ export function Bar({ value, max = 100, color, height = 6, className }: { value:
 export function Stat({ label, value, sub, tone, icon }: { label: ReactNode; value: ReactNode; sub?: ReactNode; tone?: 'good' | 'bad' | 'warn' | 'aqua'; icon?: ReactNode }) {
   const color = tone === 'good' ? 'text-good' : tone === 'bad' ? 'text-bad' : tone === 'warn' ? 'text-warn' : tone === 'aqua' ? 'text-aqua' : 'text-ink';
   return (
-    <div className="panel-flat px-3.5 py-3 min-w-0">
-      <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-mute font-semibold">{icon}{label}</div>
-      <div className={cls('font-display text-2xl font-extrabold num mt-0.5 truncate', color)}>{value}</div>
-      {sub && <div className="text-xs text-mute mt-0.5 truncate">{sub}</div>}
+    <div className="panel-flat px-4 py-3.5 min-w-0">
+      <div className="flex items-center gap-1.5 text-xs text-mute font-medium">{icon}{label}</div>
+      <div className={cls('font-display text-[28px] leading-tight font-bold num mt-1 truncate', color)}>{value}</div>
+      {sub && <div className="text-xs text-faint mt-0.5 truncate">{sub}</div>}
     </div>
   );
 }
@@ -137,8 +141,8 @@ export function Modal({ open, onClose, title, children, wide, footer }: { open: 
         aria-modal
       >
         <header className="flex items-center justify-between px-5 py-3.5 border-b border-line">
-          <h2 className="font-display text-xl font-bold uppercase tracking-wide">{title}</h2>
-          <button onClick={onClose} className="text-mute hover:text-ink text-xl leading-none px-2" aria-label="Chiudi">×</button>
+          <h2 className="font-display text-2xl font-bold uppercase tracking-wide">{title}</h2>
+          <button onClick={onClose} className="text-mute hover:text-ink p-1.5 rounded-md hover:bg-white/5" aria-label="Chiudi"><Icon name="cross" size={18} /></button>
         </header>
         <div className="overflow-y-auto px-5 py-4 flex-1">{children}</div>
         {footer && <footer className="px-5 py-3 border-t border-line flex flex-wrap justify-end gap-2">{footer}</footer>}
@@ -281,5 +285,45 @@ export function Kv({ k, v }: { k: ReactNode; v: ReactNode }) {
       <span className="text-mute">{k}</span>
       <span className="font-semibold text-right">{v}</span>
     </div>
+  );
+}
+
+/** Piccolo aiuto contestuale: icona "i" che mostra una spiegazione al passaggio del mouse o al tocco. */
+export function HelpTip({ children, className }: { children: ReactNode; className?: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className={cls('relative inline-flex align-middle', className)}>
+      <button
+        type="button"
+        aria-label="Spiegazione"
+        className="text-faint hover:text-aqua transition-colors"
+        onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+      >
+        <Icon name="info" size={14} />
+      </button>
+      {open && (
+        <span role="tooltip" className="absolute z-40 left-1/2 -translate-x-1/2 top-6 w-64 rounded-lg border border-line-2 bg-night px-3 py-2 text-xs font-normal normal-case tracking-normal text-mute leading-relaxed shadow-2xl">
+          {children}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** Intestazione illustrata: immagine 2D a destra, testo a sinistra su sfumatura. */
+export function ArtBanner({ image, title, children, actions, className, height = 'h-44 sm:h-52' }: { image: string; title: ReactNode; children?: ReactNode; actions?: ReactNode; className?: string; height?: string }) {
+  return (
+    <section className={cls('panel relative overflow-hidden fade-in', height, className)}>
+      <img src={image} alt="" className="absolute inset-y-0 right-0 h-full w-full sm:w-[72%] object-cover object-center" loading="lazy" />
+      <div className="absolute inset-0 art-fade-left" />
+      <div className="absolute inset-0 bg-panel/60 sm:hidden" />
+      <div className="relative h-full flex flex-col justify-center gap-2 px-5 sm:px-7 max-w-xl">
+        <h1 className="font-display text-[34px] sm:text-[40px] font-extrabold uppercase tracking-wide leading-none">{title}</h1>
+        {children && <div className="text-sm text-mute leading-relaxed">{children}</div>}
+        {actions && <div className="flex flex-wrap gap-2 mt-2">{actions}</div>}
+      </div>
+    </section>
   );
 }

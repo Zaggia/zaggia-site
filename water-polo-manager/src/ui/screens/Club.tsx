@@ -1,3 +1,5 @@
+import { REAL_ROSTERS } from '../../engine/data/realPlayers';
+import { Icon } from '../components/icons';
 import { useGame, useWorld } from '../../store/game';
 import { Crest } from '../components/Crest';
 import { ClubCaps } from '../components/Cap';
@@ -73,7 +75,7 @@ export function ClubScreen() {
             <ClubCaps colors={club.colors} size={58} />
           </Panel>
           <Panel title="Albo">
-            {club.honours.length ? club.honours.slice(-10).reverse().map((h, i) => <div key={i} className="text-sm">🏆 {h.label} <span className="text-faint">{seasonLabel(h.season)}</span></div>) : <Empty>Nessun trofeo recente.</Empty>}
+            {club.honours.length ? club.honours.slice(-10).reverse().map((h, i) => <div key={i} className="text-sm flex items-center gap-1.5"><Icon name="competizioni" size={14} weight="fill" className="text-gold" /> {h.label} <span className="text-faint">{seasonLabel(h.season)}</span></div>) : <Empty>Nessun trofeo recente.</Empty>}
             {club.history.length > 0 && (
               <div className="mt-3 space-y-0.5">
                 {[...club.history].reverse().slice(0, 8).map((h) => <div key={h.season} className="text-xs text-mute">{seasonLabel(h.season)} · {h.division} · {h.outcome}</div>)}
@@ -81,7 +83,7 @@ export function ClubScreen() {
             )}
           </Panel>
         </div>
-        <Panel title={`Rosa (${players.length})`}>
+        <Panel title={`Rosa (${players.length})`} subtitle={REAL_ROSTERS[club.name] ? <>Giocatori reali, rosa {REAL_ROSTERS[club.name].season} da <a className="text-aqua hover:underline" href={REAL_ROSTERS[club.name].source} target="_blank" rel="noreferrer">Wikipedia</a>. Le caratteristiche sono stimate dal gioco.</> : 'Rosa pubblica non disponibile: giocatori generati dal gioco.'}>
           <PlayerTable world={world} players={players} />
         </Panel>
       </div>

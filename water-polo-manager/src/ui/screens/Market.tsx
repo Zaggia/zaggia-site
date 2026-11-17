@@ -1,6 +1,7 @@
+import { ART } from '../art';
 import { useMemo, useState } from 'react';
 import { useGame, useWorld } from '../../store/game';
-import { Badge, Button, DataTable, Empty, Field, Modal, PageHeader, Panel, Tabs } from '../components/ui';
+import { ArtBanner, Badge, Button, DataTable, Empty, Field, Modal, Panel, Tabs } from '../components/ui';
 import { ClubName, PlayerName, PlayerTable } from '../components/game';
 import { ContractModal } from '../components/Negotiation';
 import { ROLES, ROLE_LABELS } from '../../engine/player/attributes';
@@ -23,7 +24,9 @@ export function MarketScreen() {
   const expiring = club.playerIds.map((id) => world.players[id]).filter((p) => p?.contract && p.contract.endSeason <= world.season + 1);
   return (
     <div>
-      <PageHeader title="Calciomercato" subtitle={win.open ? `${win.name} aperto` : 'Mercato chiuso: puoi ingaggiare solo svincolati'} actions={<Badge tone={win.open ? 'good' : 'warn'}>{win.open ? 'Finestra aperta' : 'Finestra chiusa'}</Badge>} />
+      <ArtBanner image={ART.mercato} title="Calciomercato" actions={<Badge tone={win.open ? 'good' : 'warn'}>{win.open ? `${win.name} aperto` : 'Finestra chiusa'}</Badge>} className="mb-5">
+        {win.open ? 'Cerca rinforzi, tratta con i club e rinnova i contratti. Ogni acquisto deve liberare un posto: la rosa è di 15.' : 'Mercato chiuso: puoi ingaggiare solo svincolati.'}
+      </ArtBanner>
       <Tabs value={tab} onChange={setTab} tabs={[
         { id: 'cerca', label: 'Cerca giocatori' },
         { id: 'osservati', label: 'Osservati', count: world.shortlist.length },

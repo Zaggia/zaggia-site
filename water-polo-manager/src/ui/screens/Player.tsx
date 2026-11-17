@@ -55,6 +55,7 @@ function PlayerView({ p }: { p: Player }) {
               <Badge tone="aqua">{ROLE_LABELS[p.role]}</Badge>
               {club ? <ClubName club={club} size={20} /> : <Badge>Svincolato</Badge>}
               {p.youth && <Badge tone="violet">Settore giovanile</Badge>}
+              {p.real && <Badge title="Nome, ruolo e nazionalità dalle rose pubbliche; le caratteristiche sono stimate dal gioco.">Giocatore reale</Badge>}
               <StatusBadges p={p} world={world} />
             </div>
             <div className="text-xs text-mute mt-2">Carattere: {personalityLabel(p.personality)}{p.contract ? ` · contratto fino al ${p.contract.endSeason + 1} (${STATUS_LABELS[p.contract.status].toLowerCase()})` : ''}</div>

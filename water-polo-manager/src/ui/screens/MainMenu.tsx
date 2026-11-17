@@ -3,6 +3,7 @@ import { useGame } from '../../store/game';
 import { Crest } from '../components/Crest';
 import { ClubCaps } from '../components/Cap';
 import { Logo } from '../components/Logo';
+import { ART } from '../art';
 import { Button, Field, Modal, Panel } from '../components/ui';
 import { ITALIAN_CITIES, FANS_NAMES } from '../../engine/data/cities';
 import { DIFFICULTIES } from '../../engine/data/config';
@@ -20,22 +21,22 @@ export function MainMenu() {
   if (wizard) return <NewCareer onCancel={() => setWizard(false)} />;
   return (
     <div className="min-h-full flex flex-col">
-      <div className="relative overflow-hidden border-b border-line">
-        <div className="absolute inset-0 water-bg opacity-40" />
-        <div className="relative max-w-5xl mx-auto px-6 py-14 sm:py-20">
-          <h1 className="sr-only">Water Polo Manager — The Road to Glory</h1>
+      <section className="relative overflow-hidden border-b border-line">
+        <img src={ART.hero} alt="" className="absolute inset-0 h-full w-full object-cover object-[70%_center]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-abyss via-abyss/85 to-abyss/10" />
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-abyss to-transparent" />
+        <div className="relative max-w-6xl mx-auto px-6 pt-16 pb-20 sm:pt-24 sm:pb-28 min-h-[min(640px,88dvh)] flex flex-col justify-center">
+          <h1 className="sr-only">Water Polo Manager, The Road to Glory</h1>
           <Logo size="xl" className="items-center" />
-          <p className="text-mute mt-5 max-w-xl">
-            Sei il presidente di una piccola società di pallanuoto in Serie C. Pochi soldi, una rosa modesta, una piscina comunale.
-            Costruisci una dinastia: dalla Serie C fino alla Champions League.
+          <p className="text-ink/80 mt-6 max-w-md text-lg leading-relaxed">
+            Prendi una società di Serie C e portala fino alla Champions League, contro i club e i campioni veri.
           </p>
           <div className="flex flex-wrap gap-3 mt-8">
             <Button size="lg" onClick={() => setWizard(true)}>Nuova carriera</Button>
             {careers[0] && <Button size="lg" variant="outline" onClick={() => void s.openCareer(careers[0].id)}>Continua: {careers[0].name}</Button>}
           </div>
         </div>
-        <div className="wave h-3 relative" />
-      </div>
+      </section>
       <div className="max-w-5xl w-full mx-auto px-6 py-8">
         <Panel title="Carriere salvate" subtitle="I salvataggi restano nel browser anche dopo la chiusura del gioco.">
           {!careers.length && <p className="text-mute text-sm py-4">Nessuna carriera: creane una nuova per iniziare.</p>}

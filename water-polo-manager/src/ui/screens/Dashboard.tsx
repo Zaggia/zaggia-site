@@ -13,6 +13,9 @@ import { rosterLimit } from '../../engine/club/roster';
 import { RosterNotice } from '../components/RosterNotice';
 import { financialHealth } from '../../engine/economy/finance';
 import { Icon } from '../components/icons';
+import { HelpTip } from '../components/ui';
+import { ART } from '../art';
+import { todoList } from '../../engine/club/todo';
 
 export function Dashboard() {
   const world = useWorld();
@@ -33,7 +36,6 @@ export function Dashboard() {
   const th = clubLevelThresholds();
   const nextTh = th[lvl] ?? th[th.length - 1];
   const prevTh = th[lvl - 1] ?? 0;
-  const pending = world.events.filter((e) => !e.resolved);
   const unread = world.inbox.filter((m) => !m.read).slice(0, 5);
   const health = financialHealth(world, club);
   const b = blocker(world);
@@ -41,38 +43,47 @@ export function Dashboard() {
   return (
     <div className="space-y-5">
       <section className="panel relative overflow-hidden fade-in">
-        <div className="absolute inset-0 opacity-25" style={{ background: `linear-gradient(120deg, ${club.colors[0]} 0%, transparent 60%)` }} />
-        <div className="relative flex flex-wrap items-center gap-5 p-5">
-          <Crest spec={club.crest} size={86} />
+        <img src={ART.piscina} alt="" className="absolute inset-y-0 right-0 h-full w-full md:w-[65%] object-cover opacity-90" />
+        <div className="absolute inset-0 art-fade-left" />
+        <div className="absolute inset-0 bg-panel/60 sm:hidden" />
+        <div className="absolute inset-0 opacity-30 mix-blend-soft-light" style={{ background: `linear-gradient(110deg, ${club.colors[0]} 0%, transparent 55%)` }} />
+        <div className="relative flex flex-wrap items-center gap-5 p-5 sm:p-7">
+          <Crest spec={club.crest} size={88} />
           <div className="flex-1 min-w-[220px]">
-            <div className="text-xs uppercase tracking-[0.2em] text-mute">{divisionOf(world, club)}{pos && comp && comp.phases[0].groups.length > 1 ? ` · ${comp.phases[0].groups[pos.group].name}` : ''} · {seasonLabel(world.season)}</div>
-            <h1 className="font-display text-4xl font-extrabold leading-none mt-1">{club.name}</h1>
-            <div className="text-sm text-mute mt-2">{club.poolName} · {club.city} · tifosi “{club.fansName}”</div>
+            <div className="text-sm text-mute">{divisionOf(world, club)}{pos && comp && comp.phases[0].groups.length > 1 ? `, ${comp.phases[0].groups[pos.group].name}` : ''} · {seasonLabel(world.season)}</div>
+            <h1 className="font-display text-[44px] font-extrabold leading-none mt-1 uppercase tracking-wide">{club.name}</h1>
+            <div className="text-sm text-mute mt-2">{club.poolName}, {club.city}</div>
             <div className="flex flex-wrap items-center gap-2 mt-3">
               <Badge tone="aqua">Obiettivo: {OBJECTIVE_LABELS[club.objective]}</Badge>
               <Badge tone={health.level === 'ok' ? 'good' : health.level === 'warn' ? 'warn' : 'bad'}>{health.label}</Badge>
               {club.recent.length > 0 && <ResultDots recent={club.recent} />}
             </div>
           </div>
-          <div className="w-full sm:w-64">
-            <div className="flex justify-between text-xs text-mute mb-1"><span>Livello società {lvl}</span><span className="num">{club.devPoints} / {nextTh} pt</span></div>
-            <Bar value={club.devPoints - prevTh} max={Math.max(1, nextTh - prevTh)} color="#f5c518" />
-            <p className="text-[11px] text-faint mt-1.5">Sale con promozioni, trofei, stagioni nelle categorie alte e strutture. Sblocca strutture, tattiche e sponsor.</p>
+          <div className="w-full sm:w-60 rounded-xl bg-abyss/60 backdrop-blur-sm border border-line px-4 py-3">
+            <div className="flex justify-between text-xs text-mute mb-1.5"><span className="flex items-center gap-1">Livello società {lvl} <HelpTip>Sale con promozioni, trofei, stagioni nelle categorie alte e strutture. Ogni livello sblocca strutture, tattiche e sponsor migliori.</HelpTip></span><span className="mono">{club.devPoints}/{nextTh}</span></div>
+            <Bar value={club.devPoints - prevTh} max={Math.max(1, nextTh - prevTh)} color="#f2c230" />
           </div>
         </div>
       </section>
 
       {b?.reason === 'roster' && <RosterNotice />}
-      {((b && b.reason !== 'roster') || pending.length > 0) && (
+      {b?.reason === 'match' && (
         <div className="panel border-gold/40 p-4 flex flex-wrap items-center gap-3 fade-in">
-          <Icon name="warn" className="text-gold" size={22} />
+          <Icon name="ball" className="text-gold" size={24} weight="fill" />
           <div className="flex-1 min-w-[200px]">
-            <div className="font-semibold">{b?.reason === 'match' ? 'Oggi si gioca!' : pending.length ? `${pending.length} decision${pending.length > 1 ? 'i' : 'e'} in attesa` : b?.text}</div>
-            <div className="text-sm text-mute">{b?.reason === 'match' ? 'Controlla formazione e tattiche, poi scendi in vasca.' : pending[0]?.title}</div>
+            <div className="font-semibold">Oggi si gioca</div>
+            <div className="text-sm text-mute">Controlla formazione e tattiche, poi scendi in vasca.</div>
           </div>
-          {b?.reason === 'match' ? <Button variant="gold" onClick={() => go('partite')}>Vai alla partita</Button> : <Button variant="gold" onClick={() => go('posta', 'decisioni')}>Decidi ora</Button>}
+          <Button variant="gold" onClick={() => go('partite')}>Vai alla partita</Button>
         </div>
       )}
+
+      <div className="grid lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] gap-5">
+        <TodoPanel />
+        <Panel title="Prossima partita" actions={next && <Button size="sm" variant="outline" onClick={() => go('partite')}>Prepara</Button>}>
+          {next ? <NextMatch fixtureId={next.id} /> : <p className="text-mute text-sm">Nessuna partita in programma.</p>}
+        </Panel>
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
         <Stat label="Posizione" value={pos && club.recent.length ? `${pos.pos}°` : '—'} sub={groupSize ? `su ${groupSize} squadre` : 'Stagione non iniziata'} tone="aqua" />
@@ -83,10 +94,7 @@ export function Dashboard() {
         <Stat label="Rosa" value={`${players.length}/${rosterLimit(world)}`} sub={`${injured.length} infortunati · ${suspended.length} squalificati`} tone={players.length !== rosterLimit(world) ? 'bad' : undefined} />
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-5">
-        <Panel title="Prossima partita" actions={next && <Button size="sm" variant="outline" onClick={() => go('partite')}>Prepara</Button>}>
-          {next ? <NextMatch fixtureId={next.id} /> : <p className="text-mute text-sm">Nessuna partita in programma.</p>}
-        </Panel>
+      <div className="grid lg:grid-cols-2 gap-5">
         <Panel title="Ultimo risultato" actions={last?.reportId && <Button size="sm" variant="ghost" onClick={() => go('report', last.reportId)}>Tabellino</Button>}>
           {last ? <FixtureLine world={world} f={last} onClick={() => last.reportId && go('report', last.reportId)} /> : <p className="text-mute text-sm">La stagione non è ancora iniziata.</p>}
           <div className="grid grid-cols-2 gap-3 mt-4">
@@ -170,5 +178,34 @@ function NextMatch({ fixtureId }: { fixtureId: string }) {
       </div>
       {opp.recent.length > 0 && <div className="mt-3 flex items-center gap-2 text-xs text-mute">Forma avversario <ResultDots recent={opp.recent} /></div>}
     </div>
+  );
+}
+
+function TodoPanel() {
+  const world = useWorld();
+  const go = useGame((s) => s.go);
+  const items = todoList(world);
+  const dot = { urgent: 'bg-gold', normal: 'bg-aqua', tip: 'bg-faint' } as const;
+  return (
+    <Panel title="Da fare adesso" subtitle={items.length ? 'Le prossime mosse utili, in ordine di urgenza.' : undefined}>
+      {items.length ? (
+        <ul className="divide-y divide-line -mx-1">
+          {items.slice(0, 6).map((t) => (
+            <li key={t.id}>
+              <button className="w-full flex items-center gap-3 px-1 py-2.5 text-left rounded-lg hover:bg-white/[0.03] group" onClick={() => go(t.view as Parameters<typeof go>[0], t.param)}>
+                <span className={cls('h-2 w-2 rounded-full shrink-0', dot[t.tone])} aria-hidden />
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm font-medium truncate">{t.title}</span>
+                  <span className="block text-xs text-mute truncate">{t.detail}</span>
+                </span>
+                <Icon name="next" size={16} className="text-faint group-hover:text-aqua shrink-0" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-mute py-2">Tutto in ordine. Premi <span className="text-ink font-medium">Continua</span> per andare avanti fino alla prossima novità.</p>
+      )}
+    </Panel>
   );
 }

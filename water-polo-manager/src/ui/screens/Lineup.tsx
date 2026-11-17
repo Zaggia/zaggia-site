@@ -1,3 +1,4 @@
+import { Icon } from '../components/icons';
 import { useState } from 'react';
 import { useGame, useWorld } from '../../store/game';
 import { Avatar } from '../components/Avatar';
@@ -98,7 +99,7 @@ export function LineupScreen() {
                     </div>
                     <div className="mt-1 rounded-md bg-abyss/80 px-1.5 py-0.5 text-[11px] leading-tight text-center max-w-full">
                       <div className="font-semibold truncate">{p ? p.lastName : SLOT_NAMES[slot]}</div>
-                      {p && <div className={cls('num', suit < 0.8 ? 'text-warn' : 'text-mute')}>{SLOT_SHORT[slot]} · {p.overall}{suit < 0.8 ? ' ⚠' : ''}</div>}
+                      {p && <div className={cls('num', suit < 0.8 ? 'text-warn' : 'text-mute')}>{SLOT_SHORT[slot]} · {p.overall}{suit < 0.8 ? ' (fuori ruolo)' : ''}</div>}
                     </div>
                   </button>
                 );
@@ -159,7 +160,7 @@ export function LineupScreen() {
           {issues.length > 0 && (
             <Panel title="Controlli">
               <ul className="space-y-1 text-sm">
-                {issues.map((i, k) => <li key={k} className={i.level === 'error' ? 'text-bad' : 'text-warn'}>{i.level === 'error' ? '✖' : '⚠'} {i.text}</li>)}
+                {issues.map((i, k) => <li key={k} className={i.level === 'error' ? 'text-bad' : 'text-warn'}><Icon name={i.level === 'error' ? 'cross' : 'warn'} size={14} className="inline align-[-2px] mr-1" />{i.text}</li>)}
               </ul>
             </Panel>
           )}

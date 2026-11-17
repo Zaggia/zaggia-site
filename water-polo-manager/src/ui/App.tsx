@@ -6,6 +6,7 @@ import { Crest } from './components/Crest';
 import { cls, fmtMoney, formatDate, seasonLabel } from './format';
 import { blocker } from '../engine/season/advance';
 import { Logo, LogoMark } from './components/Logo';
+import { FirstRunGuide, GuideModal } from './components/Guide';
 import { transferWindowOpen } from '../engine/transfer/market';
 import { Dashboard } from './screens/Dashboard';
 import { Squad } from './screens/Squad';
@@ -31,22 +32,38 @@ import { ReviewScreen } from './screens/Review';
 import { SettingsScreen } from './screens/Settings';
 import { divisionOf } from '../engine/world/queries';
 
-const NAV: { view: ViewName; label: string; icon: string }[] = [
-  { view: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
-  { view: 'rosa', label: 'Rosa', icon: 'rosa' },
-  { view: 'formazione', label: 'Formazione', icon: 'formazione' },
-  { view: 'tattiche', label: 'Tattiche', icon: 'tattiche' },
-  { view: 'partite', label: 'Partite', icon: 'partite' },
-  { view: 'calendario', label: 'Calendario', icon: 'calendario' },
-  { view: 'classifica', label: 'Classifica', icon: 'classifica' },
-  { view: 'mercato', label: 'Calciomercato', icon: 'mercato' },
-  { view: 'staff', label: 'Allenatore e staff', icon: 'staff' },
-  { view: 'giovani', label: 'Settore giovanile', icon: 'giovani' },
-  { view: 'strutture', label: 'Strutture', icon: 'strutture' },
-  { view: 'finanze', label: 'Finanze', icon: 'finanze' },
-  { view: 'sponsor', label: 'Sponsor', icon: 'sponsor' },
-  { view: 'competizioni', label: 'Competizioni', icon: 'competizioni' },
-  { view: 'storia', label: 'Storia del club', icon: 'storia' },
+interface NavItem { view: ViewName; label: string; icon: string }
+const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
+  { title: '', items: [{ view: 'dashboard', label: 'Dashboard', icon: 'dashboard' }] },
+  {
+    title: 'Squadra',
+    items: [
+      { view: 'rosa', label: 'Rosa', icon: 'rosa' },
+      { view: 'formazione', label: 'Formazione', icon: 'formazione' },
+      { view: 'tattiche', label: 'Tattiche', icon: 'tattiche' },
+      { view: 'staff', label: 'Allenatore e staff', icon: 'staff' },
+      { view: 'giovani', label: 'Settore giovanile', icon: 'giovani' },
+    ],
+  },
+  {
+    title: 'Gare',
+    items: [
+      { view: 'partite', label: 'Partite', icon: 'partite' },
+      { view: 'calendario', label: 'Calendario', icon: 'calendario' },
+      { view: 'classifica', label: 'Classifica', icon: 'classifica' },
+      { view: 'competizioni', label: 'Competizioni', icon: 'competizioni' },
+    ],
+  },
+  {
+    title: 'Società',
+    items: [
+      { view: 'mercato', label: 'Calciomercato', icon: 'mercato' },
+      { view: 'finanze', label: 'Finanze', icon: 'finanze' },
+      { view: 'sponsor', label: 'Sponsor', icon: 'sponsor' },
+      { view: 'strutture', label: 'Strutture', icon: 'strutture' },
+      { view: 'storia', label: 'Storia del club', icon: 'storia' },
+    ],
+  },
 ];
 
 export function App() {
@@ -124,6 +141,7 @@ function Shell() {
         <main className="flex-1 px-4 sm:px-6 py-5 max-w-[1500px] w-full mx-auto">
           <View view={view} />
         </main>
+        <FirstRunGuide />
       </div>
     </div>
   );
@@ -182,22 +200,25 @@ function Sidebar() {
         </div>
       </button>
       <nav className="flex-1 overflow-y-auto py-2">
-        {NAV.map((n, i) => (
-          <button
-            key={n.view}
-            onClick={() => go(n.view)}
-            className={cls(
-              'w-full flex items-center gap-3 px-4 py-2 text-sm font-medium transition-colors relative',
-              view === n.view ? 'text-aqua bg-aqua/[0.08]' : 'text-mute hover:text-ink hover:bg-white/[0.03]',
-            )}
-          >
-            {view === n.view && <span className="absolute left-0 top-1 bottom-1 w-[3px] rounded-r bg-aqua" />}
-            <span className="w-5 text-[10px] text-faint num">{i + 1}</span>
-            <Icon name={n.icon} />
-            <span className="truncate">{n.label}</span>
-          </button>
+        {NAV_GROUPS.map((g) => (
+          <div key={g.title || 'home'} className="mb-1">
+            {g.title && <div className="px-5 pt-2.5 pb-1 text-[11px] font-medium text-faint">{g.title}</div>}
+            {g.items.map((n) => (
+              <button
+                key={n.view}
+                onClick={() => go(n.view)}
+                className={cls(
+                  'group w-[calc(100%-16px)] mx-2 flex items-center gap-3 px-3 h-8 rounded-lg text-sm font-medium transition-colors',
+                  view === n.view ? 'text-ink bg-aqua/[0.1]' : 'text-mute hover:text-ink hover:bg-white/[0.04]',
+                )}
+              >
+                <Icon name={n.icon} size={18} weight={view === n.view ? 'fill' : 'regular'} className={view === n.view ? 'text-aqua' : 'text-faint group-hover:text-mute'} />
+                <span className="truncate">{n.label}</span>
+              </button>
+            ))}
+          </div>
         ))}
-        <div className="border-t border-line my-2" />
+        <div className="border-t border-line mx-4 my-2" />
         <SideLink view="posta" label="Posta e decisioni" icon="posta" badge={pending || unread} hot={pending > 0} />
         <SideLink view="notizie" label="Notizie" icon="notizie" />
         <SideLink view="impostazioni" label="Salvataggi" icon="save" />
@@ -219,10 +240,9 @@ function SideLink({ view, label, icon, badge, hot }: { view: ViewName; label: st
   return (
     <button
       onClick={() => go(view)}
-      className={cls('w-full flex items-center gap-3 px-4 py-2 text-sm font-medium', cur === view ? 'text-aqua bg-aqua/[0.08]' : 'text-mute hover:text-ink hover:bg-white/[0.03]')}
+      className={cls('group w-[calc(100%-16px)] mx-2 flex items-center gap-3 px-3 h-8 rounded-lg text-sm font-medium transition-colors', cur === view ? 'text-ink bg-aqua/[0.1]' : 'text-mute hover:text-ink hover:bg-white/[0.04]')}
     >
-      <span className="w-5" />
-      <Icon name={icon} />
+      <Icon name={icon} size={18} weight={cur === view ? 'fill' : 'regular'} className={cur === view ? 'text-aqua' : 'text-faint group-hover:text-mute'} />
       <span className="flex-1 text-left truncate">{label}</span>
       {!!badge && <span className={cls('rounded-full px-1.5 text-[10px] font-bold', hot ? 'bg-bad text-white' : 'bg-aqua/20 text-aqua')}>{badge}</span>}
     </button>
@@ -234,6 +254,7 @@ function TopBar() {
   useGame((s) => s.v);
   const s = useGame.getState();
   const [open, setOpen] = useState(false);
+  const [guide, setGuide] = useState(false);
   const club = world.clubs[world.userClubId];
   const b = blocker(world);
   const win = transferWindowOpen(world);
@@ -247,7 +268,7 @@ function TopBar() {
     else void s.continueGame('auto');
   };
   return (
-    <header className="sticky top-0 z-20 border-b border-line bg-night/85 backdrop-blur">
+    <header className="sticky top-0 z-20 border-b border-line bg-abyss/80 backdrop-blur-md">
       <div className="flex items-center gap-3 px-3 sm:px-6 h-16 max-w-[1500px] mx-auto">
         <button className="lg:hidden text-mute hover:text-ink p-1" onClick={() => s.setMenu(true)} aria-label="Menu">
           <Icon name="menu" size={22} />
@@ -264,6 +285,10 @@ function TopBar() {
           </div>
         </div>
         <div className="flex-1" />
+        <button className="text-mute hover:text-aqua p-2 rounded-lg hover:bg-white/5" onClick={() => setGuide(true)} title="Come si gioca" aria-label="Come si gioca">
+          <Icon name="help" size={20} />
+        </button>
+        <GuideModal open={guide} onClose={() => setGuide(false)} />
         <div className="hidden md:flex flex-col items-end mr-2">
           <span className="text-[10px] uppercase tracking-wider text-mute">Saldo</span>
           <span className={cls('font-display text-lg font-bold num', club.finances.balance < 0 ? 'text-bad' : 'text-good')}>{fmtMoney(club.finances.balance)}</span>
@@ -272,30 +297,30 @@ function TopBar() {
           <button
             onClick={onMain}
             className={cls(
-              'h-11 pl-3 sm:pl-4 pr-2 sm:pr-3 rounded-l-xl font-display text-base sm:text-lg font-bold uppercase tracking-wide flex items-center gap-2 transition-all whitespace-nowrap',
-              b ? 'bg-gradient-to-b from-gold to-amber-500 text-abyss' : 'bg-gradient-to-b from-aqua to-aqua-2 text-abyss',
+              'press h-10 pl-3 sm:pl-4 pr-2 sm:pr-3 rounded-l-lg font-display text-base sm:text-lg font-bold uppercase tracking-wide flex items-center gap-2 transition-colors whitespace-nowrap',
+              b ? 'bg-gold text-abyss hover:bg-[#f6cf55]' : 'bg-aqua text-abyss hover:bg-[#4ddbee]',
             )}
           >
             <span className="hidden sm:inline">{label}</span>
             <span className="sm:hidden">{shortLabel}</span>
-            <Icon name={b ? 'warn' : 'forward'} size={18} />
+            <Icon name={b ? 'warn' : 'forward'} size={18} weight="fill" />
           </button>
           <button
             onClick={() => setOpen(!open)}
             disabled={!!b}
-            className={cls('h-11 px-2 rounded-r-xl border-l border-black/20 disabled:opacity-60', b ? 'bg-amber-500 text-abyss' : 'bg-aqua-2 text-abyss')}
+            className={cls('h-10 px-2 rounded-r-lg border-l border-black/20 disabled:opacity-60', b ? 'bg-gold text-abyss' : 'bg-aqua text-abyss')}
             aria-label="Opzioni di avanzamento"
           >
-            ▾
+            <Icon name="next" size={14} weight="bold" className="rotate-90" />
           </button>
           {open && !b && (
-            <div className="absolute right-0 top-12 panel py-1 w-56 z-50" onMouseLeave={() => setOpen(false)}>
+            <div className="absolute right-0 top-12 panel p-1 w-60 z-50" onMouseLeave={() => setOpen(false)}>
               {[
                 { m: 'day' as const, t: 'Avanza di un giorno' },
                 { m: 'week' as const, t: 'Avanza di una settimana' },
                 { m: 'auto' as const, t: 'Fino alla prossima novità' },
               ].map((o) => (
-                <button key={o.m} className="w-full text-left px-4 py-2 text-sm hover:bg-white/5" onClick={() => { setOpen(false); void s.continueGame(o.m); }}>
+                <button key={o.m} className="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-white/5" onClick={() => { setOpen(false); void s.continueGame(o.m); }}>
                   {o.t}
                 </button>
               ))}

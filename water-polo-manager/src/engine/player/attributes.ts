@@ -84,8 +84,8 @@ export const ROLE_SHORT: Record<Role, string> = {
 export const ROLE_DESC: Record<Role, string> = {
   POR: 'Difende la porta e lancia i contropiedi.',
   CEN: 'Gioca spalle alla porta in posizione 6: tira dai due metri e guadagna espulsioni.',
-  DIF: 'Marca il centroboa avversario; in attacco si sistema al centro o sui lati.',
-  CVA: 'Regista in posizione 3: fa girare la palla, tira da fuori e copre il ritorno difensivo.',
+  DIF: 'Specialista della difesa: marca gli attaccanti più pericolosi e il centroboa; in attacco lavora sui lati.',
+  CVA: 'Gioca in posizione 3 davanti al centroboa: imposta, tira da fuori e in difesa marca il boa avversario.',
   MAN: 'Tiratore mancino del lato destro (posizioni 1 e 2), decisivo in superiorità.',
   ALA: 'Gioca vicino ai pali (posizioni 1 e 5): tiri angolati e inserimenti.',
   UNI: 'Jolly capace di coprire tutte le posizioni di movimento.',

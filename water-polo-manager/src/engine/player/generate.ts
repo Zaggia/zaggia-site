@@ -19,6 +19,10 @@ export interface PlayerGenOptions {
   clubId?: string | null;
   contractYears?: number;
   foreignChance?: number;
+  /** Dati anagrafici di un giocatore reale. */
+  firstName?: string;
+  lastName?: string;
+  real?: boolean;
 }
 
 const ROLE_DISTRIBUTION: [Role, number][] = [
@@ -133,8 +137,9 @@ export function generatePlayer(ctx: GenCtx, opts: PlayerGenOptions): Player {
     : Math.max(overall, potentialFor(ctx, overall, age, opts.potentialBonus ?? 0, role === 'POR'));
   const p: Player = {
     id: ctx.newId('p'),
-    firstName: ctx.rng.pick(pool.first),
-    lastName: ctx.rng.pick(pool.last),
+    firstName: opts.firstName ?? ctx.rng.pick(pool.first),
+    lastName: opts.lastName ?? ctx.rng.pick(pool.last),
+    ...(opts.real ? { real: true } : {}),
     nationality,
     birthYear: ctx.season - age,
     height,

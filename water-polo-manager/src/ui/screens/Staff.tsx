@@ -1,6 +1,7 @@
+import { ART } from '../art';
 import { useState } from 'react';
 import { useGame, useWorld } from '../../store/game';
-import { Badge, Bar, Button, DataTable, Empty, Field, Flag, Kv, Modal, PageHeader, Panel, Tabs } from '../components/ui';
+import { ArtBanner, Badge, Bar, Button, DataTable, Empty, Field, Flag, Kv, Modal, Panel, Tabs } from '../components/ui';
 import { COACH_ATTR_LABELS, PHILOSOPHY_DESC, PHILOSOPHY_LABELS, STAFF_EFFECTS, STAFF_LABELS, STAFF_ROLES, coachRating } from '../../engine/staff/coach';
 import { coachDemand, coachInterest, coachSeverance, fireCoach, fireStaff, hireCoach, hireStaff, renewCoach, staffDemand, staffInterest } from '../../engine/club/manage';
 import type { Coach, CoachAttributes, StaffMember, StaffRole } from '../../engine/types';
@@ -14,7 +15,7 @@ export function StaffScreen() {
   const coach = club.coachId ? world.coaches[club.coachId] : null;
   return (
     <div>
-      <PageHeader title="Allenatore e staff" subtitle="Sei il presidente: scegli chi guida la squadra e con quali collaboratori." />
+      <ArtBanner image={ART.allenamento} title="Allenatore e staff" className="mb-5">Sei il presidente: scegli chi guida la squadra e con quali collaboratori. L’allenatore decide quanto bene la squadra impara le tattiche.</ArtBanner>
       <Tabs value={tab} onChange={setTab} tabs={[
         { id: 'allenatore', label: 'Allenatore' },
         { id: 'staff', label: 'Staff tecnico' },
