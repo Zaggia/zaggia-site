@@ -1,11 +1,15 @@
-# Water Polo Manager
+# Water Polo Manager — The Road to Glory
+
+![Water Polo Manager](brand/logo-mark-512.png)
 
 Gestionale di pallanuoto giocabile nel browser. Sei il presidente di una piccola società in **Serie C** e devi costruire una dinastia: promozioni, coppe nazionali, coppe europee. Tutto in italiano.
 
 ## Cosa c'è nel gioco
 
 - **Creazione della società**: nome, abbreviazione, città, colori, stemma (forma, motivo, simbolo), piscina, anno di fondazione, tifosi, obiettivo e difficoltà (Facile, Normale, Difficile, Leggenda). La rosa iniziale è davvero debole (overall 25-50, nessun campione nascosto).
-- **Mondo completo**: 126 società italiane (A1 14, A2 2×12, B 4×12, C 4×10 con gironi geografici) e 40 club esteri, ~3.700 pallanuotisti inventati, allenatori, staff, sponsor.
+- **Società reali**: tutte le squadre sono club veri. Serie A1 (14, da Pro Recco a Roma Vis Nova), Serie A2 (girone Nord e Sud da 12), Serie B (4 gironi da 10) e Serie C (4 gironi geografici da 10, la tua società compresa), più 40 club europei reali per le coppe LEN (Ferencváros, Novi Beograd, Jug Dubrovnik, Barceloneta, Olympiacos…). Gli elenchi sono in `src/engine/data/realClubs.ts`: la composizione di A1/A2 segue la stagione 2025/26, quella di B e C è indicativa e si modifica lì. I giocatori, gli allenatori e gli stemmi sono invece inventati.
+- **Rose da 15 in ogni categoria**: ogni squadra, dalla A1 alla C, tessera esattamente 15 giocatori (2 portieri, 2 centroboa, 2 difensori, 2 centrovasca, 2 mancini, 3 ali, 2 universali). Le società AI restano sempre a quota 15; tu non puoi superare il limite e prima di ogni partita ufficiale la lista deve essere in regola (con il pulsante «Completa la rosa» per i casi urgenti). Il limite è una regola del mondo (`rosterSize`), modificabile.
+- **Ruoli della pallanuoto**: portiere, centroboa (BOA), difensore/marcatore del centroboa (DIF), centrovasca (CV), mancino (MAN, sempre di sinistro), ala, universale. In acqua si gioca con le posizioni numerate 1-6 (1 ala destra, 2 lato destro, 3 centrovasca, 4 lato sinistro, 5 ala sinistra, 6 centroboa); i mancini rendono meglio a destra e in difesa il centroboa avversario è marcato da chi ha le migliori doti difensive.
 - **Regolamenti configurabili** (salvati nella carriera, non cablati nel codice): gironi, punti, promozioni e retrocessioni dirette, playoff scudetto, playoff promozione, playout, Coppa Italia con teste di serie, Supercoppa, LEN Champions League (gironi + Final Four), Euro Cup e Challenger Cup (andata e ritorno), finestre di mercato, licenza nazionale.
 - **Motore partita** possesso per possesso, deterministico (seed salvato): sprint, contropiedi, palle perse, espulsioni temporanee, superiorità e inferiorità numerica, rigori, tre falli gravi, brutalità, infortuni, fatica, cambi, time-out, rigori finali e confronti andata/ritorno. Le probabilità dipendono da caratteristiche dei giocatori in acqua, posizione e mano preferita, energia, morale, forma, affiatamento, allenatore, tattiche e familiarità con esse, fattore campo e importanza della partita.
 - **Cronaca**: risultato immediato, simulazione veloce o cronaca interattiva con cambi, tattiche e time-out durante la gara; tabellino con voti, migliore in acqua e statistiche complete.
@@ -18,6 +22,7 @@ Gestionale di pallanuoto giocabile nel browser. Sei il presidente di una piccola
 - **AI delle società**: mercato, rinnovi entro budget, esoneri e nuovi allenatori, staff, strutture, mecenati e crisi societarie, scelte tattiche in base a rosa e avversario.
 - **Eventi e decisioni presidenziali** con conseguenze reali (il miglior giocatore vuole andarsene, sponsor che si ritira, allenatore sotto pressione, offerta di acquisizione, guasti alla piscina, contestazioni, stipendi arretrati, tornei estivi…).
 - **Ciclo stagionale**: mercato estivo, precampionato, campionato, mercato invernale, playoff e playout, verdetti, premi, invecchiamento, ritiri, nuova stagione. Storia del club, albo d'oro, leggende.
+- **Identità visiva**: logo del gioco (scudo con pallone giallo-blu che emerge dall'acqua e le tre stelle della "road to glory"), favicon e kit grafico in [`brand/`](brand/BRAND.md); ogni società ha stemma generato nei suoi colori e le tre calottine regolamentari (scura, chiara, rossa del portiere).
 - **Salvataggi** automatici in IndexedDB: più carriere, carica, rinomina, elimina, esporta/importa su file. Il gioco riparte da dove l'avevi lasciato anche dopo la chiusura del browser.
 
 ## Architettura
@@ -50,6 +55,7 @@ npm run dev          # http://localhost:5173
 npm test             # test del motore (calibrazione, tattiche, 5 stagioni complete)
 npm run build        # build in dist/
 npm run build:site   # build in ../public/pallanuoto (pubblicata dal sito Netlify)
+npm run brand        # rigenera favicon e loghi SVG da src/ui/brand.ts
 ```
 
 Requisiti: Node 20+.

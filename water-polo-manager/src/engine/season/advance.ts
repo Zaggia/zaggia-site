@@ -1,5 +1,6 @@
 // Avanzamento del tempo: un giorno alla volta, fermandosi quando serve una decisione.
 
+import { rosterIssue, rosterLimit, trimRoster } from '../club/roster';
 import { dayOf, seasonLength, weekday } from '../calendar';
 import { weeklyFinance, sellSeasonTickets, loanOutIndex } from '../economy/finance';
 import { refreshUserSponsorOffers } from '../economy/sponsors';
@@ -9,7 +10,7 @@ import { simulateAiFixtures, userFixtureOn, applyMatch } from '../match/apply';
 import { buildMatchSetup } from '../match/setup';
 import { createMatch, type MatchState } from '../match/engine';
 import { autoLineup, validateLineup } from '../club/lineup';
-import { aiCoachReview, aiInterestInUserPlayers, aiMarketWeek, buildMarketPool } from '../ai/clubAI';
+import { aiCoachReview, aiInterestInUserPlayers, aiMarketWeek, buildMarketPool, fillRoster } from '../ai/clubAI';
 import { expireOffers, transferWindowOpen } from '../transfer/market';
 import { checkPromises, expireEvents, pendingBlockingEvents, weeklyEvents } from '../events/events';
 import { bankruptcyCheck, dailyPlayers, debtConsequences, licenseCheck, monthlyClubs, weeklyMorale, weeklyTraining, youthIntake } from './routines';
@@ -20,7 +21,7 @@ import { dailyFacilities } from '../club/manage';
 import { fullName } from '../player/generate';
 import { ageOf } from '../player/value';
 
-export type StopReason = 'match' | 'event' | 'review' | 'gameover' | 'offer' | 'day' | 'limit' | 'lineup';
+export type StopReason = 'match' | 'event' | 'review' | 'gameover' | 'offer' | 'day' | 'limit' | 'lineup' | 'roster';
 
 export interface Blocker {
   reason: StopReason;
@@ -35,7 +36,12 @@ export function blocker(world: World): Blocker | null {
   const ev = pendingBlockingEvents(world)[0];
   if (ev) return { reason: 'event', text: `Decisione richiesta: ${ev.title}` };
   const f = userFixtureOn(world, world.day);
-  if (f) return { reason: 'match', text: 'Oggi si gioca!', fixtureId: f.id };
+  if (f) {
+    // Prima di ogni gara ufficiale la rosa deve avere esattamente il numero regolamentare di tesserati.
+    const issue = rosterIssue(world, world.clubs[world.userClubId]);
+    if (issue) return { reason: 'roster', text: issue.text, fixtureId: f.id };
+    return { reason: 'match', text: 'Oggi si gioca!', fixtureId: f.id };
+  }
   return null;
 }
 
@@ -82,13 +88,23 @@ function weekly(world: World) {
   const window = transferWindowOpen(world).open;
   for (const club of Object.values(world.clubs)) {
     if (club.isUser) continue;
-    if (window || club.playerIds.length < 14) aiMarketWeek(world, club, pool, rng, loanOut);
+    if (window || club.playerIds.length !== rosterLimit(world)) aiMarketWeek(world, club, pool, rng, loanOut);
     aiCoachReview(world, club, rng);
   }
   aiInterestInUserPlayers(world, rng);
   checkPromises(world);
   weeklyEvents(world, rng);
   bankruptcyCheck(world);
+}
+
+/** Le società AI tornano subito a quota regolamentare se qualcuno è partito (o arrivato) in settimana. */
+function enforceAiRosters(world: World) {
+  const limit = rosterLimit(world);
+  for (const club of Object.values(world.clubs)) {
+    if (club.isUser || club.playerIds.length === limit) continue;
+    if (club.playerIds.length > limit) trimRoster(world, club);
+    else fillRoster(world, club);
+  }
 }
 
 /** Avanza di un giorno: gioca le partite AI di oggi, poi passa al giorno successivo. */
@@ -102,6 +118,7 @@ export function advanceOneDay(world: World): void {
   }
   world.day++;
   dailyPlayers(world);
+  enforceAiRosters(world);
   for (const c of Object.values(world.clubs)) dailyFacilities(world, c);
   processScouting(world);
   expireOffers(world);

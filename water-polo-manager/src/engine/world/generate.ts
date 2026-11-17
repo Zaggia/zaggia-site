@@ -1,6 +1,8 @@
 // Generazione dell'intero ecosistema sportivo all'inizio di una carriera.
 
-import { CLUB_PREFIXES, FOREIGN_CITIES, ITALIAN_CITIES, type City } from '../data/cities';
+import { ITALIAN_CITIES, type City } from '../data/cities';
+import { FOREIGN_CITY_SIZE, REAL_FOREIGN, REAL_LEAGUES } from '../data/realClubs';
+import { crestFor } from '../club/crest';
 import { DEFAULT_RULES, DIFFICULTIES } from '../data/config';
 import { NATIONS } from '../data/names';
 import { Rng } from '../rng';
@@ -16,7 +18,7 @@ import { ctxOf } from './context';
 import { setTicketPrices } from '../club/manage';
 import { newFinances } from '../economy/ledger';
 
-export const WORLD_VERSION = 1;
+export const WORLD_VERSION = 2;
 
 export interface NewCareerOptions {
   careerName: string;
@@ -53,7 +55,7 @@ function makeShort(name: string, used: Set<string>): string {
 
 export function createWorld(opts: NewCareerOptions): World {
   const seed = opts.seed ?? Math.floor(Math.random() * 2 ** 31);
-  const season = opts.season ?? 2025;
+  const season = opts.season ?? 2026;
   const diff = DIFFICULTIES[opts.difficulty];
   const world: World = {
     version: WORLD_VERSION,
@@ -96,39 +98,23 @@ export function createWorld(opts: NewCareerOptions): World {
   const ctx = ctxOf(world);
   const rng = ctx.rng;
   const userCity = ITALIAN_CITIES.find((c) => c.name === opts.city) ?? ITALIAN_CITIES[0];
-  // Città disponibili: le grandi possono ospitare due club.
-  const cityUse = new Map<string, number>();
-  cityUse.set(userCity.name, 1);
-  const pickCity = (tierPref: number): City => {
-    const options = ITALIAN_CITIES.filter((c) => (cityUse.get(c.name) ?? 0) < (c.size >= 4 ? 2 : 1));
-    const c = rng.weighted(options, (x) => Math.pow(x.size, tierPref) + 0.3);
-    cityUse.set(c.name, (cityUse.get(c.name) ?? 0) + 1);
-    return c;
-  };
-  const usedNames = new Set<string>([opts.clubName.toLowerCase()]);
   const usedShort = new Set<string>([opts.short.toUpperCase()]);
-  const clubName = (city: City) => {
-    for (let i = 0; i < 20; i++) {
-      const name = `${rng.pick(CLUB_PREFIXES)} ${city.name}`;
-      if (!usedNames.has(name.toLowerCase())) { usedNames.add(name.toLowerCase()); return name; }
-    }
-    const name = `Pallanuoto ${city.name} ${rng.int(2, 9)}`;
-    usedNames.add(name.toLowerCase());
-    return name;
-  };
-  // Società italiane: dalla A1 alla C.
+  const cityOf = (name: string): City => ITALIAN_CITIES.find((c) => c.name === name) ?? { name, region: 'Italia', lat: 41.9, lon: 12.5, size: 2 };
+  // Società italiane reali: dalla A1 alla C (in ordine di forza dentro ogni categoria).
   for (const rules of world.rules.leagues) {
     const count = rules.groups * rules.teamsPerGroup - (rules.key === 'C' ? 1 : 0);
-    const tierPref = [0, 1.6, 1.1, 0.6, 0.2][rules.tier] ?? 0.3;
+    const real = (REAL_LEAGUES[rules.key] ?? []).filter((c) => c.name.toLowerCase() !== opts.clubName.trim().toLowerCase());
     for (let i = 0; i < count; i++) {
       // Distribuzione: poche big, molte medie, qualche squadra debole.
-      const t = clamp(1 - Math.pow(i / Math.max(1, count - 1), 0.8) + rng.gauss(0, 0.06), 0, 1);
-      const city = pickCity(tierPref);
-      const name = clubName(city);
-      const level = lerp(rules.strength[0], rules.strength[1], t) + rng.gauss(0, 1.5);
+      const t = clamp(1 - Math.pow(i / Math.max(1, count - 1), 0.8) + rng.gauss(0, 0.04), 0, 1);
+      const rc = real[i];
+      const city = cityOf(rc?.city ?? rng.pick(ITALIAN_CITIES).name);
+      const name = rc?.name ?? `Pallanuoto ${city.name} ${i + 1}`;
+      const short = rc && !usedShort.has(rc.short) ? (usedShort.add(rc.short), rc.short) : makeShort(city.name, usedShort);
+      const level = lerp(rules.strength[0], rules.strength[1], t) + rng.gauss(0, 1.2);
       const g = generateClub(ctx, {
         name,
-        short: makeShort(city.name, usedShort),
+        short,
         city: city.name,
         region: city.region,
         country: 'ITA',
@@ -144,6 +130,12 @@ export function createWorld(opts: NewCareerOptions): World {
         ticketPrice: rules.ticketPrice,
         foreignChance: rules.tier === 1 ? 0.22 : rules.tier === 2 ? 0.08 : 0.03,
         staffRoles: rules.tier === 1 ? 8 : rules.tier === 2 ? 6 : rules.tier === 3 ? 4 : 2,
+        colors: rc?.colors,
+        crest: rc ? crestFor(rc.name, short, rc.colors) : undefined,
+        founded: rc?.founded,
+        philosophy: rc?.philosophy,
+        poolName: `Piscina di ${city.name}`,
+        rosterSize: world.rules.rosterSize,
       });
       register(world, g);
     }
@@ -178,6 +170,7 @@ export function createWorld(opts: NewCareerOptions): World {
     staffRoles: 2,
     balance: diff.startBalance,
     philosophy: 'equilibrata',
+    rosterSize: world.rules.rosterSize,
   });
   // La rosa iniziale deve essere davvero debole: overall tra 25 e 50, nessun campione nascosto.
   for (const p of userGen.players) {
@@ -197,14 +190,18 @@ export function createWorld(opts: NewCareerOptions): World {
   register(world, userGen);
   world.userClubId = userGen.club.id;
   setTicketPrices(userGen.club, cRules.ticketPrice, cRules.ticketPrice * 8);
-  // Club esteri per le coppe europee.
-  for (const fc of FOREIGN_CITIES) {
+  // Club esteri reali per le coppe europee.
+  const rankInNation = new Map<string, number>();
+  for (const fc of REAL_FOREIGN) {
     const nation = NATIONS[fc.nation];
-    const level = clamp(50 + nation.school * 3.5 + fc.size * 2.5 + rng.gauss(0, 3), 48, 79);
-    const name = `${fc.prefix} ${fc.city}`;
+    const rank = rankInNation.get(fc.nation) ?? 0;
+    rankInNation.set(fc.nation, rank + 1);
+    const size = FOREIGN_CITY_SIZE[fc.city] ?? 2;
+    const level = clamp(52 + nation.school * 4.2 - rank * 2.4 + size * 0.8 + rng.gauss(0, 1.5), 48, 79);
+    const short = !usedShort.has(fc.short) ? (usedShort.add(fc.short), fc.short) : makeShort(fc.city, usedShort);
     const g = generateClub(ctx, {
-      name,
-      short: makeShort(fc.city, usedShort),
+      name: fc.name,
+      short,
       city: fc.city,
       region: nation.name,
       country: fc.nation,
@@ -213,13 +210,17 @@ export function createWorld(opts: NewCareerOptions): World {
       division: 'EST',
       level,
       reputation: clamp(level * 1.05 - 8, 30, 95),
-      fans: 800 + fc.size * 900,
+      fans: 800 + size * 900,
       budget: 400_000 + (level - 50) * 60_000,
-      facilityLevel: 2 + fc.size * 0.5,
+      facilityLevel: 2 + size * 0.5,
       devPoints: 400 + level * 10,
       ticketPrice: 8,
       foreignChance: 0,
       staffRoles: 8,
+      colors: fc.colors,
+      crest: crestFor(fc.name, short, fc.colors),
+      poolName: `Piscina di ${fc.city}`,
+      rosterSize: world.rules.rosterSize,
     });
     register(world, g);
   }

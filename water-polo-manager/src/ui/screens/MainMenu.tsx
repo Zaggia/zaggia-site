@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useGame } from '../../store/game';
 import { Crest } from '../components/Crest';
+import { ClubCaps } from '../components/Cap';
+import { Logo } from '../components/Logo';
 import { Button, Field, Modal, Panel } from '../components/ui';
 import { ITALIAN_CITIES, FANS_NAMES } from '../../engine/data/cities';
 import { DIFFICULTIES } from '../../engine/data/config';
@@ -21,10 +23,8 @@ export function MainMenu() {
       <div className="relative overflow-hidden border-b border-line">
         <div className="absolute inset-0 water-bg opacity-40" />
         <div className="relative max-w-5xl mx-auto px-6 py-14 sm:py-20">
-          <div className="text-aqua font-semibold tracking-[0.3em] text-xs uppercase mb-3">The road to glory</div>
-          <h1 className="font-display text-5xl sm:text-7xl font-extrabold leading-[0.9] tracking-tight">
-            WATER POLO<br /><span className="text-aqua">MANAGER</span>
-          </h1>
+          <h1 className="sr-only">Water Polo Manager — The Road to Glory</h1>
+          <Logo size="xl" className="items-center" />
           <p className="text-mute mt-5 max-w-xl">
             Sei il presidente di una piccola società di pallanuoto in Serie C. Pochi soldi, una rosa modesta, una piscina comunale.
             Costruisci una dinastia: dalla Serie C fino alla Champions League.
@@ -211,6 +211,7 @@ function NewCareer({ onCancel }: { onCancel: () => void }) {
                 <span className="w-10 h-3 rounded" style={{ background: colors[0] }} />
                 <span className="w-10 h-3 rounded" style={{ background: colors[1] }} />
               </div>
+              <div className="mt-4"><ClubCaps colors={colors} size={48} /></div>
               <div className="text-xs text-faint mt-3">Partenza: Serie C · {pool || `Piscina Comunale di ${city}`}</div>
             </div>
           </Panel>

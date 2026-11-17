@@ -24,6 +24,9 @@ export const ITALIAN_CITIES: City[] = [
   { name: 'Bogliasco', region: 'Liguria', lat: 44.38, lon: 9.07, size: 1 },
   { name: 'Sestri Levante', region: 'Liguria', lat: 44.27, lon: 9.4, size: 1 },
   { name: 'Ventimiglia', region: 'Liguria', lat: 43.79, lon: 7.61, size: 1 },
+  { name: 'Recco', region: 'Liguria', lat: 44.36, lon: 9.14, size: 1 },
+  { name: 'Arenzano', region: 'Liguria', lat: 44.4, lon: 8.68, size: 1 },
+  { name: 'Lerici', region: 'Liguria', lat: 44.08, lon: 9.91, size: 1 },
   // Piemonte / Valle d'Aosta
   { name: 'Torino', region: 'Piemonte', lat: 45.07, lon: 7.69, size: 5 },
   { name: 'Novara', region: 'Piemonte', lat: 45.45, lon: 8.62, size: 3 },
@@ -48,6 +51,7 @@ export const ITALIAN_CITIES: City[] = [
   { name: 'Busto Arsizio', region: 'Lombardia', lat: 45.61, lon: 8.85, size: 2 },
   { name: 'Legnano', region: 'Lombardia', lat: 45.6, lon: 8.92, size: 2 },
   { name: 'Sondrio', region: 'Lombardia', lat: 46.17, lon: 9.87, size: 1 },
+  { name: 'San Donato Milanese', region: 'Lombardia', lat: 45.41, lon: 9.27, size: 2 },
   // Veneto / Trentino / Friuli
   { name: 'Venezia', region: 'Veneto', lat: 45.44, lon: 12.33, size: 4 },
   { name: 'Verona', region: 'Veneto', lat: 45.44, lon: 10.99, size: 4 },
@@ -105,6 +109,8 @@ export const ITALIAN_CITIES: City[] = [
   { name: 'Senigallia', region: 'Marche', lat: 43.71, lon: 13.22, size: 1 },
   { name: 'San Benedetto del Tronto', region: 'Marche', lat: 42.95, lon: 13.88, size: 2 },
   { name: 'Civitanova Marche', region: 'Marche', lat: 43.31, lon: 13.73, size: 1 },
+  { name: 'Osimo', region: 'Marche', lat: 43.48, lon: 13.48, size: 1 },
+  { name: 'Jesi', region: 'Marche', lat: 43.52, lon: 13.24, size: 2 },
   // Lazio / Abruzzo / Molise
   { name: 'Roma', region: 'Lazio', lat: 41.9, lon: 12.5, size: 5 },
   { name: 'Ostia', region: 'Lazio', lat: 41.73, lon: 12.28, size: 3 },

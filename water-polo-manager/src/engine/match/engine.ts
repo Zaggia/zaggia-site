@@ -321,7 +321,7 @@ function ratings(st: MatchState, s: number): Ratings {
   const speeds = f.map((i) => cv(st, s, i, 'speed')).sort((a, b) => b - a);
   const top4 = speeds.slice(0, 4);
   const cf = side.slots[6] >= 0 ? side.slots[6] : f[0];
-  const cb = side.slots[3] >= 0 ? side.slots[3] : f[0];
+  const cb = centreMarker(st, s);
   const gk = side.slots[0];
   const temper = f.length ? f.reduce((a, i) => a + team(st, s).players[i].temperament, 0) / f.length : 10;
   return {
@@ -739,12 +739,30 @@ function possession(st: MatchState, rng: Rng) {
   shoot(st, rng, A, D, type, qual, ofx.blockAgainst, rD, null);
 }
 
+/**
+ * Marcatore del centroboa avversario: in difesa non conta la posizione d'attacco,
+ * ma chi ha le doti per farlo (di solito il difensore). Si sceglie tra le posizioni 1-5.
+ */
+function centreMarker(st: MatchState, s: number): number {
+  const side = st.sides[s];
+  let best = -1;
+  let bestV = -1;
+  for (let k = 1; k <= 5; k++) {
+    const i = side.slots[k];
+    if (i == null || i < 0) continue;
+    const v = cv(st, s, i, 'centerDef');
+    if (v > bestV) { bestV = v; best = i; }
+  }
+  return best >= 0 ? best : side.slots[6];
+}
+
 function pickDefender(st: MatchState, s: number, rng: Rng, center: boolean): number {
   const side = st.sides[s];
   const f = fieldIdx(st, s);
+  const marker = center ? centreMarker(st, s) : -1;
   const w = f.map((i) => {
     let v = 1;
-    if (center && side.slots[3] === i) v *= 3;
+    if (center && marker === i) v *= 3;
     if (center && side.slots[6] === i) v *= 1.3;
     v *= 0.7 + team(st, s).players[i].temperament / 25;
     return v;

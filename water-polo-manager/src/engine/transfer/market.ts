@@ -1,5 +1,6 @@
 // Mercato: finestre, valutazioni, offerte dell'utente e dei club AI, prestiti, trasferimenti.
 
+import { rosterFullError, trimRoster } from '../club/roster';
 import { inRange } from '../calendar';
 import { expense, income } from '../economy/ledger';
 import { addMessage, addNews, fmtMoney } from '../news';
@@ -103,6 +104,8 @@ export function completeTransfer(
   p.morale = clamp(p.morale + 8, 0, 100);
   to.playerIds.push(p.id);
   to.chemistry = clamp(to.chemistry - 3, 0, 100);
+  // Le società AI restano sempre a quota regolamentare: chi arriva prende il posto del meno utile.
+  if (!to.isUser) trimRoster(world, to, p.id);
   assignNumbers(to.playerIds.map((id) => world.players[id]));
   refreshValue(p, world.season);
   world.offers = world.offers.filter((o) => !(o.playerId === p.id && o.status === 'pending'));
@@ -126,6 +129,8 @@ export function userBid(world: World, playerId: string, fee: number, loan: boole
   if (!p) return { error: 'Giocatore non trovato.' };
   if (p.clubId === user.id) return { error: 'Il giocatore è già tuo.' };
   if (!transferWindowOpen(world).open && p.clubId) return { error: 'Il mercato è chiuso: puoi ingaggiare solo svincolati.' };
+  const full = rosterFullError(world, user);
+  if (full) return { error: full };
   if (!loan && fee > user.finances.balance + 5000) return { error: 'Non hai abbastanza liquidità per questa offerta.' };
   const interest = interestIn(world, p, user);
   if (interest.value < 25) return { error: `${fullName(p)} non è interessato: ${interest.reason}` };
@@ -148,6 +153,8 @@ export function finalizeUserSigning(world: World, offerId: string, contract: Con
   const p = world.players[offer.playerId];
   if (!p) return 'Giocatore non trovato.';
   if (offer.fee > user.finances.balance + 5000) return 'Liquidità insufficiente per pagare il cartellino.';
+  const full = rosterFullError(world, user);
+  if (full) return full;
   if (offer.loan) {
     completeTransfer(world, p, user, 0, null, { wageShare: offer.wageShare ?? 0.7, untilSeason: world.season });
   } else {
@@ -158,8 +165,13 @@ export function finalizeUserSigning(world: World, offerId: string, contract: Con
   return null;
 }
 
-export function signFreeAgent(world: World, p: Player, club: Club, contract: ContractOffer) {
+export function signFreeAgent(world: World, p: Player, club: Club, contract: ContractOffer): string | null {
+  if (club.isUser) {
+    const full = rosterFullError(world, club);
+    if (full) return full;
+  }
   completeTransfer(world, p, club, 0, contract);
+  return null;
 }
 
 /** Offerte dei club AI per i giocatori dell'utente. */

@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -b",
     "test": "vitest run",
-    "build:site": "tsc -b && vite build --outDir ../public/pallanuoto --emptyOutDir"
+    "build:site": "tsc -b && vite build --outDir ../public/pallanuoto --emptyOutDir",
+    "brand": "node --experimental-strip-types scripts/brand.ts"
   },
   "dependencies": {
     "react": "19.2.0",

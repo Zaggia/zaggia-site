@@ -1,5 +1,6 @@
 import { useGame, useWorld } from '../../store/game';
 import { Crest } from '../components/Crest';
+import { ClubCaps } from '../components/Cap';
 import { Badge, Empty, Kv, PageHeader, Panel, ResultDots, Stat } from '../components/ui';
 import { PlayerTable } from '../components/game';
 import { divisionOf, leagueComp } from '../../engine/world/queries';
@@ -41,7 +42,7 @@ export function ClubScreen() {
       </section>
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <Stat label="Forza" value={teamStrength(world, club)} />
-        <Stat label="Posizione" value={pos ? `${pos.pos}°` : '—'} />
+        <Stat label="Posizione" value={pos && club.recent.length ? `${pos.pos}°` : '—'} />
         <Stat label="Reputazione" value={Math.round(club.reputation)} />
         <Stat label="Tifosi" value={club.fans.toLocaleString('it-IT')} />
         <Stat label="Saldo stimato" value={fmtMoney(Math.round(club.finances.balance / 10000) * 10000)} />
@@ -55,6 +56,21 @@ export function ClubScreen() {
             {coach && <Kv k="Filosofia" v={PHILOSOPHY_LABELS[coach.philosophy]} />}
             <Kv k="Tattica" v={`${OFFENSE[club.tactics.offense].name} / ${DEFENSE[club.tactics.defense].name}`} />
             {FACILITY_KEYS.map((k) => <Kv key={k} k={FACILITIES[k].name} v={`Livello ${club.facilities[k].level}`} />)}
+          </Panel>
+          <Panel title="Identità visiva" subtitle="Stemma, colori sociali e calottine (scura, chiara e portiere).">
+            <div className="flex items-center gap-4 mb-4">
+              <Crest spec={club.crest} size={64} />
+              <div className="space-y-1.5">
+                {club.colors.map((c, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs text-mute">
+                    <span className="w-8 h-4 rounded border border-white/15" style={{ background: c }} />
+                    <span className="num uppercase">{c}</span>
+                    <span className="text-faint">{i === 0 ? 'primario' : 'secondario'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <ClubCaps colors={club.colors} size={58} />
           </Panel>
           <Panel title="Albo">
             {club.honours.length ? club.honours.slice(-10).reverse().map((h, i) => <div key={i} className="text-sm">🏆 {h.label} <span className="text-faint">{seasonLabel(h.season)}</span></div>) : <Empty>Nessun trofeo recente.</Empty>}

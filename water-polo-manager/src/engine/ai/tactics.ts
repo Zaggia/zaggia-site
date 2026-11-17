@@ -40,7 +40,7 @@ export function squadProfile(world: World, club: Club): SquadProfile {
   const cfs = field.filter((p) => p.role === 'CEN' || p.role === 'UNI');
   const cf = cfs.length ? Math.max(...cfs.map((p) => p.attrs.giocoCentro * 0.5 + p.attrs.forza * 0.5)) : 25;
   const shooters = avg(topN(field, 3, (p) => p.attrs.tiro + p.attrs.potenzaTiro).map((p) => (p.attrs.tiro + p.attrs.potenzaTiro) / 2));
-  const wings = avg(topN(field.filter((p) => p.role === 'ALA' || p.role === 'UNI' || p.role === 'ESD' || p.role === 'ESS'), 2, (p) => p.attrs.precisione).map((p) => p.attrs.precisione));
+  const wings = avg(topN(field.filter((p) => p.role === 'ALA' || p.role === 'UNI' || p.role === 'MAN' || p.role === 'CVA'), 2, (p) => p.attrs.precisione).map((p) => p.attrs.precisione));
   const scorer = topN(field, 1, (p) => (p.stats['L']?.goals ?? 0) * 3 + p.attrs.tiro + p.overall)[0];
   return {
     cf,

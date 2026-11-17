@@ -3,6 +3,7 @@ import { Crest } from '../components/Crest';
 import { Badge, Button, Empty, PageHeader, Panel, ResultDots } from '../components/ui';
 import { ClubName, FixtureLine } from '../components/game';
 import { blocker, availableCount } from '../../engine/season/advance';
+import { RosterNotice } from '../components/RosterNotice';
 import { clubFixtures, nextFixture } from '../../engine/world/queries';
 import { teamStrength, validateLineup } from '../../engine/club/lineup';
 import { squadProfile } from '../../engine/ai/tactics';
@@ -27,6 +28,7 @@ export function MatchesScreen() {
   return (
     <div className="space-y-5">
       <PageHeader title="Partite" subtitle={`${played.length} giocate · ${upcoming.length} da giocare in stagione`} />
+      {b?.reason === 'roster' && <RosterNotice />}
       {focus ? <MatchPrep world={world} f={focus} isToday={!!today} /> : <Panel><Empty>Nessuna partita in programma: la stagione riprenderà presto.</Empty></Panel>}
       <div className="grid lg:grid-cols-2 gap-5">
         <Panel title="Prossimi impegni">

@@ -9,6 +9,8 @@ import { teamStrength } from '../../engine/club/lineup';
 import { clubLevel, clubLevelThresholds } from '../../engine/tactics/tactics';
 import { OBJECTIVE_LABELS } from '../../engine/economy/sponsors';
 import { blocker } from '../../engine/season/advance';
+import { rosterLimit } from '../../engine/club/roster';
+import { RosterNotice } from '../components/RosterNotice';
 import { financialHealth } from '../../engine/economy/finance';
 import { Icon } from '../components/icons';
 
@@ -60,7 +62,8 @@ export function Dashboard() {
         </div>
       </section>
 
-      {(b || pending.length > 0) && (
+      {b?.reason === 'roster' && <RosterNotice />}
+      {((b && b.reason !== 'roster') || pending.length > 0) && (
         <div className="panel border-gold/40 p-4 flex flex-wrap items-center gap-3 fade-in">
           <Icon name="warn" className="text-gold" size={22} />
           <div className="flex-1 min-w-[200px]">
@@ -77,7 +80,7 @@ export function Dashboard() {
         <Stat label="Reputazione" value={Math.round(club.reputation)} sub="su 100" />
         <Stat label="Tifosi" value={club.fans.toLocaleString('it-IT')} sub={`Abbonati ${club.abbonati}`} />
         <Stat label="Forza squadra" value={teamStrength(world, club)} sub="media titolari e panchina" />
-        <Stat label="Rosa" value={players.length} sub={`${injured.length} infortunati · ${suspended.length} squalificati`} tone={players.length < 13 ? 'bad' : undefined} />
+        <Stat label="Rosa" value={`${players.length}/${rosterLimit(world)}`} sub={`${injured.length} infortunati · ${suspended.length} squalificati`} tone={players.length !== rosterLimit(world) ? 'bad' : undefined} />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-5">

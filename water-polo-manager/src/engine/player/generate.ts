@@ -22,7 +22,7 @@ export interface PlayerGenOptions {
 }
 
 const ROLE_DISTRIBUTION: [Role, number][] = [
-  ['POR', 0.13], ['CEN', 0.14], ['DIF', 0.14], ['ESD', 0.15], ['ESS', 0.15], ['ALA', 0.16], ['UNI', 0.13],
+  ['POR', 0.13], ['CEN', 0.14], ['DIF', 0.14], ['MAN', 0.1], ['CVA', 0.15], ['ALA', 0.18], ['UNI', 0.16],
 ];
 
 export function randomRole(ctx: GenCtx): Role {
@@ -41,7 +41,7 @@ function randomAge(ctx: GenCtx): number {
 
 function physique(ctx: GenCtx, role: Role): { height: number; weight: number } {
   const base: Record<Role, [number, number]> = {
-    POR: [194, 92], CEN: [195, 104], DIF: [193, 99], ESD: [189, 90], ESS: [189, 90], ALA: [185, 85], UNI: [191, 93],
+    POR: [194, 92], CEN: [195, 104], DIF: [193, 99], MAN: [189, 90], CVA: [190, 92], ALA: [185, 85], UNI: [191, 93],
   };
   const [h, w] = base[role];
   const height = Math.round(ctx.rng.gauss(h, 4.5));
@@ -50,7 +50,8 @@ function physique(ctx: GenCtx, role: Role): { height: number; weight: number } {
 }
 
 function handFor(ctx: GenCtx, role: Role): Hand {
-  const leftChance = role === 'ESD' ? 0.5 : role === 'ALA' ? 0.3 : role === 'POR' ? 0.1 : 0.15;
+  // Il mancino è per definizione un giocatore che tira di sinistro; negli altri ruoli i mancini sono pochi.
+  const leftChance = role === 'MAN' ? 1 : role === 'ALA' ? 0.15 : 0.08;
   return ctx.rng.chance(leftChance) ? 'L' : 'R';
 }
 

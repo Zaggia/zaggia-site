@@ -56,7 +56,7 @@ export function describe(e: MatchEvent, nb: NameBook, idx: number): { title?: st
     case 'steal':
       return {
         text: pick([
-          `${teamRef(nb, side, true)} recupera il pallone a centrocampo: anticipo di ${p1}.`,
+          `${teamRef(nb, side, true)} recupera il pallone a metà vasca: anticipo di ${p1}.`,
           `${p1} ruba palla a ${p2}!`,
           `Palla rubata da ${p1}, si riparte.`,
         ], idx),
@@ -83,7 +83,7 @@ export function describe(e: MatchEvent, nb: NameBook, idx: number): { title?: st
     case 'shot_blocked':
       return { text: `Tiro di ${p1} murato da ${p2}.` };
     case 'shot_missed':
-      return { text: pick([`${p1} tira fuori.`, `Conclusione di ${p1} sul palo esterno.`, `${p1} calcia alto sopra la traversa.`, `Il tiro di ${p1} si stampa sul palo!`], idx) };
+      return { text: pick([`${p1} tira fuori.`, `Conclusione di ${p1} sul palo esterno.`, `${p1} spara alto sopra la traversa.`, `Il tiro di ${p1} si stampa sul palo!`], idx) };
     case 'goal': {
       const how = pick(SHOT_DESC[e.kind ?? 'distanza'] ?? SHOT_DESC.distanza, idx);
       const assist = p2 ? ` Assist di ${p2}.` : '';

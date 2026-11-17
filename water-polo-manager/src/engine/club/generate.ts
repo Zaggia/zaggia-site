@@ -39,6 +39,7 @@ export interface ClubSeed {
   ticketPrice: number;
   foreignChance: number;
   staffRoles: number;
+  rosterSize?: number;
   balance?: number;
   philosophy?: ClubPhilosophy;
 }
@@ -50,18 +51,20 @@ export interface GeneratedClub {
   staff: StaffMember[];
 }
 
-const ROSTER: Role[] = ['POR', 'POR', 'CEN', 'CEN', 'DIF', 'DIF', 'ESD', 'ESD', 'ESS', 'ESS', 'ALA', 'ALA', 'ALA', 'UNI', 'UNI'];
+/** Rosa tipo di 15 giocatori: 2 portieri, 2 centroboa, 2 difensori, 2 centrovasca, 2 mancini, 3 ali, 2 universali. */
+const ROSTER: Role[] = ['POR', 'CEN', 'DIF', 'CVA', 'MAN', 'ALA', 'ALA', 'UNI', 'POR', 'CEN', 'DIF', 'CVA', 'MAN', 'ALA', 'UNI'];
 const PHILOSOPHIES: ClubPhilosophy[] = ['giovani', 'campioni', 'prudente', 'equilibrata', 'ambiziosa'];
 
-export function generateRoster(ctx: GenCtx, clubId: string, level: number, country: string, foreignChance: number, size = 17): Player[] {
-  const roles: Role[] = [...ROSTER];
-  const extra: Role[] = ['UNI', 'ESD', 'ESS', 'DIF', 'ALA', 'CEN'];
+export function generateRoster(ctx: GenCtx, clubId: string, level: number, country: string, foreignChance: number, size = 15): Player[] {
+  const roles: Role[] = ROSTER.slice(0, size);
+  const extra: Role[] = ['UNI', 'MAN', 'CVA', 'DIF', 'ALA', 'CEN'];
   while (roles.length < size) roles.push(ctx.rng.pick(extra));
   const players: Player[] = [];
   roles.forEach((role, i) => {
     // I primi di ogni ruolo sono titolari, poi riserve e qualche giovane.
-    const isYoung = i >= 13 && ctx.rng.chance(0.55);
-    const starterBoost = i % 2 === 0 ? 3 : -2;
+    // I primi otto sono i titolari (portiere compreso), poi riserve e qualche giovane.
+    const isYoung = i >= 12 && ctx.rng.chance(0.6);
+    const starterBoost = i < 8 ? 3 : -3;
     const lvl = isYoung ? level - ctx.rng.int(8, 16) : level + starterBoost + ctx.rng.gauss(0, 4);
     const age = isYoung ? ctx.rng.int(17, 20) : undefined;
     const nat = country !== 'ITA'
@@ -186,7 +189,7 @@ export function generateClub(ctx: GenCtx, seed: ClubSeed): GeneratedClub {
     recent: [],
     pendingPenalty: 0,
   };
-  const size = ctx.rng.int(16, 18);
+  const size = seed.rosterSize ?? 15;
   const players = generateRoster(ctx, id, seed.level, seed.country, seed.foreignChance, size);
   club.playerIds = players.map((p) => p.id);
   const youth = generateYouth(ctx, id, academyMean(facilities.giovanile.level, 30, club.reputation), seed.isUser ? 3 : ctx.rng.int(2, 4), facilities.giovanile.level);

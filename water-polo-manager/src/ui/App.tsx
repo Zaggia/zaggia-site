@@ -5,6 +5,7 @@ import { Icon } from './components/icons';
 import { Crest } from './components/Crest';
 import { cls, fmtMoney, formatDate, seasonLabel } from './format';
 import { blocker } from '../engine/season/advance';
+import { Logo, LogoMark } from './components/Logo';
 import { transferWindowOpen } from '../engine/transfer/market';
 import { Dashboard } from './screens/Dashboard';
 import { Squad } from './screens/Squad';
@@ -70,8 +71,8 @@ function Splash() {
   return (
     <div className="h-full flex items-center justify-center">
       <div className="text-center">
-        <div className="font-display text-4xl font-extrabold tracking-wide">WATER POLO <span className="text-aqua">MANAGER</span></div>
-        <div className="wave h-3 mt-4 w-64 mx-auto" />
+        <Logo size="lg" stacked />
+        <div className="wave h-3 mt-6 w-64 mx-auto" />
       </div>
     </div>
   );
@@ -201,8 +202,12 @@ function Sidebar() {
         <SideLink view="notizie" label="Notizie" icon="notizie" />
         <SideLink view="impostazioni" label="Salvataggi" icon="save" />
       </nav>
-      <div className="px-4 py-3 border-t border-line text-[11px] text-faint">
-        Presidente {world.presidentName}
+      <div className="px-4 py-3 border-t border-line flex items-center gap-2.5">
+        <LogoMark size={26} />
+        <div className="min-w-0 leading-tight">
+          <div className="font-display text-[13px] font-extrabold tracking-wide">WATER POLO <span className="text-aqua">MANAGER</span></div>
+          <div className="text-[10px] text-faint truncate">Presidente {world.presidentName}</div>
+        </div>
       </div>
     </aside>
   );
@@ -232,10 +237,11 @@ function TopBar() {
   const club = world.clubs[world.userClubId];
   const b = blocker(world);
   const win = transferWindowOpen(world);
-  const label = !b ? 'Continua' : b.reason === 'match' ? 'Giorno partita' : b.reason === 'event' ? 'Decisione richiesta' : b.reason === 'review' ? 'Fine stagione' : 'Game over';
-  const shortLabel = !b ? 'Avanti' : b.reason === 'match' ? 'Partita' : b.reason === 'event' ? 'Decidi' : b.reason === 'review' ? 'Fine' : 'Fine';
+  const label = !b ? 'Continua' : b.reason === 'match' ? 'Giorno partita' : b.reason === 'roster' ? 'Sistema la rosa' : b.reason === 'event' ? 'Decisione richiesta' : b.reason === 'review' ? 'Fine stagione' : 'Game over';
+  const shortLabel = !b ? 'Avanti' : b.reason === 'match' ? 'Partita' : b.reason === 'roster' ? 'Rosa' : b.reason === 'event' ? 'Decidi' : b.reason === 'review' ? 'Fine' : 'Fine';
   const onMain = () => {
     if (b?.reason === 'match') s.go('partite');
+    else if (b?.reason === 'roster') { s.go('rosa'); s.toast(b.text, 'err'); }
     else if (b?.reason === 'event') s.go('posta', 'decisioni');
     else if (b?.reason === 'review' || b?.reason === 'gameover') s.go('review');
     else void s.continueGame('auto');

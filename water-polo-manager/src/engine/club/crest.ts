@@ -27,3 +27,31 @@ export function randomCrest(rng: Rng, colors: [string, string], initials: string
 export const CREST_SHAPES = SHAPES;
 export const CREST_PATTERNS = PATTERNS;
 export const CREST_SYMBOLS = SYMBOLS;
+
+function hashName(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return Math.abs(h);
+}
+
+/** Stemma generato in modo stabile dal nome della società (nessun logo reale). */
+export function crestFor(name: string, short: string, colors: [string, string]): CrestSpec {
+  const h = hashName(name);
+  const lower = name.toLowerCase();
+  let symbol: CrestSpec['symbol'] = SYMBOLS[h % SYMBOLS.length];
+  if (/canottieri|nautico|cn |marina|vela|marine/.test(lower)) symbol = 'onda';
+  else if (/rari nantes|rn |nuoto/.test(lower) && h % 3 === 0) symbol = 'delfino';
+  else if (/roma|imperium|olympic|real/.test(lower) && h % 2 === 0) symbol = 'corona';
+  else if (/academy|giovani|cus /.test(lower)) symbol = 'iniziali';
+  return {
+    shape: SHAPES[(h >> 3) % SHAPES.length],
+    pattern: PATTERNS[(h >> 6) % PATTERNS.length],
+    symbol,
+    primary: colors[0],
+    secondary: colors[1],
+    initials: short.slice(0, 3).toUpperCase(),
+  };
+}

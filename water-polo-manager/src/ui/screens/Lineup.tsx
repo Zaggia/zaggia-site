@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useGame, useWorld } from '../../store/game';
 import { Avatar } from '../components/Avatar';
 import { Badge, Bar, Button, Modal, Ovr, PageHeader, Panel } from '../components/ui';
-import { SLOT_LABELS, SLOT_SHORT, slotSuitability, ROLE_SHORT } from '../../engine/player/attributes';
+import { SLOT_LABELS, SLOT_NAMES, SLOT_SHORT, slotSuitability, ROLE_SHORT } from '../../engine/player/attributes';
 import { autoLineup, isAvailable, validateLineup, foreignLimit, isForeign } from '../../engine/club/lineup';
 import type { Lineup, Player } from '../../engine/types';
 import { cls } from '../format';
@@ -97,13 +97,17 @@ export function LineupScreen() {
                       {p ? <Avatar player={p} color={club.colors[0]} size={50} /> : <div className="w-[50px] h-[50px] rounded-xl border-2 border-dashed border-white/50 flex items-center justify-center text-white/70 text-xs font-bold">{SLOT_SHORT[slot]}</div>}
                     </div>
                     <div className="mt-1 rounded-md bg-abyss/80 px-1.5 py-0.5 text-[11px] leading-tight text-center max-w-full">
-                      <div className="font-semibold truncate">{p ? p.lastName : SLOT_LABELS[slot]}</div>
+                      <div className="font-semibold truncate">{p ? p.lastName : SLOT_NAMES[slot]}</div>
                       {p && <div className={cls('num', suit < 0.8 ? 'text-warn' : 'text-mute')}>{SLOT_SHORT[slot]} · {p.overall}{suit < 0.8 ? ' ⚠' : ''}</div>}
                     </div>
                   </button>
                 );
               })}
             </div>
+            <p className="mt-3 text-[11px] text-faint leading-relaxed">
+              Posizioni d’attacco: <b className="text-mute">1</b> ala destra · <b className="text-mute">2</b> lato destro · <b className="text-mute">3</b> centrovasca · <b className="text-mute">4</b> lato sinistro · <b className="text-mute">5</b> ala sinistra · <b className="text-mute">6</b> centroboa sui 2 metri.
+              I mancini rendono meglio sul lato destro (1-2). In difesa il centroboa avversario viene marcato dal giocatore con le migliori doti difensive.
+            </p>
             {typeof sel === 'number' && l.slots[sel] && (
               <div className="mt-3 flex justify-between items-center text-sm">
                 <span className="text-mute">Posizione selezionata: <b className="text-ink">{SLOT_LABELS[sel]}</b></span>

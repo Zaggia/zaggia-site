@@ -1,0 +1,206 @@
+// Società reali della pallanuoto maschile, usate per generare il mondo di gioco.
+//
+// Ogni elenco è in ordine di forza (dalla più forte). I nomi sono quelli delle società,
+// senza gli sponsor; stemmi e identità visive sono generati dal gioco (nessun logo reale).
+//
+// Fonti e affidabilità:
+// - Serie A1 e A2: organici della stagione 2026/27 ricostruiti da notizie e Wikipedia
+//   (neopromosse Chiavari e Lazio, retrocessa la Florentia; Salerno in A2).
+// - Serie B: organico 2025/26 (Wikipedia) aggiornato con promozioni e retrocessioni note.
+// - Serie C: società reali delle categorie regionali; la composizione è indicativa.
+// Per correggere una squadra basta modificare questo file: il resto del gioco si adatta.
+
+export interface RealClub {
+  name: string;
+  short: string;
+  city: string;
+  colors: [string, string];
+  philosophy?: 'giovani' | 'campioni' | 'prudente' | 'equilibrata' | 'ambiziosa';
+  founded?: number;
+}
+
+export interface RealForeignClub extends RealClub {
+  nation: string;
+}
+
+export const REAL_LEAGUES: Record<string, RealClub[]> = {
+  A1: [
+    { name: 'Pro Recco', short: 'REC', city: 'Recco', colors: ['#0a2a66', '#f2f2f2'], philosophy: 'campioni', founded: 1913 },
+    { name: 'AN Brescia', short: 'BRE', city: 'Brescia', colors: ['#1f3c88', '#ffffff'], philosophy: 'campioni', founded: 1973 },
+    { name: 'RN Savona', short: 'SAV', city: 'Savona', colors: ['#c8102e', '#ffffff'], philosophy: 'ambiziosa', founded: 1948 },
+    { name: 'Pallanuoto Trieste', short: 'TRI', city: 'Trieste', colors: ['#b91c1c', '#ffffff'], philosophy: 'ambiziosa', founded: 2004 },
+    { name: 'CC Ortigia', short: 'ORT', city: 'Siracusa', colors: ['#0b5394', '#ffffff'], philosophy: 'equilibrata', founded: 1928 },
+    { name: 'CN Posillipo', short: 'POS', city: 'Napoli', colors: ['#c8102e', '#15803d'], philosophy: 'equilibrata', founded: 1925 },
+    { name: 'SS Lazio Nuoto', short: 'LAZ', city: 'Roma', colors: ['#7dd3fc', '#ffffff'], philosophy: 'ambiziosa', founded: 1900 },
+    { name: 'Telimar Palermo', short: 'TEL', city: 'Palermo', colors: ['#1d4ed8', '#f97316'], philosophy: 'ambiziosa', founded: 1987 },
+    { name: 'Circolo Canottieri Napoli', short: 'CCN', city: 'Napoli', colors: ['#facc15', '#b91c1c'], philosophy: 'equilibrata', founded: 1914 },
+    { name: 'Iren Genova Quinto', short: 'QUI', city: 'Genova', colors: ['#c8102e', '#1d428a'], philosophy: 'giovani', founded: 1947 },
+    { name: 'De Akker Bologna', short: 'DEA', city: 'Bologna', colors: ['#9f1239', '#1e3a8a'], philosophy: 'giovani', founded: 1971 },
+    { name: 'Chiavari Nuoto', short: 'CHI', city: 'Chiavari', colors: ['#0ea5e9', '#ffffff'], philosophy: 'equilibrata', founded: 1950 },
+    { name: 'Olympic Roma', short: 'OLY', city: 'Roma', colors: ['#7a1f3d', '#f5c518'], philosophy: 'giovani' },
+    { name: 'Roma Vis Nova', short: 'RVN', city: 'Roma', colors: ['#991b1b', '#facc15'], philosophy: 'prudente' },
+  ],
+  A2: [
+    // Girone Nord
+    { name: 'RN Florentia', short: 'FLO', city: 'Firenze', colors: ['#6d28d9', '#ffffff'], founded: 1904 },
+    { name: 'Torino 81', short: 'T81', city: 'Torino', colors: ['#7f1d1d', '#ffffff'], founded: 1981 },
+    { name: 'RN Sori', short: 'SOR', city: 'Sori', colors: ['#1e40af', '#facc15'] },
+    { name: 'Vela Nuoto Ancona', short: 'VEL', city: 'Ancona', colors: ['#dc2626', '#ffffff'] },
+    { name: 'Bogliasco 1951', short: 'BOG', city: 'Bogliasco', colors: ['#0369a1', '#ffffff'], founded: 1951 },
+    { name: 'RN Camogli', short: 'CAM', city: 'Camogli', colors: ['#b91c1c', '#1e3a8a'], founded: 1914 },
+    { name: 'Lavagna 90', short: 'LAV', city: 'Lavagna', colors: ['#1e3a8a', '#ffffff'], founded: 1990 },
+    { name: 'Piacenza Pallanuoto', short: 'PIA', city: 'Piacenza', colors: ['#b91c1c', '#ffffff'] },
+    { name: 'RN Arenzano', short: 'ARE', city: 'Arenzano', colors: ['#15803d', '#ffffff'] },
+    { name: 'Waterpolo Milano Metanopoli', short: 'MET', city: 'San Donato Milanese', colors: ['#0f766e', '#ffffff'] },
+    { name: 'NC Monza', short: 'MON', city: 'Monza', colors: ['#b91c1c', '#ffffff'] },
+    { name: 'CS Plebiscito Padova', short: 'PLE', city: 'Padova', colors: ['#1e3a8a', '#e2e8f0'] },
+    // Girone Sud
+    { name: 'RN Salerno', short: 'SAL', city: 'Salerno', colors: ['#7f1d1d', '#ffffff'] },
+    { name: 'Ischia Marine Club', short: 'ISC', city: 'Ischia', colors: ['#0ea5e9', '#facc15'] },
+    { name: 'Waterpolo Palermo', short: 'WPA', city: 'Palermo', colors: ['#ec4899', '#111827'] },
+    { name: 'Nuoto Catania', short: 'CTA', city: 'Catania', colors: ['#1e3a8a', '#dc2626'] },
+    { name: 'Napoli Lions', short: 'NAL', city: 'Napoli', colors: ['#0284c7', '#facc15'] },
+    { name: 'Acquachiara', short: 'ACQ', city: 'Napoli', colors: ['#0e7490', '#ffffff'] },
+    { name: 'Muri Antichi', short: 'MUR', city: 'Catania', colors: ['#b45309', '#ffffff'] },
+    { name: 'Ortigia Academy', short: 'ORA', city: 'Siracusa', colors: ['#0b5394', '#f5c518'] },
+    { name: 'Roma 2020', short: 'R20', city: 'Roma', colors: ['#991b1b', '#f5c518'] },
+    { name: 'Anzio Waterpolis', short: 'ANZ', city: 'Anzio', colors: ['#1e3a8a', '#ffffff'] },
+    { name: 'Onda Forte Roma', short: 'ONF', city: 'Roma', colors: ['#0369a1', '#f97316'] },
+    { name: 'Cesport Italia', short: 'CES', city: 'Napoli', colors: ['#16a34a', '#ffffff'] },
+  ],
+  B: [
+    { name: 'Brescia Waterpolo', short: 'BWP', city: 'Brescia', colors: ['#1e3a8a', '#ffffff'] },
+    { name: 'Como Nuoto Recoaro', short: 'COM', city: 'Como', colors: ['#1d4ed8', '#ffffff'] },
+    { name: 'Pallanuoto Bergamo', short: 'BER', city: 'Bergamo', colors: ['#1e3a8a', '#111827'] },
+    { name: 'Dream Sport Firenze', short: 'DSF', city: 'Firenze', colors: ['#7c3aed', '#facc15'] },
+    { name: 'Canottieri Milano', short: 'CMI', city: 'Milano', colors: ['#b91c1c', '#ffffff'], founded: 1890 },
+    { name: 'RN Bologna', short: 'RNB', city: 'Bologna', colors: ['#9f1239', '#1e3a8a'] },
+    { name: 'Pentathlon Moderno Modena', short: 'PMM', city: 'Modena', colors: ['#facc15', '#1e3a8a'] },
+    { name: 'Pallanuoto Vicenza', short: 'VIC', city: 'Vicenza', colors: ['#dc2626', '#ffffff'] },
+    { name: 'Osimo Pirates', short: 'OSI', city: 'Osimo', colors: ['#111827', '#dc2626'] },
+    { name: 'Patom Jesina', short: 'JES', city: 'Jesi', colors: ['#16a34a', '#ffffff'] },
+    { name: 'GS Locatelli', short: 'LOC', city: 'Genova', colors: ['#1e3a8a', '#facc15'] },
+    { name: 'San Giorgio Waterpolo', short: 'SGW', city: 'Genova', colors: ['#c8102e', '#ffffff'] },
+    { name: 'Acquatica Torino', short: 'ATO', city: 'Torino', colors: ['#0ea5e9', '#1e3a8a'] },
+    { name: 'Lerici Sport', short: 'LER', city: 'Lerici', colors: ['#2563eb', '#ffffff'] },
+    { name: 'CN Marina di Carrara', short: 'MDC', city: 'Carrara', colors: ['#0f766e', '#ffffff'] },
+    { name: 'GS Aragno', short: 'ARA', city: 'Genova', colors: ['#f97316', '#1e3a8a'] },
+    { name: 'Rapallo Nuoto', short: 'RAP', city: 'Rapallo', colors: ['#facc15', '#1e3a8a'] },
+    { name: 'RN Imperia', short: 'IMP', city: 'Imperia', colors: ['#1e3a8a', '#facc15'] },
+    { name: 'Livorno Aquatics', short: 'LIV', city: 'Livorno', colors: ['#7f1d1d', '#ffffff'] },
+    { name: 'Varese Olona Nuoto', short: 'VAR', city: 'Varese', colors: ['#dc2626', '#ffffff'] },
+    { name: 'CC Lazio Waterpolo', short: 'CCL', city: 'Roma', colors: ['#7dd3fc', '#1e3a8a'] },
+    { name: 'Roma Waterpolo', short: 'RWP', city: 'Roma', colors: ['#991b1b', '#facc15'] },
+    { name: 'Villa York', short: 'VYO', city: 'Roma', colors: ['#1e3a8a', '#ffffff'] },
+    { name: 'Libertas Roma Eur', short: 'EUR', city: 'Roma', colors: ['#16a34a', '#ffffff'] },
+    { name: 'Italica Roma', short: 'ITA', city: 'Roma', colors: ['#0f766e', '#facc15'] },
+    { name: 'Polisportiva Delta', short: 'DEL', city: 'Roma', colors: ['#7c3aed', '#ffffff'] },
+    { name: 'Promosport', short: 'PRS', city: 'Roma', colors: ['#f97316', '#111827'] },
+    { name: 'Nautilus Nuoto Roma', short: 'NAU', city: 'Roma', colors: ['#0369a1', '#ffffff'] },
+    { name: 'Club Aquatico Pescara', short: 'PES', city: 'Pescara', colors: ['#0ea5e9', '#ffffff'] },
+    { name: 'Grifone Nuoto', short: 'GRI', city: 'Perugia', colors: ['#b91c1c', '#ffffff'] },
+    { name: 'CN Salerno', short: 'CNS', city: 'Salerno', colors: ['#1e3a8a', '#ffffff'] },
+    { name: 'SC Salerno', short: 'SCS', city: 'Salerno', colors: ['#7f1d1d', '#facc15'] },
+    { name: 'Nuoto 2000 Napoli', short: 'N2N', city: 'Napoli', colors: ['#0284c7', '#ffffff'] },
+    { name: 'Basilicata Nuoto 2000', short: 'BAS', city: 'Potenza', colors: ['#dc2626', '#facc15'] },
+    { name: 'Unime Messina', short: 'UNM', city: 'Messina', colors: ['#7f1d1d', '#facc15'] },
+    { name: 'Latina Pallanuoto', short: 'LAT', city: 'Latina', colors: ['#111827', '#3b82f6'] },
+    { name: 'Rari Nantes Cagliari', short: 'RNC', city: 'Cagliari', colors: ['#b91c1c', '#1e3a8a'] },
+    { name: 'Promogest Quartu', short: 'PRQ', city: 'Quartu Sant’Elena', colors: ['#1e3a8a', '#f97316'] },
+    { name: 'Volturno', short: 'VOL', city: 'Caserta', colors: ['#16a34a', '#dc2626'] },
+    { name: 'Cosenza Pallanuoto', short: 'COS', city: 'Cosenza', colors: ['#b91c1c', '#1e3a8a'] },
+  ],
+  C: [
+    { name: 'Crocera Stadium', short: 'CRO', city: 'Genova', colors: ['#facc15', '#1e3a8a'] },
+    { name: 'Sportiva Sturla', short: 'STU', city: 'Genova', colors: ['#1e3a8a', '#ffffff'] },
+    { name: 'Nuotatori Genovesi', short: 'NGE', city: 'Genova', colors: ['#c8102e', '#1e3a8a'] },
+    { name: 'Andrea Doria', short: 'ADO', city: 'Genova', colors: ['#b91c1c', '#ffffff'] },
+    { name: 'CUS Genova', short: 'CUG', city: 'Genova', colors: ['#1e3a8a', '#c8102e'] },
+    { name: 'Amatori Nuoto Savona', short: 'AMS', city: 'Savona', colors: ['#0ea5e9', '#ffffff'] },
+    { name: 'Rari Nantes Torino', short: 'RNT', city: 'Torino', colors: ['#7f1d1d', '#facc15'] },
+    { name: 'CUS Torino', short: 'CUT', city: 'Torino', colors: ['#1e3a8a', '#facc15'] },
+    { name: 'Sport Management', short: 'SPM', city: 'Busto Arsizio', colors: ['#111827', '#f97316'] },
+    { name: 'Canottieri Bissolati', short: 'BIS', city: 'Cremona', colors: ['#1e3a8a', '#ffffff'] },
+    { name: 'CUS Pavia', short: 'CUP', city: 'Pavia', colors: ['#7f1d1d', '#ffffff'] },
+    { name: 'Legnano Nuoto', short: 'LEG', city: 'Legnano', colors: ['#dc2626', '#ffffff'] },
+    { name: 'CUS Padova', short: 'CPD', city: 'Padova', colors: ['#7f1d1d', '#ffffff'] },
+    { name: 'Venezia Nuoto', short: 'VEN', city: 'Venezia', colors: ['#16a34a', '#f97316'] },
+    { name: 'Reggiana Nuoto', short: 'REG', city: 'Reggio Emilia', colors: ['#7f1d1d', '#ffffff'] },
+    { name: 'Rari Nantes Rimini', short: 'RIM', city: 'Rimini', colors: ['#dc2626', '#ffffff'] },
+    { name: 'Pallanuoto Udine', short: 'UDI', city: 'Udine', colors: ['#111827', '#ffffff'] },
+    { name: 'CUS Ferrara', short: 'CUF', city: 'Ferrara', colors: ['#1e3a8a', '#ffffff'] },
+    { name: 'Rari Nantes Verona', short: 'VER', city: 'Verona', colors: ['#facc15', '#1e3a8a'] },
+    { name: 'Penta Modena', short: 'PEN', city: 'Modena', colors: ['#facc15', '#111827'] },
+    { name: 'Circolo Canottieri Aniene', short: 'ANI', city: 'Roma', colors: ['#1e3a8a', '#ffffff'], founded: 1892 },
+    { name: 'Roma Nuoto', short: 'RNU', city: 'Roma', colors: ['#991b1b', '#facc15'] },
+    { name: 'SC Tuscolano', short: 'TUS', city: 'Roma', colors: ['#16a34a', '#ffffff'] },
+    { name: 'Imperium Roma', short: 'IMR', city: 'Roma', colors: ['#7c3aed', '#facc15'] },
+    { name: 'Bellator Frusino', short: 'BEL', city: 'Frosinone', colors: ['#facc15', '#1e3a8a'] },
+    { name: 'Antares Latina', short: 'ANT', city: 'Latina', colors: ['#1e3a8a', '#f97316'] },
+    { name: 'NC Civitavecchia', short: 'CIV', city: 'Civitavecchia', colors: ['#0ea5e9', '#ffffff'] },
+    { name: 'CUS Firenze', short: 'CFI', city: 'Firenze', colors: ['#6d28d9', '#ffffff'] },
+    { name: 'Mens Sana Siena', short: 'MSS', city: 'Siena', colors: ['#111827', '#ffffff'] },
+    { name: 'Pallanuoto Pescara', short: 'PPE', city: 'Pescara', colors: ['#0ea5e9', '#ffffff'] },
+    { name: 'CUS Napoli', short: 'CUN', city: 'Napoli', colors: ['#0284c7', '#ffffff'] },
+    { name: 'Rari Nantes Napoli', short: 'RNN', city: 'Napoli', colors: ['#0369a1', '#ffffff'] },
+    { name: 'CUS Bari', short: 'CUB', city: 'Bari', colors: ['#dc2626', '#ffffff'] },
+    { name: 'Nuoto Molfetta', short: 'MOL', city: 'Molfetta', colors: ['#dc2626', '#1e3a8a'] },
+    { name: 'CUS Palermo', short: 'CPA', city: 'Palermo', colors: ['#ec4899', '#111827'] },
+    { name: 'CUS Catania', short: 'CCT', city: 'Catania', colors: ['#1e3a8a', '#dc2626'] },
+    { name: 'Ossidiana Messina', short: 'OSS', city: 'Messina', colors: ['#111827', '#facc15'] },
+    { name: 'CUS Cagliari', short: 'CCA', city: 'Cagliari', colors: ['#b91c1c', '#1e3a8a'] },
+    { name: 'Pallanuoto Sassari', short: 'SSS', city: 'Sassari', colors: ['#1e3a8a', '#ffffff'] },
+  ],
+};
+
+/** Club esteri per le coppe europee, per nazione e in ordine di forza. */
+export const REAL_FOREIGN: RealForeignClub[] = [
+  { nation: 'HUN', name: 'Ferencváros', short: 'FTC', city: 'Budapest', colors: ['#15803d', '#ffffff'] },
+  { nation: 'HUN', name: 'OSC Újbuda', short: 'OSC', city: 'Budapest', colors: ['#1e3a8a', '#facc15'] },
+  { nation: 'HUN', name: 'Vasas', short: 'VAS', city: 'Budapest', colors: ['#dc2626', '#1e3a8a'] },
+  { nation: 'HUN', name: 'BVSC-Zugló', short: 'BVS', city: 'Budapest', colors: ['#1e3a8a', '#ffffff'] },
+  { nation: 'HUN', name: 'Szolnoki Dózsa', short: 'SZO', city: 'Szolnok', colors: ['#1e3a8a', '#ffffff'] },
+  { nation: 'HUN', name: 'Egri VK', short: 'EGR', city: 'Eger', colors: ['#1e40af', '#ffffff'] },
+  { nation: 'SRB', name: 'VK Novi Beograd', short: 'NBG', city: 'Belgrado', colors: ['#1e3a8a', '#dc2626'] },
+  { nation: 'SRB', name: 'VK Radnički Kragujevac', short: 'RAD', city: 'Kragujevac', colors: ['#dc2626', '#ffffff'] },
+  { nation: 'SRB', name: 'VK Crvena Zvezda', short: 'CZV', city: 'Belgrado', colors: ['#dc2626', '#ffffff'] },
+  { nation: 'SRB', name: 'VK Šabac', short: 'SAB', city: 'Šabac', colors: ['#1e3a8a', '#facc15'] },
+  { nation: 'CRO', name: 'VK Jug Dubrovnik', short: 'JUG', city: 'Dubrovnik', colors: ['#dc2626', '#ffffff'] },
+  { nation: 'CRO', name: 'HAVK Mladost', short: 'MLA', city: 'Zagabria', colors: ['#1e3a8a', '#ffffff'] },
+  { nation: 'CRO', name: 'VK Jadran Spalato', short: 'JAS', city: 'Spalato', colors: ['#1e40af', '#ffffff'] },
+  { nation: 'CRO', name: 'PVK Primorje', short: 'PRI', city: 'Fiume', colors: ['#0ea5e9', '#ffffff'] },
+  { nation: 'CRO', name: 'VK Šibenik', short: 'SIB', city: 'Sebenico', colors: ['#1e3a8a', '#ffffff'] },
+  { nation: 'ESP', name: 'CN Atlètic-Barceloneta', short: 'BCN', city: 'Barcellona', colors: ['#1e3a8a', '#facc15'] },
+  { nation: 'ESP', name: 'CN Sabadell', short: 'SBD', city: 'Sabadell', colors: ['#1e3a8a', '#ffffff'] },
+  { nation: 'ESP', name: 'CN Terrassa', short: 'TER', city: 'Terrassa', colors: ['#dc2626', '#ffffff'] },
+  { nation: 'ESP', name: 'CN Barcelona', short: 'CNB', city: 'Barcellona', colors: ['#1e3a8a', '#dc2626'] },
+  { nation: 'ESP', name: 'Real Canoe NC', short: 'RCN', city: 'Madrid', colors: ['#1e3a8a', '#ffffff'] },
+  { nation: 'ESP', name: 'CN Mataró', short: 'MAT', city: 'Mataró', colors: ['#facc15', '#1e3a8a'] },
+  { nation: 'GRE', name: 'Olympiacos', short: 'OLY', city: 'Pireo', colors: ['#dc2626', '#ffffff'] },
+  { nation: 'GRE', name: 'Panathinaikos', short: 'PAO', city: 'Atene', colors: ['#15803d', '#ffffff'] },
+  { nation: 'GRE', name: 'NO Vouliagmeni', short: 'VOU', city: 'Vouliagmeni', colors: ['#0ea5e9', '#ffffff'] },
+  { nation: 'GRE', name: 'Apollon Smyrnis', short: 'APO', city: 'Atene', colors: ['#1e3a8a', '#facc15'] },
+  { nation: 'GRE', name: 'Panionios', short: 'PAN', city: 'Atene', colors: ['#7f1d1d', '#facc15'] },
+  { nation: 'MNE', name: 'VK Jadran Herceg Novi', short: 'JHN', city: 'Herceg Novi', colors: ['#1e3a8a', '#ffffff'] },
+  { nation: 'MNE', name: 'PVK Primorac Kotor', short: 'KOT', city: 'Kotor', colors: ['#0ea5e9', '#ffffff'] },
+  { nation: 'MNE', name: 'VK Budvanska Rivijera', short: 'BUD', city: 'Budva', colors: ['#dc2626', '#1e3a8a'] },
+  { nation: 'FRA', name: 'CN Marseille', short: 'CNM', city: 'Marsiglia', colors: ['#0ea5e9', '#ffffff'] },
+  { nation: 'FRA', name: 'Montpellier Water-Polo', short: 'MWP', city: 'Montpellier', colors: ['#f97316', '#1e3a8a'] },
+  { nation: 'FRA', name: 'Olympic Nice Natation', short: 'ONN', city: 'Nizza', colors: ['#dc2626', '#111827'] },
+  { nation: 'GER', name: 'Waspo 98 Hannover', short: 'WAS', city: 'Hannover', colors: ['#1e3a8a', '#ffffff'] },
+  { nation: 'GER', name: 'Spandau 04', short: 'SPA', city: 'Berlino', colors: ['#dc2626', '#ffffff'] },
+  { nation: 'ROU', name: 'CSM Oradea', short: 'CSM', city: 'Oradea', colors: ['#dc2626', '#1e3a8a'] },
+  { nation: 'ROU', name: 'CS Dinamo Bucarest', short: 'DIN', city: 'Bucarest', colors: ['#dc2626', '#ffffff'] },
+  { nation: 'MLT', name: 'Sliema ASC', short: 'SLI', city: 'Sliema', colors: ['#1e3a8a', '#ffffff'] },
+  { nation: 'GEO', name: 'Dinamo Tbilisi', short: 'DTB', city: 'Tbilisi', colors: ['#1e3a8a', '#ffffff'] },
+  { nation: 'TUR', name: 'Galatasaray', short: 'GAL', city: 'Istanbul', colors: ['#facc15', '#dc2626'] },
+  { nation: 'NED', name: 'ZV De Zaan', short: 'ZAA', city: 'Zaandam', colors: ['#f97316', '#1e3a8a'] },
+];
+
+/** Dimensione della città per i club esteri (pubblico e ricavi). */
+export const FOREIGN_CITY_SIZE: Record<string, number> = {
+  Budapest: 5, Belgrado: 5, Barcellona: 5, Madrid: 5, Atene: 5, Pireo: 4, Zagabria: 4, Spalato: 4, Marsiglia: 4, Berlino: 4,
+  Istanbul: 4, Bucarest: 4, Fiume: 3, Dubrovnik: 3, Kragujevac: 3, Szolnok: 3, Eger: 3, Sabadell: 3, Terrassa: 3, Hannover: 3,
+  Montpellier: 3, Nizza: 3, Oradea: 3, Tbilisi: 3, Kotor: 2, 'Herceg Novi': 2, Budva: 2, Šabac: 2, Sebenico: 2, Mataró: 2,
+  Vouliagmeni: 2, Sliema: 1, Zaandam: 2,
+};

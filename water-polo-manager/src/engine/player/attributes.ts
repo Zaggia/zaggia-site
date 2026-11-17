@@ -62,24 +62,36 @@ export function attrGroupOf(key: AttrKey): AttrGroup {
 export const ROLE_LABELS: Record<Role, string> = {
   POR: 'Portiere',
   CEN: 'Centroboa',
-  DIF: 'Difensore del centroboa',
-  ESD: 'Esterno destro',
-  ESS: 'Esterno sinistro',
+  DIF: 'Difensore',
+  CVA: 'Centrovasca',
+  MAN: 'Mancino',
   ALA: 'Ala',
   UNI: 'Universale',
 };
 
+/** Sigle dei ruoli della pallanuoto. */
 export const ROLE_SHORT: Record<Role, string> = {
   POR: 'POR',
-  CEN: 'CB',
+  CEN: 'BOA',
   DIF: 'DIF',
-  ESD: 'ED',
-  ESS: 'ES',
+  CVA: 'CV',
+  MAN: 'MAN',
   ALA: 'ALA',
   UNI: 'UNI',
 };
 
-export const ROLES: Role[] = ['POR', 'CEN', 'DIF', 'ESD', 'ESS', 'ALA', 'UNI'];
+/** Descrizione dei ruoli (in acqua le posizioni d'attacco sono numerate da 1 a 6). */
+export const ROLE_DESC: Record<Role, string> = {
+  POR: 'Difende la porta e lancia i contropiedi.',
+  CEN: 'Gioca spalle alla porta in posizione 6: tira dai due metri e guadagna espulsioni.',
+  DIF: 'Marca il centroboa avversario; in attacco si sistema al centro o sui lati.',
+  CVA: 'Regista in posizione 3: fa girare la palla, tira da fuori e copre il ritorno difensivo.',
+  MAN: 'Tiratore mancino del lato destro (posizioni 1 e 2), decisivo in superiorità.',
+  ALA: 'Gioca vicino ai pali (posizioni 1 e 5): tiri angolati e inserimenti.',
+  UNI: 'Jolly capace di coprire tutte le posizioni di movimento.',
+};
+
+export const ROLES: Role[] = ['POR', 'CEN', 'DIF', 'CVA', 'MAN', 'ALA', 'UNI'];
 
 /**
  * Pesi per il calcolo dell'overall: NON è la media di tutte le statistiche.
@@ -99,13 +111,13 @@ export const ROLE_WEIGHTS: Record<Role, Partial<Record<AttrKey, number>>> = {
     marcatura: 0.2, forza: 0.18, contrasto: 0.14, inferiorita: 0.08, intelligenzaTattica: 0.08, resistenza: 0.06,
     concentrazione: 0.06, elevazione: 0.05, agilita: 0.05, velocita: 0.04, determinazione: 0.04, passaggio: 0.02,
   },
-  ESD: {
-    tiro: 0.14, potenzaTiro: 0.1, precisione: 0.1, passaggio: 0.1, visione: 0.08, smarcamento: 0.08, velocita: 0.08,
-    dribbling: 0.06, controlloPalla: 0.06, superiorita: 0.06, decisioni: 0.05, resistenza: 0.05, marcatura: 0.04,
+  MAN: {
+    tiro: 0.16, potenzaTiro: 0.12, precisione: 0.14, smarcamento: 0.08, superiorita: 0.1, velocita: 0.08, dribbling: 0.06,
+    controlloPalla: 0.06, freddezza: 0.06, decisioni: 0.06, resistenza: 0.04, passaggio: 0.04,
   },
-  ESS: {
-    tiro: 0.14, potenzaTiro: 0.1, precisione: 0.1, passaggio: 0.1, visione: 0.08, smarcamento: 0.08, velocita: 0.08,
-    dribbling: 0.06, controlloPalla: 0.06, superiorita: 0.06, decisioni: 0.05, resistenza: 0.05, marcatura: 0.04,
+  CVA: {
+    passaggio: 0.14, visione: 0.14, tiro: 0.1, potenzaTiro: 0.1, intelligenzaTattica: 0.1, decisioni: 0.08, controlloPalla: 0.08,
+    marcatura: 0.06, resistenza: 0.06, superiorita: 0.06, leadership: 0.04, velocita: 0.04,
   },
   ALA: {
     tiro: 0.14, precisione: 0.14, smarcamento: 0.1, velocita: 0.12, accelerazione: 0.08, agilita: 0.06, dribbling: 0.08,
@@ -143,19 +155,20 @@ export function overallInRole(attrs: Attributes, role: Role): number {
 }
 
 /**
- * Posizioni in acqua: 0 portiere, 1 ala destra, 2 esterno destro, 3 centrovasca (difensore),
- * 4 esterno sinistro, 5 ala sinistra, 6 centroboa.
+ * Posizioni in acqua (numerazione classica della pallanuoto): 0 portiere, 1 ala destra, 2 lato destro, 3 centrovasca,
+ * 4 lato sinistro, 5 ala sinistra, 6 centroboa (al due metri).
  */
-export const SLOT_LABELS = ['Portiere', 'Ala destra (1)', 'Esterno destro (2)', 'Centrovasca (3)', 'Esterno sinistro (4)', 'Ala sinistra (5)', 'Centroboa (6)'];
-export const SLOT_SHORT = ['POR', 'AD', 'ED', 'CV', 'ES', 'AS', 'CB'];
+export const SLOT_LABELS = ['Portiere', 'Posizione 1 · ala destra', 'Posizione 2 · lato destro', 'Posizione 3 · centrovasca', 'Posizione 4 · lato sinistro', 'Posizione 5 · ala sinistra', 'Posizione 6 · centroboa'];
+export const SLOT_SHORT = ['POR', '1', '2', '3', '4', '5', '6'];
+export const SLOT_NAMES = ['Portiere', 'Ala destra', 'Lato destro', 'Centrovasca', 'Lato sinistro', 'Ala sinistra', 'Centroboa'];
 
 const SUIT: Record<Role, number[]> = {
-  //      POR   1     2     3     4     5     6
+  //      P     1     2     3     4     5     6
   POR: [1.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25],
   CEN: [0.15, 0.7, 0.72, 0.8, 0.72, 0.7, 1.0],
-  DIF: [0.15, 0.72, 0.8, 1.0, 0.8, 0.72, 0.82],
-  ESD: [0.15, 0.9, 1.0, 0.86, 0.84, 0.78, 0.7],
-  ESS: [0.15, 0.78, 0.84, 0.86, 1.0, 0.9, 0.7],
+  DIF: [0.15, 0.74, 0.88, 0.95, 0.88, 0.74, 0.82],
+  CVA: [0.15, 0.8, 0.9, 1.0, 0.9, 0.8, 0.7],
+  MAN: [0.15, 1.0, 1.0, 0.86, 0.8, 0.76, 0.68],
   ALA: [0.15, 1.0, 0.88, 0.75, 0.88, 1.0, 0.68],
   UNI: [0.15, 0.92, 0.95, 0.95, 0.95, 0.92, 0.85],
 };

@@ -783,7 +783,8 @@ function resolveYouthTalent(world: World, ev: GameEvent, choice: string): string
   const p = P(world, ev.data.playerId);
   if (!p || p.clubId !== club.id) return 'Il ragazzo non è più al club.';
   if (choice === 'contratto') {
-    promoteYouth(world, club, p);
+    const err = promoteYouth(world, club, p);
+    if (err) return `${err} ${fullName(p)} resta per ora nel settore giovanile.`;
     return `${fullName(p)} entra in prima squadra.`;
   }
   if (choice === 'vetrina') {

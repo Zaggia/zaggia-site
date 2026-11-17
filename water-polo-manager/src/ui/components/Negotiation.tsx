@@ -8,6 +8,7 @@ import { fmtMoney } from '../format';
 import { STATUS_LABELS, defaultYears, interestIn, negotiate, signContract, suggestedStatus, wageDemand } from '../../engine/transfer/contracts';
 import { askingPrice, finalizeUserSigning, signFreeAgent, userBid, transferWindowOpen } from '../../engine/transfer/market';
 import { niceMoney } from '../../engine/util';
+import { rosterFullError } from '../../engine/club/roster';
 
 type Mode = 'renewal' | 'free' | 'transfer';
 
@@ -23,7 +24,9 @@ export function ContractModal({ player, mode, offer, onClose }: { player: Player
   const [log, setLog] = useState<{ who: 'tu' | 'lui'; text: string }[]>([]);
   const [done, setDone] = useState(false);
   const interest = interestIn(world, player, club);
+  const full = mode !== 'renewal' ? rosterFullError(world, club) : null;
   const send = () => {
+    if (full) { s.toast(full, 'err'); return; }
     const res = negotiate(world, player, club, { wage, years, status });
     const entries: { who: 'tu' | 'lui'; text: string }[] = [
       { who: 'tu', text: `${fmtMoney(wage)} l’anno per ${years} ${years === 1 ? 'stagione' : 'stagioni'}, ruolo: ${STATUS_LABELS[status].toLowerCase()}.` },
@@ -35,8 +38,9 @@ export function ContractModal({ player, mode, offer, onClose }: { player: Player
         signContract(world, player, club, { wage, years, status });
         s.toast(`${player.lastName} ha rinnovato fino al ${world.season + years + (world.day > 300 ? 1 : 0)}.`, 'ok');
       } else if (mode === 'free') {
-        signFreeAgent(world, player, club, { wage, years, status });
-        s.toast(`${player.firstName} ${player.lastName} è un nuovo giocatore del club!`, 'ok');
+        const err = signFreeAgent(world, player, club, { wage, years, status });
+        if (err) s.toast(err, 'err');
+        else s.toast(`${player.firstName} ${player.lastName} è un nuovo giocatore del club!`, 'ok');
       } else if (offer) {
         const err = finalizeUserSigning(world, offer.id, { wage, years, status });
         if (err) s.toast(err, 'err');
@@ -55,8 +59,9 @@ export function ContractModal({ player, mode, offer, onClose }: { player: Player
   const title = mode === 'renewal' ? `Rinnovo: ${player.firstName} ${player.lastName}` : `Contratto: ${player.firstName} ${player.lastName}`;
   return (
     <Modal open onClose={onClose} title={title}
-      footer={done ? <Button onClick={onClose}>Chiudi</Button> : <><Button variant="ghost" onClick={onClose}>Abbandona</Button><Button onClick={send}>Invia proposta</Button></>}>
+      footer={done ? <Button onClick={onClose}>Chiudi</Button> : <><Button variant="ghost" onClick={onClose}>Abbandona</Button><Button onClick={send} disabled={!!full}>Invia proposta</Button></>}>
       <div className="space-y-4">
+        {full && <p className="text-warn text-sm">{full}</p>}
         <div className="flex flex-wrap gap-2 text-xs">
           <Badge tone={interest.value >= 60 ? 'good' : interest.value >= 35 ? 'warn' : 'bad'}>Interesse {interest.value}%</Badge>
           <Badge>Overall {player.overall}</Badge>
@@ -105,6 +110,7 @@ export function BidModal({ player, onClose }: { player: Player; onClose: () => v
   const [result, setResult] = useState<{ text: string; offer?: TransferOffer; counter?: number } | null>(null);
   const [contract, setContract] = useState<TransferOffer | null>(null);
   const window = transferWindowOpen(world);
+  const full = rosterFullError(world, world.clubs[world.userClubId]);
   const send = () => {
     const r = userBid(world, player.id, loan ? 0 : fee, loan);
     s.touch();
@@ -121,13 +127,14 @@ export function BidModal({ player, onClose }: { player: Player; onClose: () => v
       footer={<><Button variant="ghost" onClick={onClose}>Chiudi</Button>
         {result?.offer?.status === 'accepted'
           ? <Button variant="gold" onClick={() => setContract(result.offer!)}>Tratta l’ingaggio</Button>
-          : <Button onClick={send} disabled={!window.open}>Invia offerta</Button>}</>}>
+          : <Button onClick={send} disabled={!window.open || !!full}>Invia offerta</Button>}</>}>
       <div className="space-y-4">
         <div className="text-sm text-mute">
           {owner?.name} chiede circa <span className="text-ink font-semibold">{fmtMoney(ask)}</span>. Valore di mercato {fmtMoney(player.value)}.
           Liquidità disponibile: <span className="text-ink font-semibold">{fmtMoney(world.clubs[world.userClubId].finances.balance)}</span>.
         </div>
         {!window.open && <p className="text-warn text-sm">Il mercato è chiuso: si riapre con la prossima finestra.</p>}
+        {full && <p className="text-warn text-sm">{full}</p>}
         <div className="flex gap-2">
           <Button size="sm" variant={!loan ? 'primary' : 'outline'} onClick={() => setLoan(false)}>Acquisto</Button>
           <Button size="sm" variant={loan ? 'primary' : 'outline'} onClick={() => setLoan(true)}>Prestito (fino a fine stagione)</Button>

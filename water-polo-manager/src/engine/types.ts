@@ -7,7 +7,7 @@
 export type ID = string;
 
 /** Ruoli della pallanuoto. */
-export type Role = 'POR' | 'CEN' | 'DIF' | 'ESD' | 'ESS' | 'ALA' | 'UNI';
+export type Role = 'POR' | 'CEN' | 'DIF' | 'MAN' | 'CVA' | 'ALA' | 'UNI';
 export type Hand = 'R' | 'L';
 
 export const TECH_ATTRS = [
@@ -217,7 +217,7 @@ export type TacticId = OffenseTactic | DefenseTactic | `mu_${ManUpFormation}` | 
 
 // ─── Formazione ──────────────────────────────────────────────────────────────
 
-/** 7 posizioni in acqua: 0 portiere, 1 ala destra, 2 esterno destro, 3 centrovasca, 4 esterno sinistro, 5 ala sinistra, 6 centroboa. */
+/** 7 posizioni in acqua: 0 portiere e le posizioni d’attacco numerate della pallanuoto (1 ala destra, 2 lato destro, 3 centrovasca, 4 lato sinistro, 5 ala sinistra, 6 centroboa). */
 export interface Lineup {
   slots: (ID | null)[];
   bench: ID[];
@@ -486,6 +486,8 @@ export interface WorldRules {
   windows: TransferWindow[];
   blackouts: [string, string][];
   matchSquadSize: number;
+  /** Giocatori in rosa per ogni squadra (uguale in tutte le categorie). */
+  rosterSize: number;
   periodSeconds: number;
   youthIntakeDate: string;
   licenseCheckDate: string;

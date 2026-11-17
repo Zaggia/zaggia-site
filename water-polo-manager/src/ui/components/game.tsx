@@ -5,7 +5,7 @@ import type { Club, Competition, Fixture, Player, World } from '../../engine/typ
 import { useGame } from '../../store/game';
 import { computeStandings } from '../../engine/competition/standings';
 import { leagueRules } from '../../engine/data/config';
-import { ROLE_SHORT, ROLE_LABELS } from '../../engine/player/attributes';
+import { ROLE_SHORT, ROLE_LABELS, ROLE_DESC } from '../../engine/player/attributes';
 import { ageOf } from '../../engine/player/value';
 import { knowledgeOf, overallRange, potentialRange } from '../../engine/world/queries';
 import { STATUS_LABELS } from '../../engine/transfer/contracts';
@@ -59,7 +59,7 @@ export function playerColumns(world: World, opts: { own?: boolean; showClub?: bo
   const cols: Column<Player>[] = [
     { key: 'n', label: '#', render: (p) => <span className="text-faint num">{p.capNumber || '—'}</span>, sort: (p) => p.capNumber, className: 'w-8' },
     { key: 'name', label: 'Giocatore', render: (p) => <PlayerName p={p} world={world} avatar />, sort: (p) => p.lastName },
-    { key: 'role', label: 'Ruolo', render: (p) => <span title={ROLE_LABELS[p.role]} className="text-mute font-semibold">{ROLE_SHORT[p.role]}{p.hand === 'L' ? <span className="text-faint text-[10px] ml-1">mancino</span> : ''}</span>, sort: (p) => p.role },
+    { key: 'role', label: 'Ruolo', render: (p) => <span title={`${ROLE_LABELS[p.role]}: ${ROLE_DESC[p.role]}`} className="text-mute font-semibold">{ROLE_SHORT[p.role]}{p.hand === 'L' && p.role !== 'MAN' ? <span className="text-faint text-[10px] ml-1">mancino</span> : ''}</span>, sort: (p) => p.role },
     { key: 'age', label: 'Età', render: (p) => <span className="num">{ageOf(p, world.season)}</span>, sort: (p) => ageOf(p, world.season) },
     { key: 'nat', label: 'Naz.', render: (p) => <Flag code={p.nationality} />, sort: (p) => p.nationality, hideOnMobile: true },
   ];

@@ -18,8 +18,11 @@ import { expectedRank } from '../economy/sponsors';
 import { positionOf } from '../competition/standings';
 import { leagueComp } from '../world/queries';
 import { FACILITIES, maxFacilityLevel, upgradeCost } from '../club/facilities';
+import { promoteYouth } from '../club/manage';
+import { releaseCandidate, rosterLimit, trimRoster } from '../club/roster';
+import { fullName } from '../player/generate';
 
-const PERIMETER: Role[] = ['ESD', 'ESS', 'ALA', 'UNI'];
+const PERIMETER: Role[] = ['MAN', 'CVA', 'ALA', 'UNI'];
 
 function roleNeeds(squad: Player[]): Role[] {
   const count = (r: Role) => squad.filter((p) => p.role === r).length;
@@ -28,7 +31,7 @@ function roleNeeds(squad: Player[]): Role[] {
   if (count('CEN') < 2) needs.push('CEN');
   if (count('DIF') < 2) needs.push('DIF');
   const per = squad.filter((p) => PERIMETER.includes(p.role)).length;
-  if (per < 8) needs.push('ALA', 'ESD', 'ESS');
+  if (per < 8) needs.push('ALA', 'MAN', 'CVA');
   return needs;
 }
 
@@ -79,7 +82,8 @@ function starters(world: World, club: Club): Player[] {
 /** Una mossa di mercato per un club AI (al massimo un acquisto e una cessione a settimana). */
 export function aiMarketWeek(world: World, club: Club, pool: Pool, rng: Rng, loanOut?: Map<string, number>) {
   // Con la rosa corta si fanno più operazioni nella stessa settimana.
-  const moves = club.playerIds.length < 13 ? 4 : club.playerIds.length < 15 ? 2 : 1;
+  const limit = rosterLimit(world);
+  const moves = club.playerIds.length < limit - 2 ? 4 : club.playerIds.length < limit ? 2 : 1;
   for (let m = 0; m < moves; m++) {
     const before = club.playerIds.length;
     aiMarketMove(world, club, pool, rng, loanOut);
@@ -88,43 +92,95 @@ export function aiMarketWeek(world: World, club: Club, pool: Pool, rng: Rng, loa
   ensureMinimumSquad(world, club, rng);
 }
 
-/** Rosa d'emergenza: si promuovono giovani e si tesserano svincolati per avere almeno 13 giocatori disponibili. */
+/**
+ * Completa la rosa fino al numero regolamentare: prima i giovani del vivaio che meritano,
+ * poi gli svincolati più utili con un ingaggio sostenibile. Restituisce i nomi dei nuovi arrivati.
+ */
+export function fillRoster(world: World, club: Club): string[] {
+  const limit = rosterLimit(world);
+  const added: string[] = [];
+  let guard = 0;
+  while (club.playerIds.length < limit && guard++ < limit + 2) {
+    const squad = club.playerIds.map((id) => world.players[id]).filter(Boolean);
+    const gkShort = squad.filter((p) => p.role === 'POR').length < 2;
+    const needs = gkShort ? (['POR'] as Role[]) : roleNeeds(squad);
+    const fits = (p: Player) => !needs.length || needs.includes(p.role) || (!gkShort && p.role === 'UNI');
+    const st = starters(world, club);
+    const avgSt = st.length ? st.reduce((t, p) => t + p.overall, 0) / st.length : 30;
+    const youth = club.youthIds.map((id) => world.players[id])
+      .filter((p) => p && !p.injury && (!gkShort || p.role === 'POR'))
+      .sort((a, b) => b.overall - a.overall)[0];
+    const cap = Math.max(2500, club.finances.wageBudget * 0.05);
+    const free = Object.values(world.players)
+      .filter((p) => !p.clubId && !p.retired && !p.injury && !p.youth && p.overall <= avgSt + 4)
+      .sort((a, b) => b.overall - a.overall);
+    let pick: Player | null = null;
+    let wage = 0;
+    for (const pool of [free.filter(fits), gkShort ? [] : free]) {
+      for (const p of pool.slice(0, 60)) {
+        const w = Math.round(wageDemand(world, p, club, 'riserva', 1) * 0.9);
+        if (w <= cap) { pick = p; wage = w; break; }
+      }
+      if (pick) break;
+    }
+    if (!pick) {
+      // Nessuno svincolato "giusto": si prende il più economico disponibile.
+      const cheap = [...free].reverse().find((p) => !gkShort || p.role === 'POR') ?? null;
+      if (cheap) { pick = cheap; wage = Math.round(wageDemand(world, cheap, club, 'riserva', 1) * 0.9); }
+    }
+    // Il giovane sale in prima squadra se è già all'altezza o se ha un futuro da titolare: il vivaio non va svuotato.
+    const youthReady = youth && (!pick || youth.overall >= pick.overall + 1 || (youth.potential >= avgSt + 4 && youth.overall >= pick.overall - 4));
+    if (youth && youthReady) {
+      promoteYouth(world, club, youth);
+      added.push(fullName(youth));
+      continue;
+    }
+    if (!pick) break;
+    completeTransfer(world, pick, club, 0, { wage, years: 1, status: 'riserva' });
+    added.push(fullName(pick));
+  }
+  return added;
+}
+
+/** Rosa d'emergenza: rosa completa, almeno un portiere disponibile e abbastanza giocatori per scendere in acqua. */
 export function ensureMinimumSquad(world: World, club: Club, rng: Rng) {
   const avail = () => club.playerIds.map((id) => world.players[id]).filter((p) => p && !p.injury && p.suspension <= 0);
-  const gkCount = () => avail().filter((p) => p.role === 'POR').length;
-  while ((avail().length < 13 || gkCount() < 1) && club.youthIds.length) {
-    const yid = [...club.youthIds].sort((a, b) => world.players[b].overall - world.players[a].overall)[0];
-    const p = world.players[yid];
-    club.youthIds = club.youthIds.filter((x) => x !== yid);
-    club.playerIds.push(yid);
-    p.youth = false;
-    p.contract = { wage: 600, endSeason: world.season + 1, status: 'giovane' };
+  fillRoster(world, club);
+  if (!club.isUser && !avail().some((p) => p.role === 'POR')) {
+    const youthGk = club.youthIds.map((id) => world.players[id]).filter((p) => p && p.role === 'POR' && !p.injury).sort((a, b) => b.overall - a.overall)[0];
+    if (youthGk) {
+      promoteYouth(world, club, youthGk);
+      trimRoster(world, club, youthGk.id);
+    } else {
+      const gk = Object.values(world.players).filter((p) => !p.clubId && !p.retired && !p.injury && p.role === 'POR').sort((a, b) => b.overall - a.overall)
+        .find((p) => wageDemand(world, p, club, 'riserva', 1) <= Math.max(3000, club.finances.wageBudget * 0.06));
+      if (gk) {
+        completeTransfer(world, gk, club, 0, { wage: Math.round(wageDemand(world, gk, club, 'riserva', 1) * 0.9), years: 1, status: 'riserva' });
+        trimRoster(world, club, gk.id);
+      }
+    }
   }
+  // Troppi lungodegenti per completare la formazione: si rescinde con chi resterà fuori più a lungo.
   let guard = 0;
-  while ((avail().length < 13 || gkCount() < 1) && guard++ < 10) {
-    const needGk = gkCount() < 1;
-    const free = Object.values(world.players)
-      .filter((p) => !p.clubId && !p.retired && !p.injury && (!needGk || p.role === 'POR'))
-      .sort((a, b) => b.overall - a.overall);
-    const level = club.playerIds.length ? Math.min(...club.playerIds.map((id) => world.players[id].overall)) + 8 : 40;
-    const pick = free.find((p) => p.overall <= level) ?? free[free.length - 1];
-    if (!pick) break;
-    const years = 1;
-    const status = 'riserva' as const;
-    completeTransfer(world, pick, club, 0, { wage: Math.round(wageDemand(world, pick, club, status, years) * 0.9), years, status });
+  while (!club.isUser && avail().length < 9 && guard++ < 4) {
+    const out = club.playerIds.map((id) => world.players[id]).filter((p) => p.injury && p.injury.daysLeft > 21 && !p.loan)
+      .sort((a, b) => b.injury!.daysLeft - a.injury!.daysLeft)[0];
+    if (!out) break;
+    releasePlayer(world, out, 'svincolato');
+    fillRoster(world, club);
   }
   void rng;
+  void releaseCandidate;
 }
 
 function aiMarketMove(world: World, club: Club, pool: Pool, rng: Rng, loanOut?: Map<string, number>) {
   let squad = club.playerIds.map((id) => world.players[id]).filter(Boolean);
   const window = transferWindowOpen(world).open;
   const aggression = DIFFICULTIES[world.difficulty].aiAggression;
-  // Rosa troppo lunga: si libera il peggiore (o lo si mette sul mercato).
-  if (squad.length > 19) {
-    const worst = [...squad].sort((a, b) => a.overall - b.overall || ageOf(b, world.season) - ageOf(a, world.season))[0];
-    if (worst.value < 5000 || !window) releasePlayer(world, worst, 'svincolato');
-    else worst.transferListed = true;
+  const limit = rosterLimit(world);
+  // Rosa oltre il limite regolamentare: si libera il meno utile.
+  if (squad.length > limit) {
+    trimRoster(world, club);
     squad = club.playerIds.map((id) => world.players[id]).filter(Boolean);
   }
   // Crisi economica: si vende il giocatore con valore più alto rispetto all'utilità.
@@ -135,17 +191,17 @@ function aiMarketMove(world: World, club: Club, pool: Pool, rng: Rng, loanOut?: 
     if (sell) sell.transferListed = true;
   }
   // Troppi stipendi: si libera chi pesa di più rispetto al rendimento (fuori dai titolari).
-  if (wages > club.finances.wageBudget * 1.2 && squad.length > 15 && window) {
+  if (wages > club.finances.wageBudget * 1.2 && squad.length >= limit && window) {
     const bench = [...squad].sort((a, b) => b.overall - a.overall).slice(9);
     const heavy = topN(bench.filter((p) => p.contract), 1, (p) => p.contract!.wage / Math.max(1, p.overall))[0];
     if (heavy) heavy.transferListed = true;
   }
   const needs = roleNeeds(squad);
-  const shortSquad = squad.length < 16;
+  const shortSquad = squad.length < limit;
   if (shortSquad && signCheapFreeAgent(world, club, squad, rng)) return;
   const tryBuy = needs.length > 0 || shortSquad || (window && rng.chance(0.18 * aggression));
   if (!tryBuy) return;
-  if (!window && squad.length >= 14 && needs.length === 0) return;
+  if (!window && squad.length >= limit && needs.length === 0) return;
   const st = starters(world, club);
   const avgStarter = st.length ? st.reduce((t, p) => t + p.overall, 0) / st.length : 30;
   const weakest = st.length ? st[st.length - 1] : null;
@@ -322,7 +378,7 @@ export function aiRenewals(world: World, club: Club, rng: Rng) {
   squad.forEach((p, rank) => {
     if (!p.contract || p.contract.endSeason > world.season) return;
     const age = ageOf(p, world.season);
-    const useful = rank < 14 || (age <= 22 && p.potential > p.overall + 8);
+    const useful = rank < rosterLimit(world) - 2 || (age <= 22 && p.potential > p.overall + 8);
     const tooOld = age >= 34 && rank > 6;
     if (!useful || tooOld || !rng.chance(0.9)) return;
     const years = defaultYears(p, world.season + 1);

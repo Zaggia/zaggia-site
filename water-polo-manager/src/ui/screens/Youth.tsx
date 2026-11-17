@@ -5,6 +5,7 @@ import { ROLE_SHORT, GROUP_LABELS } from '../../engine/player/attributes';
 import { ageOf } from '../../engine/player/value';
 import { potentialRange } from '../../engine/world/queries';
 import { promoteYouth } from '../../engine/club/manage';
+import { rosterFullError } from '../../engine/club/roster';
 import { releasePlayer } from '../../engine/transfer/contracts';
 import { FACILITIES } from '../../engine/club/facilities';
 import { academyMean } from '../../engine/club/generate';
@@ -21,6 +22,7 @@ export function YouthScreen() {
   const dir = club.staff.giovanili ? world.staff[club.staff.giovanili] : null;
   const mean = academyMean(lvl, dir?.rating ?? 0, club.reputation);
   const intake = dayOf(world.season, world.rules.youthIntakeDate);
+  const full = rosterFullError(world, club);
   const cols = [
     { key: 'n', label: 'Giovane', render: (p: Player) => <PlayerName p={p} world={world} avatar />, sort: (p: Player) => p.lastName },
     { key: 'r', label: 'Ruolo', render: (p: Player) => <span className="text-mute">{ROLE_SHORT[p.role]}</span>, sort: (p: Player) => p.role },
@@ -40,7 +42,7 @@ export function YouthScreen() {
       key: 'x', label: '',
       render: (p: Player) => (
         <span className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-          <Button size="sm" onClick={() => s.act((w) => promoteYouth(w, w.clubs[w.userClubId], w.players[p.id]), `${p.lastName} promosso in prima squadra.`)}>Promuovi</Button>
+          <Button size="sm" disabled={!!full} title={full ?? undefined} onClick={() => s.act((w) => promoteYouth(w, w.clubs[w.userClubId], w.players[p.id]), `${p.lastName} promosso in prima squadra.`)}>Promuovi</Button>
           <Button size="sm" variant="ghost" onClick={() => s.act((w) => { w.players[p.id].transferListed = !w.players[p.id].transferListed; }, p.transferListed ? 'Tolto dal mercato.' : 'Segnalato ai club interessati.')}>{p.transferListed ? 'Non cedere' : 'Cedi'}</Button>
           <Button size="sm" variant="ghost" onClick={() => s.act((w) => releasePlayer(w, w.players[p.id], 'lascia il vivaio'), 'Ragazzo svincolato.')}>Svincola</Button>
         </span>

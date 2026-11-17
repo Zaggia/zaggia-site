@@ -4,6 +4,8 @@
 import { create } from 'zustand';
 import type { CareerMeta, World } from '../engine/types';
 import { createWorld, type NewCareerOptions } from '../engine/world/generate';
+import { fixUserRoster } from '../engine/club/rosterFix';
+import { migrateWorld } from '../engine/world/migrate';
 import { blocker, beginNextSeason, continueGame, finishUserMatch, forfeitUserMatch, prepareUserMatch, type Blocker } from '../engine/season/advance';
 import { simulateToEnd, stepMatch, type MatchState } from '../engine/match/engine';
 import { deleteCareer, getLastCareer, listCareers, loadCareer, renameCareer, saveCareer } from '../db/saves';
@@ -139,6 +141,7 @@ export const useGame = create<Store>((set, get) => ({
         get().toast('Salvataggio non trovato.', 'err');
         return false;
       }
+      if (migrateWorld(res.world)) get().toast('Salvataggio aggiornato alla nuova versione: ruoli della pallanuoto e rose da 15.', 'info');
       set({ world: res.world, meta: res.meta, view: 'dashboard', stack: [], v: get().v + 1, live: null });
       return true;
     } catch (e) {
@@ -341,6 +344,10 @@ export const useGame = create<Store>((set, get) => ({
         resolveEvent(w, ev.id, (ev.choices.find((c) => !c.disabled) ?? ev.choices[0]).id, worldRng(w));
         continue;
       }
+      if (b?.reason === 'roster') {
+        fixUserRoster(w);
+        continue;
+      }
       if (b?.reason === 'match') {
         const user = w.clubs[w.userClubId];
         user.lineup = autoLineup(w, user);
@@ -362,6 +369,7 @@ export const useGame = create<Store>((set, get) => ({
 function handleBlocker(b: Blocker) {
   const s = useGame.getState();
   if (b.reason === 'match') s.go('partite');
+  else if (b.reason === 'roster') { s.go('rosa'); s.toast(b.text, 'err'); }
   else if (b.reason === 'event') s.go('posta', 'decisioni');
   else if (b.reason === 'review') s.go('review');
   else if (b.reason === 'gameover') s.go('review');

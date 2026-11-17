@@ -1,5 +1,6 @@
 // Azioni gestionali: strutture, allenatore e staff, allenamento, prezzi, giovanili.
 
+import { rosterFullError } from './roster';
 import { expense } from '../economy/ledger';
 import { addMessage, addNews, fmtMoney } from '../news';
 import type { Club, Coach, FacilityKey, Player, StaffMember, StaffRole, World } from '../types';
@@ -147,6 +148,10 @@ export function fireStaff(world: World, club: Club, role: StaffRole): string | n
 
 export function promoteYouth(world: World, club: Club, p: Player): string | null {
   if (!club.youthIds.includes(p.id)) return 'Il giocatore non è nel settore giovanile.';
+  if (club.isUser) {
+    const full = rosterFullError(world, club);
+    if (full) return full;
+  }
   club.youthIds = club.youthIds.filter((id) => id !== p.id);
   club.playerIds.push(p.id);
   p.youth = false;

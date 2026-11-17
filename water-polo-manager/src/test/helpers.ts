@@ -10,7 +10,7 @@ export function testCtx(seed = 1): GenCtx {
   return { rng: Rng.fromSeed(seed), season: 2025, newId: (p) => `${p}${n++}` };
 }
 
-const ORDER: Role[] = ['POR', 'ALA', 'ESD', 'DIF', 'ESS', 'ALA', 'CEN', 'POR', 'UNI', 'ESD', 'ESS', 'CEN', 'DIF'];
+const ORDER: Role[] = ['POR', 'ALA', 'MAN', 'DIF', 'CVA', 'ALA', 'CEN', 'POR', 'UNI', 'MAN', 'CVA', 'CEN', 'DIF'];
 
 export function testTeam(ctx: GenCtx, level: number, name: string, tactics?: Partial<TacticsSetup>, fam = 70): MatchTeamInput {
   const players = ORDER.map((role, i) => {

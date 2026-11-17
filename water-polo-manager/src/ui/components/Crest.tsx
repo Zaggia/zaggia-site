@@ -10,15 +10,17 @@ const SHAPES: Record<CrestSpec['shape'], string> = {
   rombo: 'M50 2 L98 55 L50 108 L2 55 Z',
 };
 
-function Symbol({ spec, color }: { spec: CrestSpec; color: string }) {
+function Symbol({ spec, color, uid }: { spec: CrestSpec; color: string; uid: string }) {
   switch (spec.symbol) {
     case 'palla':
+      // Pallone da pallanuoto: tre spicchi a spirale (stesso disegno del marchio del gioco).
       return (
-        <g stroke={color} strokeWidth="3.5" fill="none">
-          <circle cx="50" cy="56" r="20" />
-          <path d="M32 46 C42 52 58 52 68 46" />
-          <path d="M33 66 C43 60 57 60 67 66" />
-          <path d="M50 36 C44 46 44 66 50 76" />
+        <g transform="translate(50 56) scale(0.74) translate(-60 -58)">
+          <clipPath id={`b${uid}`}><circle cx="60" cy="58" r="27" /></clipPath>
+          <g clipPath={`url(#b${uid})`} fill={color}>
+            {[0, 120, 240].map((r) => <path key={r} transform={`rotate(${r} 60 58)`} d="M60 58 C60 44 70 32 92 28 L94 42 C78 44 68 50 60 58 Z" />)}
+          </g>
+          <circle cx="60" cy="58" r="27" fill="none" stroke={color} strokeWidth="4.6" />
         </g>
       );
     case 'onda':
@@ -130,7 +132,7 @@ export function Crest({ spec, size = 40, className }: { spec: CrestSpec; size?: 
       </defs>
       <g clipPath={`url(#c${id})`}>{bg}</g>
       {symbolBacking && <circle cx="50" cy="56" r="25" fill={p} stroke={s} strokeWidth="3" />}
-      <Symbol spec={spec} color={symbolBacking ? (spec.symbol === 'iniziali' ? contrastOn(p) : s) : symColor} />
+      <Symbol uid={id} spec={spec} color={symbolBacking ? (spec.symbol === 'iniziali' ? contrastOn(p) : s) : symColor} />
       <path d={shape} fill="none" stroke={spec.pattern === 'bordo' ? s : 'rgba(255,255,255,0.35)'} strokeWidth={spec.pattern === 'bordo' ? 7 : 2.5} />
     </svg>
   );

@@ -1,5 +1,6 @@
 // Routine giornaliere, settimanali e mensili del mondo di gioco.
 
+import { rosterLimit, trimRoster } from '../club/roster';
 import { DIFFICULTIES } from '../data/config';
 import { overdraftLimit } from '../economy/finance';
 import { addMessage, addNews, fmtMoney } from '../news';
@@ -123,7 +124,7 @@ export function youthIntake(world: World, rng: Rng) {
   for (const club of Object.values(world.clubs)) {
     const lvl = club.facilities.giovanile.level;
     const dir = club.staff.giovanili ? world.staff[club.staff.giovanili]?.rating ?? 0 : 0;
-    const count = club.isUser ? 2 + lvl : rng.int(1, 2 + Math.floor(lvl / 2));
+    const count = club.isUser ? 2 + lvl : rng.int(2, 3 + Math.floor(lvl / 2));
     const youth = generateYouth(ctx, club.id, academyMean(lvl, dir, club.reputation), count, lvl);
     for (const p of youth) {
       world.players[p.id] = p;
@@ -228,11 +229,13 @@ export function youthAgeOut(world: World, club: Club) {
     const p = world.players[id];
     if (!p) continue;
     if (ageOf(p, world.season) < 20) continue;
-    if (!club.isUser && p.potential >= teamStrength(world, club) - 2 && club.playerIds.length < 18) {
+    const room = club.playerIds.length < rosterLimit(world);
+    if (!club.isUser && p.potential >= teamStrength(world, club) - 2 && (room || p.potential >= teamStrength(world, club) + 2)) {
       club.youthIds = club.youthIds.filter((x) => x !== id);
       club.playerIds.push(id);
       p.youth = false;
       p.contract = { wage: 800, endSeason: world.season + 1, status: 'giovane' };
+      trimRoster(world, club, id);
     } else {
       removeFromClub(world, p);
       p.clubId = null;

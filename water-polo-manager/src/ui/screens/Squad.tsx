@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { useGame, useWorld } from '../../store/game';
 import { Button, DataTable, PageHeader, Panel, Tabs, type Column } from '../components/ui';
 import { PlayerName, PlayerTable } from '../components/game';
-import { ROLES, ROLE_LABELS, ROLE_SHORT } from '../../engine/player/attributes';
+import { ROLES, ROLE_DESC, ROLE_LABELS, ROLE_SHORT } from '../../engine/player/attributes';
 import type { Player, Role } from '../../engine/types';
 import { cls, fmtMoney, matchRatingColor } from '../format';
 import { annualWages } from '../../engine/economy/finance';
 import { emptyStatLine } from '../../engine/player/generate';
+import { rosterLimit } from '../../engine/club/roster';
+import { RosterNotice } from '../components/RosterNotice';
 
 export function Squad() {
   const world = useWorld();
@@ -21,9 +23,10 @@ export function Squad() {
     <div>
       <PageHeader
         title="Rosa"
-        subtitle={`${players.length} giocatori · monte ingaggi ${fmtMoney(annualWages(world, club))} l’anno`}
+        subtitle={`${players.length}/${rosterLimit(world)} giocatori · monte ingaggi ${fmtMoney(annualWages(world, club))} l’anno`}
         actions={<><Button variant="outline" onClick={() => go('formazione')}>Formazione</Button><Button variant="outline" onClick={() => go('mercato')}>Calciomercato</Button></>}
       />
+      <RosterNotice />
       <Tabs value={tab} onChange={setTab} tabs={[{ id: 'rosa', label: 'Prima squadra' }, { id: 'stats', label: 'Statistiche stagionali' }, { id: 'prestiti', label: 'In prestito altrove', count: loanedOut.length }]} />
       {tab !== 'prestiti' && (
         <div className="flex flex-wrap gap-1.5 mb-3">
@@ -39,6 +42,20 @@ export function Squad() {
           {tab === 'rosa' && <PlayerTable world={world} players={filtered} own />}
           {tab === 'stats' && <SeasonStatsTable players={filtered} />}
           {tab === 'prestiti' && <PlayerTable world={world} players={loanedOut} showClub />}
+        </div>
+      </Panel>
+      <Panel title="I ruoli della pallanuoto" subtitle="In attacco le posizioni sono numerate da 1 a 6; in difesa ognuno marca il suo uomo." className="mt-5">
+        <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          {ROLES.map((r) => (
+            <div key={r} className="rounded-xl border border-line p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="inline-flex min-w-9 justify-center rounded-md bg-aqua/15 text-aqua text-xs font-bold px-1.5 py-0.5">{ROLE_SHORT[r]}</span>
+                <span className="font-semibold text-sm">{ROLE_LABELS[r]}</span>
+                <span className="ml-auto text-xs text-faint num">{players.filter((p) => p.role === r).length}</span>
+              </div>
+              <p className="text-xs text-mute leading-snug">{ROLE_DESC[r]}</p>
+            </div>
+          ))}
         </div>
       </Panel>
     </div>

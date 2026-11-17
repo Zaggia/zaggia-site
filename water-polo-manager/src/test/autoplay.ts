@@ -8,6 +8,7 @@ import { acceptSponsorOffer } from '../engine/economy/sponsors';
 import { defaultYears, negotiate, signContract, suggestedStatus, wageDemand } from '../engine/transfer/contracts';
 import { signFreeAgent } from '../engine/transfer/market';
 import { ensureMinimumSquad } from '../engine/ai/clubAI';
+import { fixUserRoster } from '../engine/club/rosterFix';
 
 /** Un presidente "di base": rinnova chi serve e tessera svincolati se la rosa è corta. */
 export function autoManageUser(world: World) {
@@ -24,10 +25,10 @@ export function autoManageUser(world: World) {
       if (r.result === 'accept') signContract(world, p, user, { wage, years, status });
     }
   }
-  if (world.day < 90 && squad.length < 16) {
+  if (world.day < 90 && user.playerIds.length < world.rules.rosterSize) {
     const free = Object.values(world.players).filter((p) => !p.clubId && !p.retired && !p.injury).sort((a, b) => b.overall - a.overall);
     for (const p of free) {
-      if (user.playerIds.length >= 16) break;
+      if (user.playerIds.length >= world.rules.rosterSize) break;
       const years = 1;
       const status = suggestedStatus(world, p, user);
       const wage = wageDemand(world, p, user, status, years);
@@ -37,6 +38,7 @@ export function autoManageUser(world: World) {
     }
   }
   if (user.playerIds.length < 13) ensureMinimumSquad(world, user, worldRng(world));
+  if (user.playerIds.length !== world.rules.rosterSize) fixUserRoster(world);
 }
 
 /** Gioca automaticamente fino alla fine della stagione corrente (decisioni: prima scelta disponibile). */
@@ -51,6 +53,11 @@ export function autoplaySeason(world: World, onMatch?: (w: World) => void): void
       const ev = world.events.find((e) => !e.resolved && e.blocking)!;
       const choice = ev.choices.find((c) => !c.disabled) ?? ev.choices[0];
       resolveEvent(world, ev.id, choice.id, worldRng(world));
+      continue;
+    }
+    if (b?.reason === 'roster') {
+      fixUserRoster(world);
+      if (blocker(world)?.reason === 'roster') throw new Error('autoplay: impossibile sistemare la rosa');
       continue;
     }
     if (b?.reason === 'match') {

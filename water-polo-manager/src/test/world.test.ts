@@ -24,13 +24,17 @@ function divisionCounts(world: World) {
 describe('mondo di gioco', () => {
   it('genera il mondo con le categorie previste', () => {
     const w = newWorld();
-    expect(divisionCounts(w)).toMatchObject({ A1: 14, A2: 24, B: 48, C: 40 });
+    expect(divisionCounts(w)).toMatchObject({ A1: 14, A2: 24, B: 40, C: 40 });
     const user = w.clubs[w.userClubId];
     expect(user.division).toBe('C');
     const ovr = user.playerIds.map((id) => w.players[id].overall);
     expect(Math.max(...ovr)).toBeLessThanOrEqual(52);
     expect(Math.min(...ovr)).toBeGreaterThanOrEqual(20);
-    expect(user.playerIds.length).toBeGreaterThanOrEqual(16);
+    // Stesso numero di giocatori (15) in ogni squadra di ogni categoria.
+    for (const c of Object.values(w.clubs)) expect(c.playerIds.length, c.name).toBe(15);
+    // Tutte le società italiane sono reali (nessun nome generato).
+    for (const c of Object.values(w.clubs)) if (!c.isUser) expect(c.name, c.name).not.toMatch(/^Pallanuoto .+ \d+$/);
+    expect(Object.values(w.clubs).some((c) => c.name === 'Pro Recco' && c.division === 'A1')).toBe(true);
     const avgStrength = (div: string) => {
       const cs = Object.values(w.clubs).filter((c) => c.division === div);
       return cs.reduce((t, c) => t + teamStrength(w, c), 0) / cs.length;
@@ -50,10 +54,10 @@ describe('mondo di gioco', () => {
       const ts = Date.now();
       let checked = false;
       autoplaySeason(w, (ww) => {
-        // A metà stagione tutte le squadre devono avere una rosa completa.
+        // A metà stagione tutte le squadre devono avere la rosa regolamentare (15).
         if (checked || ww.day < 120) return;
         checked = true;
-        for (const c of Object.values(ww.clubs)) expect(c.playerIds.length, c.name + (c.isUser ? ' (utente)' : '')).toBeGreaterThanOrEqual(13);
+        for (const c of Object.values(ww.clubs)) expect(c.playerIds.length, c.name + (c.isUser ? ' (utente)' : '')).toBe(15);
       });
       if (w.phase === 'gameover') { console.log('GAME OVER', w.gameOverReason); break; }
       const econ: Record<string, { inc: number; exp: number; n: number }> = {};
@@ -75,7 +79,7 @@ describe('mondo di gioco', () => {
       const players = Object.values(w.players).filter((p) => !p.retired);
       const clubbed = players.filter((p) => p.clubId);
       console.log(`Stagione ${prev}: ${((Date.now() - ts) / 1000).toFixed(1)}s | Campione A1 ${w.clubs[a1!.winnerId!].name} | Coppa ${cup?.winnerId ? w.clubs[cup.winnerId].name : '—'} | CL ${cl?.winnerId ? w.clubs[cl.winnerId].name : '—'} | Utente: ${rec.division} ${rec.outcome} (${rec.points} pt, ${rec.w}-${rec.d}-${rec.l}), saldo ${Math.round(user.finances.balance)} | giocatori ${players.length} (in club ${clubbed.length}) | divisioni ${JSON.stringify(divisionCounts(w))}`);
-      expect(divisionCounts(w)).toMatchObject({ A1: 14, A2: 24, B: 48, C: 40 });
+      expect(divisionCounts(w)).toMatchObject({ A1: 14, A2: 24, B: 40, C: 40 });
       for (const c of Object.values(w.clubs)) {
         for (const id of c.playerIds) expect(w.players[id]?.clubId).toBe(c.id);
       }
