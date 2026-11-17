@@ -57,7 +57,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
   {
     title: 'Società',
     items: [
-      { view: 'mercato', label: 'Calciomercato', icon: 'mercato' },
+      { view: 'mercato', label: 'Mercato', icon: 'mercato' },
       { view: 'finanze', label: 'Finanze', icon: 'finanze' },
       { view: 'sponsor', label: 'Sponsor', icon: 'sponsor' },
       { view: 'strutture', label: 'Strutture', icon: 'strutture' },
@@ -139,11 +139,35 @@ function Shell() {
       <div className="flex-1 min-w-0 flex flex-col">
         <TopBar />
         <main className="flex-1 px-4 sm:px-6 py-5 max-w-[1500px] w-full mx-auto">
+          <BackBar />
           <View view={view} />
         </main>
         <FirstRunGuide />
       </div>
     </div>
+  );
+}
+
+const VIEW_NAMES: Partial<Record<ViewName, string>> = {
+  dashboard: 'Dashboard', rosa: 'Rosa', formazione: 'Formazione', tattiche: 'Tattiche', partite: 'Partite', calendario: 'Calendario',
+  classifica: 'Classifica', mercato: 'Mercato', staff: 'Allenatore e staff', giovani: 'Settore giovanile', strutture: 'Strutture',
+  finanze: 'Finanze', sponsor: 'Sponsor', competizioni: 'Competizioni', storia: 'Storia del club', posta: 'Posta', notizie: 'Notizie',
+  player: 'Scheda giocatore', club: 'Società', report: 'Tabellino', impostazioni: 'Salvataggi',
+};
+
+/** Freccia "Indietro" ben visibile (anche su telefono) nelle schede di dettaglio: giocatore, società, tabellino. */
+function BackBar() {
+  const view = useGame((s) => s.view);
+  const stack = useGame((s) => s.stack);
+  const back = useGame((s) => s.back);
+  if (!['player', 'club', 'report'].includes(view)) return null;
+  const prev = stack[stack.length - 1];
+  const label = prev ? VIEW_NAMES[prev.view] ?? 'Indietro' : 'Dashboard';
+  return (
+    <button onClick={back} className="press mb-4 inline-flex items-center gap-2 h-9 pl-2.5 pr-3.5 rounded-lg border border-line-2 text-sm font-medium text-ink hover:border-aqua/70 hover:text-aqua transition-colors">
+      <Icon name="back" size={18} />
+      Torna a {label}
+    </button>
   );
 }
 
@@ -274,7 +298,7 @@ function TopBar() {
           <Icon name="menu" size={22} />
         </button>
         {s.stack.length > 0 && (
-          <button className="hidden sm:block text-mute hover:text-ink p-1" onClick={() => s.back()} title="Indietro" aria-label="Indietro">
+          <button className="text-mute hover:text-ink p-1" onClick={() => s.back()} title="Indietro" aria-label="Indietro">
             <Icon name="back" />
           </button>
         )}

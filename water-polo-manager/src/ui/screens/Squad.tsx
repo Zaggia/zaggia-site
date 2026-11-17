@@ -24,7 +24,7 @@ export function Squad() {
       <PageHeader
         title="Rosa"
         subtitle={`${players.length}/${rosterLimit(world)} giocatori · monte ingaggi ${fmtMoney(annualWages(world, club))} l’anno`}
-        actions={<><Button variant="outline" onClick={() => go('formazione')}>Formazione</Button><Button variant="outline" onClick={() => go('mercato')}>Calciomercato</Button></>}
+        actions={<><Button variant="outline" onClick={() => go('formazione')}>Formazione</Button><Button variant="outline" onClick={() => go('mercato')}>Mercato</Button></>}
       />
       <RosterNotice />
       <Tabs value={tab} onChange={setTab} tabs={[{ id: 'rosa', label: 'Prima squadra' }, { id: 'stats', label: 'Statistiche stagionali' }, { id: 'prestiti', label: 'In prestito altrove', count: loanedOut.length }]} />

@@ -18,6 +18,20 @@ export type ViewName =
   | 'giovani' | 'strutture' | 'finanze' | 'sponsor' | 'competizioni' | 'storia' | 'posta' | 'notizie' | 'player' | 'club'
   | 'match' | 'report' | 'review' | 'impostazioni';
 
+/** Filtri e scheda del mercato: restano memorizzati quando si apre la scheda di un giocatore e si torna indietro. */
+export interface MarketUi {
+  tab: 'cerca' | 'osservati' | 'offerte' | 'contratti' | 'movimenti';
+  role: string;
+  minAge: number;
+  maxAge: number;
+  minOvr: number;
+  maxValue: number;
+  scope: 'all' | 'free' | 'listed' | 'ita';
+  name: string;
+}
+
+export const DEFAULT_MARKET_UI: MarketUi = { tab: 'cerca', role: '', minAge: 16, maxAge: 36, minOvr: 30, maxValue: 0, scope: 'all', name: '' };
+
 export interface Toast {
   id: number;
   text: string;
@@ -41,6 +55,8 @@ interface Store {
   view: ViewName;
   param?: string;
   stack: { view: ViewName; param?: string }[];
+  market: MarketUi;
+  setMarket: (patch: Partial<MarketUi>) => void;
   busy: string | null;
   toasts: Toast[];
   live: LiveMatch | null;
@@ -101,6 +117,8 @@ export const useGame = create<Store>((set, get) => ({
   v: 0,
   view: 'dashboard',
   stack: [],
+  market: { ...DEFAULT_MARKET_UI },
+  setMarket: (patch) => set({ market: { ...get().market, ...patch } }),
   busy: null,
   toasts: [],
   live: null,
@@ -123,7 +141,7 @@ export const useGame = create<Store>((set, get) => ({
     try {
       const world = createWorld(opts);
       const meta = metaFrom(world, null, opts.careerName);
-      set({ world, meta, view: 'dashboard', stack: [], v: get().v + 1, live: null });
+      set({ world, meta, view: 'dashboard', stack: [], market: { ...DEFAULT_MARKET_UI }, v: get().v + 1, live: null });
       await get().saveNow();
     } catch (e) {
       console.error(e);
@@ -142,7 +160,7 @@ export const useGame = create<Store>((set, get) => ({
         return false;
       }
       if (migrateWorld(res.world)) get().toast('Salvataggio aggiornato alla nuova versione: ruoli della pallanuoto e rose da 15.', 'info');
-      set({ world: res.world, meta: res.meta, view: 'dashboard', stack: [], v: get().v + 1, live: null });
+      set({ world: res.world, meta: res.meta, view: 'dashboard', stack: [], market: { ...DEFAULT_MARKET_UI }, v: get().v + 1, live: null });
       return true;
     } catch (e) {
       get().toast(`Impossibile caricare: ${(e as Error).message}`, 'err');
@@ -188,6 +206,7 @@ export const useGame = create<Store>((set, get) => ({
     const prev = stack.pop();
     if (prev) set({ view: prev.view, param: prev.param, stack });
     else set({ view: 'dashboard', param: undefined });
+    window.scrollTo?.(0, 0);
   },
 
   touch: () => {

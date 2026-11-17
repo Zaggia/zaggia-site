@@ -1,5 +1,5 @@
 import { ART } from '../art';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useGame, useWorld } from '../../store/game';
 import { ArtBanner, Badge, Button, DataTable, Empty, Field, Modal, Panel, Tabs } from '../components/ui';
 import { ClubName, PlayerName, PlayerTable } from '../components/game';
@@ -16,7 +16,10 @@ type Tab = 'cerca' | 'osservati' | 'offerte' | 'contratti' | 'movimenti';
 export function MarketScreen() {
   const world = useWorld();
   const param = useGame((s) => s.param);
-  const [tab, setTab] = useState<Tab>(param === 'offerte' ? 'offerte' : 'cerca');
+  const tab = useGame((s) => s.market.tab) as Tab;
+  const setMarket = useGame((s) => s.setMarket);
+  const setTab = (t: Tab) => setMarket({ tab: t });
+  useEffect(() => { if (param === 'offerte') setMarket({ tab: 'offerte' }); }, [param, setMarket]);
   const win = transferWindowOpen(world);
   const club = world.clubs[world.userClubId];
   const incoming = world.offers.filter((o) => !o.byUser && o.status === 'pending');
@@ -24,7 +27,7 @@ export function MarketScreen() {
   const expiring = club.playerIds.map((id) => world.players[id]).filter((p) => p?.contract && p.contract.endSeason <= world.season + 1);
   return (
     <div>
-      <ArtBanner image={ART.mercato} title="Calciomercato" actions={<Badge tone={win.open ? 'good' : 'warn'}>{win.open ? `${win.name} aperto` : 'Finestra chiusa'}</Badge>} className="mb-5">
+      <ArtBanner image={ART.mercato} title="Mercato" actions={<Badge tone={win.open ? 'good' : 'warn'}>{win.open ? `${win.name} aperto` : 'Finestra chiusa'}</Badge>} className="mb-5">
         {win.open ? 'Cerca rinforzi, tratta con i club e rinnova i contratti. Ogni acquisto deve liberare un posto: la rosa è di 15.' : 'Mercato chiuso: puoi ingaggiare solo svincolati.'}
       </ArtBanner>
       <Tabs value={tab} onChange={setTab} tabs={[
@@ -53,13 +56,17 @@ export function MarketScreen() {
 function Search() {
   const world = useWorld();
   const user = world.clubs[world.userClubId];
-  const [role, setRole] = useState<Role | ''>('');
-  const [minAge, setMinAge] = useState(16);
-  const [maxAge, setMaxAge] = useState(36);
-  const [minOvr, setMinOvr] = useState(30);
-  const [maxValue, setMaxValue] = useState(0);
-  const [scope, setScope] = useState<'all' | 'free' | 'listed' | 'ita'>('all');
-  const [name, setName] = useState('');
+  // I filtri stanno nello store: aprendo la scheda di un giocatore e tornando indietro non si perdono.
+  const f = useGame((s) => s.market);
+  const setMarket = useGame((s) => s.setMarket);
+  const { role, minAge, maxAge, minOvr, maxValue, scope, name } = f;
+  const setRole = (v: Role | '') => setMarket({ role: v });
+  const setMinAge = (v: number) => setMarket({ minAge: v });
+  const setMaxAge = (v: number) => setMarket({ maxAge: v });
+  const setMinOvr = (v: number) => setMarket({ minOvr: v });
+  const setMaxValue = (v: number) => setMarket({ maxValue: v });
+  const setScope = (v: typeof scope) => setMarket({ scope: v });
+  const setName = (v: string) => setMarket({ name: v });
   const scouting = user.facilities.scouting.level;
   const results = useMemo(() => {
     const q = name.trim().toLowerCase();
@@ -109,7 +116,8 @@ function Search() {
             </select>
           </Field>
         </div>
-        <p className="text-[11px] text-faint mt-3">
+        <div className="flex justify-end mt-3"><Button size="sm" variant="ghost" onClick={() => setMarket({ role: '', minAge: 16, maxAge: 36, minOvr: 30, maxValue: 0, scope: 'all', name: '' })}>Azzera i filtri</Button></div>
+        <p className="text-[11px] text-faint mt-1">
           {scouting < 3 ? 'La rete di osservatori copre solo l’Italia: migliora il centro scouting (livello 3) per vedere i giocatori dei club esteri.' : 'La rete di osservatori copre anche l’Europa.'}
           {' '}Overall e potenziale dei giocatori altrui sono stime: più conosci un giocatore, più sono precise.
         </p>

@@ -15,7 +15,7 @@ export function RosterNotice({ compact = false }: { compact?: boolean }) {
   const complete = () =>
     useGame.getState().act((w) => {
       const added = fillRoster(w, w.clubs[w.userClubId]);
-      return added.length ? null : 'Nessun giocatore disponibile da aggiungere: prova dal calciomercato.';
+      return added.length ? null : 'Nessun giocatore disponibile da aggiungere: prova dal mercato.';
     }, 'Rosa completata con giovani del vivaio e svincolati.');
   return (
     <div className="panel border-warn/50 p-4 mb-4 flex flex-wrap items-center gap-3 fade-in" role="alert">
@@ -26,7 +26,7 @@ export function RosterNotice({ compact = false }: { compact?: boolean }) {
       </div>
       <div className="flex flex-wrap gap-2">
         {issue.kind === 'under' && <Button variant="gold" onClick={complete}>Completa la rosa</Button>}
-        <Button variant="outline" onClick={() => go(issue.kind === 'under' ? 'mercato' : 'rosa')}>{issue.kind === 'under' ? 'Calciomercato' : 'Gestisci la rosa'}</Button>
+        <Button variant="outline" onClick={() => go(issue.kind === 'under' ? 'mercato' : 'rosa')}>{issue.kind === 'under' ? 'Mercato' : 'Gestisci la rosa'}</Button>
       </div>
     </div>
   );
