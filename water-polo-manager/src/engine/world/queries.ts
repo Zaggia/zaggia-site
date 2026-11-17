@@ -58,24 +58,36 @@ export function knowledgeOf(world: World, p: Player): number {
   return clamp(Math.round(Math.max(base, world.knowledge[p.id] ?? 0)), 5, 100);
 }
 
+/** Scostamento stabile (−1…1) dell'osservatore per un giocatore: l'errore non è sempre centrato. */
+function scoutBias(p: Player, salt: number): number {
+  let h = salt;
+  for (let i = 0; i < p.id.length; i++) h = (h * 31 + p.id.charCodeAt(i)) | 0;
+  return ((Math.abs(h) % 2001) / 1000) - 1;
+}
+
 /** Stima del potenziale mostrata all'utente (intervallo). */
 export function potentialRange(world: World, p: Player): [number, number] {
   const k = knowledgeOf(world, p);
   if (k >= 100) {
-    const err = 2;
-    return [clamp(p.potential - err, p.overall, 99), clamp(p.potential + err, p.overall, 99)];
+    return [clamp(p.potential - 2, p.overall, 99), clamp(p.potential + 2, p.overall, 99)];
   }
-  const err = Math.round((100 - k) / 5);
-  // Lo scostamento è deterministico per giocatore (l'osservatore può sbagliare in una direzione).
-  const bias = ((p.id.charCodeAt(p.id.length - 1) % 7) - 3) * (err / 6);
-  const mid = p.potential + bias;
-  return [clamp(Math.round(mid - err), p.overall, 99), clamp(Math.round(mid + err), p.overall, 99)];
+  // Più il giocatore è maturo, meno incertezza c'è sul suo futuro.
+  const age = world.season - p.birthYear;
+  const ageF = age >= 28 ? 0.25 : age >= 25 ? 0.5 : age >= 22 ? 0.8 : 1;
+  const err = Math.max(2, Math.round(((100 - k) / 7) * ageF));
+  const mid = p.potential + scoutBias(p, 7) * err * 0.6;
+  // Il limite inferiore è la stima dell'overall (non il valore vero, che l'osservatore non conosce).
+  const floor = overallRange(world, p)[0];
+  const lo = clamp(Math.round(mid - err), floor, 99);
+  return [lo, clamp(Math.max(lo, Math.round(mid + err)), floor, 99)];
 }
 
 export function overallRange(world: World, p: Player): [number, number] {
   const k = knowledgeOf(world, p);
-  const err = Math.round((100 - k) / 14);
-  return [clamp(p.overall - err, 1, 99), clamp(p.overall + err, 1, 99)];
+  if (k >= 100) return [p.overall, p.overall];
+  const err = Math.round((100 - k) / 16);
+  const mid = p.overall + scoutBias(p, 13) * err * 0.6;
+  return [clamp(Math.round(mid - err), 1, 99), clamp(Math.round(mid + err), 1, 99)];
 }
 
 export function isUserPlayer(world: World, p: Player): boolean {

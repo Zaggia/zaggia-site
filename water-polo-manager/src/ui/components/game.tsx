@@ -67,7 +67,11 @@ export function playerColumns(world: World, opts: { own?: boolean; showClub?: bo
     cols.push({ key: 'club', label: 'Club', render: (p) => (p.clubId ? <ClubName club={world.clubs[p.clubId]} size={18} /> : <span className="text-faint">Svincolato</span>), sort: (p) => (p.clubId ? world.clubs[p.clubId].name : 'zzz') });
   }
   cols.push(
-    { key: 'ovr', label: 'OVR', render: (p) => <Ovr v={p.overall} size="sm" range={own ? undefined : overallRange(world, p)} />, sort: (p) => p.overall },
+    {
+      key: 'ovr', label: 'OVR', title: own ? undefined : 'Stima degli osservatori',
+      render: (p) => { if (own || p.clubId === world.userClubId) return <Ovr v={p.overall} size="sm" />; const r = overallRange(world, p); return <Ovr v={(r[0] + r[1]) / 2} size="sm" range={r} />; },
+      sort: (p) => { if (own || p.clubId === world.userClubId) return p.overall; const r = overallRange(world, p); return (r[0] + r[1]) / 2; },
+    },
     {
       key: 'pot', label: 'POT', title: 'Potenziale stimato dagli osservatori',
       render: (p) => { const r = potentialRange(world, p); return <span className="num text-mute text-xs">{r[0] === r[1] ? r[0] : `${r[0]}–${r[1]}`}</span>; },

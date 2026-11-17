@@ -60,8 +60,8 @@ function PlayerView({ p }: { p: Player }) {
             <div className="text-xs text-mute mt-2">Carattere: {personalityLabel(p.personality)}{p.contract ? ` · contratto fino al ${p.contract.endSeason + 1} (${STATUS_LABELS[p.contract.status].toLowerCase()})` : ''}</div>
           </div>
           <div className="flex gap-4 items-center">
-            <div className="text-center"><div className="text-[10px] uppercase text-mute">Overall</div><Ovr v={p.overall} size="lg" range={own ? undefined : ovrR} /></div>
-            <div className="text-center"><div className="text-[10px] uppercase text-mute">Potenziale</div><Ovr v={potR[1]} size="lg" range={potR} /></div>
+            <div className="text-center"><div className="text-[10px] uppercase text-mute">Overall</div><Ovr v={own ? p.overall : (ovrR[0] + ovrR[1]) / 2} size="lg" range={own ? undefined : ovrR} /></div>
+            <div className="text-center"><div className="text-[10px] uppercase text-mute">Potenziale</div><Ovr v={(potR[0] + potR[1]) / 2} size="lg" range={potR} /></div>
           </div>
         </div>
       </section>

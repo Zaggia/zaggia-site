@@ -77,8 +77,10 @@ function Search() {
         if (q && !`${p.firstName} ${p.lastName}`.toLowerCase().includes(q)) return false;
         return true;
       })
-      .sort((a, b) => b.overall - a.overall)
-      .slice(0, 150);
+      .map((p) => ({ p, est: overallRange(world, p) }))
+      .sort((a, b) => b.est[0] + b.est[1] - (a.est[0] + a.est[1]))
+      .slice(0, 150)
+      .map((x) => x.p);
   }, [world, role, minAge, maxAge, minOvr, maxValue, scope, name, user.id, scouting]);
   return (
     <div className="space-y-4">
