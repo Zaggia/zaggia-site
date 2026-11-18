@@ -10,6 +10,7 @@ import { trimRoster } from '../club/roster';
 import { WORLD_VERSION } from './generate';
 import { DEFAULT_RULES } from '../data/config';
 import { realifyWorld } from './migrateReal';
+import { PYRAMID_BANDS, balancePyramid } from './pyramid';
 
 /** Porta un mondo salvato alla versione corrente. Restituisce true se è stato modificato. */
 export function migrateWorld(world: World): boolean {
@@ -47,6 +48,14 @@ export function migrateWorld(world: World): boolean {
       b.directPromotion = def.directPromotion;
       b.postseason = JSON.parse(JSON.stringify(def.postseason));
     }
+  }
+  if (from < 6) {
+    // v6: piramide dei livelli: fasce di forza per categoria e giocatori vicini al livello della propria squadra.
+    for (const lg of world.rules.leagues) {
+      const band = PYRAMID_BANDS[lg.key];
+      if (band) lg.strength = [...band];
+    }
+    balancePyramid(world);
   }
   world.version = WORLD_VERSION;
   return true;

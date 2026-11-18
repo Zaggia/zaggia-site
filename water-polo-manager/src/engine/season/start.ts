@@ -19,6 +19,7 @@ import { ctxOf } from '../world/context';
 import { expectedWage } from '../player/value';
 import { clamp } from '../util';
 import { sanitizeTactics } from '../tactics/tactics';
+import { balancePyramid } from '../world/pyramid';
 
 /** Applica promozioni e retrocessioni della stagione appena conclusa. */
 export function applyMovements(world: World) {
@@ -134,6 +135,7 @@ export function startSeason(world: World, rng: Rng, first = false) {
     world.day = 0;
     world.phase = 'regular';
     applyMovements(world);
+    balancePyramid(world);
     cleanup(world);
   }
   replenishFreeAgents(world, rng);

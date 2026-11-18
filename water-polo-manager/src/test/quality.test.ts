@@ -126,8 +126,43 @@ describe('playoff promozione in Serie B', () => {
     b.postseason = [];
     w.version = 4;
     expect(migrateWorld(w)).toBe(true);
-    expect(w.version).toBe(5);
+    expect(w.version).toBe(6);
     expect(b.directPromotion).toBe(0);
     expect(b.postseason).toHaveLength(1);
+  });
+});
+
+describe('piramide dei livelli', () => {
+  it('un titolare dell’ultima di A1 vale più del miglior giocatore di B, e la migrazione v6 sistema i vecchi salvataggi', async () => {
+    const { balancePyramid, PYRAMID_BANDS } = await import('../engine/world/pyramid');
+    const w = createWorld({
+      careerName: 'T', presidentName: 'T', clubName: 'Aquatica Test', short: 'AQT', city: 'Savona',
+      colors: ['#0b3d91', '#ffffff'], crest: { shape: 'scudo', pattern: 'strisce', symbol: 'palla', primary: '#0b3d91', secondary: '#ffffff', initials: 'AQT' },
+      poolName: 'P', founded: 2025, fansName: 'D', objective: 'metaClassifica', difficulty: 'normale', seed: 9,
+    });
+    // Si rovina apposta una squadra di B con un fuoriclasse e una di A1 con un titolare scarso.
+    const clubs = Object.values(w.clubs).filter((c) => c.country === 'ITA' && !c.isUser);
+    const b = clubs.find((c) => c.division === 'B')!;
+    const a1 = clubs.find((c) => c.division === 'A1')!;
+    const star = w.players[b.playerIds.find((id) => w.players[id].role !== 'POR')!];
+    for (const k of Object.keys(star.attrs) as (keyof typeof star.attrs)[]) star.attrs[k] = 95;
+    star.overall = 95;
+    const weak = w.players[a1.playerIds.find((id) => w.players[id].role === 'CEN')!];
+    for (const k of Object.keys(weak.attrs) as (keyof typeof weak.attrs)[]) weak.attrs[k] = 15;
+    weak.overall = 15;
+    w.version = 5;
+    expect(migrateWorld(w)).toBe(true);
+    expect(balancePyramid(w)).toBeGreaterThanOrEqual(0);
+    expect(star.overall).toBeLessThan(65);
+    expect(weak.overall).toBeGreaterThan(45);
+    for (const c of clubs) {
+      const s = teamStrength(w, c);
+      const [lo, hi] = PYRAMID_BANDS[c.division];
+      expect(s).toBeGreaterThanOrEqual(lo - 2);
+      expect(s).toBeLessThanOrEqual(hi + 2);
+    }
+    const best = (div: string) => Math.max(...clubs.filter((c) => c.division === div).flatMap((c) => c.playerIds.map((id) => w.players[id].overall)));
+    const worstStarter = (div: string) => Math.min(...clubs.filter((c) => c.division === div).map((c) => w.players[c.playerIds.filter((id) => w.players[id].role === 'CEN')[0]]?.overall ?? 99));
+    expect(worstStarter('A1')).toBeGreaterThan(best('B') - 12);
   });
 });

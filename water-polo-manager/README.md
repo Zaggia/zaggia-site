@@ -78,3 +78,7 @@ Requisiti: Node 20+.
 - **Serie B**: non sale più solo la prima: le prime 4 di ogni girone giocano i playoff (semifinali 1ª-4ª e 2ª-3ª, finale, al meglio delle 3); la vincente di ogni girone è promossa in A2. Le ultime 2 di ogni girone retrocedono.
 - **Serie C**: la prima sale direttamente, le classificate 2ª-5ª giocano i playoff per un secondo posto in B.
 - Le carriere già avviate vengono aggiornate dalla migrazione v5 (le regole sono salvate nel mondo).
+
+### Piramide dei livelli
+- Ogni categoria ha una fascia di forza di squadra (A1 60-78, A2 47-62, B 34-50, C 24-44) e ogni giocatore di una società resta in una finestra attorno al livello della sua squadra (da -8 a +7). Così un titolare dell'ultima di A1 vale più del miglior giocatore di B, ruolo per ruolo (anche i centroboa).
+- Il bilanciamento (`src/engine/world/pyramid.ts`) gira alla creazione del mondo, a ogni inizio stagione dopo promozioni e retrocessioni e, una volta, sulle carriere esistenti (migrazione v6). La tua società e i tuoi giocatori non vengono toccati.
