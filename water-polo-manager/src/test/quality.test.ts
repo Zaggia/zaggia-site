@@ -1,5 +1,6 @@
-import { expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { createWorld } from '../engine/world/generate';
+import { migrateWorld } from '../engine/world/migrate';
 import { teamStrength } from '../engine/club/lineup';
 import { buildMatchSetup } from '../engine/match/setup';
 import { createMatch, simulateToEnd } from '../engine/match/engine';
@@ -104,3 +105,29 @@ it('una carriera creata con società e giocatori inventati passa al mondo reale 
   autoplaySeason(w);
   expect(w.phase === 'review' || w.phase === 'gameover').toBe(true);
 }, 120000);
+
+describe('playoff promozione in Serie B', () => {
+  const mk = () => createWorld({
+    careerName: 'T', presidentName: 'T', clubName: 'Aquatica Test', short: 'AQT', city: 'Savona',
+    colors: ['#0b3d91', '#ffffff'], crest: { shape: 'scudo', pattern: 'strisce', symbol: 'palla', primary: '#0b3d91', secondary: '#ffffff', initials: 'AQT' },
+    poolName: 'P', founded: 2025, fansName: 'D', objective: 'metaClassifica', difficulty: 'normale', seed: 5,
+  });
+
+  it('le regole di una nuova carriera prevedono i playoff in Serie B', () => {
+    const b = mk().rules.leagues.find((l) => l.key === 'B')!;
+    expect(b.directPromotion).toBe(0);
+    expect(b.postseason.find((p) => p.purpose === 'promotion')?.positions).toEqual([1, 2, 3, 4]);
+  });
+
+  it('le carriere esistenti vengono aggiornate dalla migrazione v5', () => {
+    const w = mk();
+    const b = w.rules.leagues.find((l) => l.key === 'B')!;
+    b.directPromotion = 1;
+    b.postseason = [];
+    w.version = 4;
+    expect(migrateWorld(w)).toBe(true);
+    expect(w.version).toBe(5);
+    expect(b.directPromotion).toBe(0);
+    expect(b.postseason).toHaveLength(1);
+  });
+});

@@ -8,6 +8,7 @@ import { refreshValue } from '../player/value';
 import { clamp } from '../util';
 import { trimRoster } from '../club/roster';
 import { WORLD_VERSION } from './generate';
+import { DEFAULT_RULES } from '../data/config';
 import { realifyWorld } from './migrateReal';
 
 /** Porta un mondo salvato alla versione corrente. Restituisce true se è stato modificato. */
@@ -37,6 +38,15 @@ export function migrateWorld(world: World): boolean {
     // v4: società e giocatori reali anche nelle carriere create prima.
     realifyWorld(world);
     world.flags.guideSeen = true;
+  }
+  if (from < 5) {
+    // v5: in Serie B la promozione si decide ai playoff (prime 4 di ogni girone), non più con la sola prima classificata.
+    const b = world.rules.leagues.find((l) => l.key === 'B');
+    const def = DEFAULT_RULES.leagues.find((l) => l.key === 'B');
+    if (b && def && !b.postseason.some((p) => p.purpose === 'promotion')) {
+      b.directPromotion = def.directPromotion;
+      b.postseason = JSON.parse(JSON.stringify(def.postseason));
+    }
   }
   world.version = WORLD_VERSION;
   return true;

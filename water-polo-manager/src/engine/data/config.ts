@@ -108,9 +108,21 @@ export const DEFAULT_RULES: WorldRules = {
       points: { win: 3, draw: 1, loss: 0 },
       promotesTo: 'A2',
       relegatesTo: 'C',
-      directPromotion: 1,
+      directPromotion: 0,
       directRelegation: 2,
-      postseason: [],
+      postseason: [
+        {
+          id: 'promotion',
+          name: 'Playoff promozione',
+          purpose: 'promotion',
+          scope: 'perGroup',
+          positions: [1, 2, 3, 4],
+          rounds: [
+            { name: 'Semifinali playoff', bestOf: 3 },
+            { name: 'Finale playoff', bestOf: 3 },
+          ],
+        },
+      ],
       startDate: '10-25',
       prizeByPosition: [12000, 8000, 6000, 5000, 4000, 3000, 2000, 1500, 1000, 500],
       promotionPrize: 25000,

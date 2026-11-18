@@ -72,3 +72,9 @@ Requisiti: Node 20+.
 - Il rinnovo segue il valore *attuale* del giocatore: chi è migliorato chiede di più, chi è calato, invecchiato o è pagato sopra il suo valore accetta uno stipendio più basso. Anche morale e lealtà contano.
 - Ogni trattativa (giocatore o club venditore) ha richiesta iniziale, minimo e pazienza (numero di giri). A ogni giro la richiesta scende; la controproposta si può accettare con un click.
 - Vale anche per le carriere già avviate: la logica è del motore, non serve migrare i salvataggi.
+
+### Promozioni e playoff
+- **A1**: playoff scudetto tra le prime 8, playout 12ª-13ª, ultima retrocessa. **A2**: playoff promozione tra le prime 4 di ogni girone (1 promossa per girone).
+- **Serie B**: non sale più solo la prima: le prime 4 di ogni girone giocano i playoff (semifinali 1ª-4ª e 2ª-3ª, finale, al meglio delle 3); la vincente di ogni girone è promossa in A2. Le ultime 2 di ogni girone retrocedono.
+- **Serie C**: la prima sale direttamente, le classificate 2ª-5ª giocano i playoff per un secondo posto in B.
+- Le carriere già avviate vengono aggiornate dalla migrazione v5 (le regole sono salvate nel mondo).

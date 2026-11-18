@@ -216,8 +216,13 @@ export const useGame = create<Store>((set, get) => ({
           }
         }
       }
+      const fromVersion = world.version ?? 1;
       const migrated = migrateWorld(world);
-      if (migrated) get().toast('Salvataggio aggiornato: società e giocatori reali, risultati più realistici e squadre riequilibrate.', 'info');
+      if (migrated) {
+        get().toast(fromVersion < 4
+          ? 'Salvataggio aggiornato: società e giocatori reali, risultati più realistici, squadre riequilibrate e playoff promozione in Serie B.'
+          : 'Salvataggio aggiornato: in Serie B la promozione si decide ai playoff (prime 4 di ogni girone).', 'info');
+      }
       set({ world, meta, view: 'dashboard', stack: [], market: { ...DEFAULT_MARKET_UI }, v: get().v + 1, live: null, conflict });
       savedV = migrated ? -1 : get().v;
       if (migrated) await get().saveNow();

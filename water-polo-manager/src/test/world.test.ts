@@ -69,6 +69,10 @@ describe('mondo di gioco', () => {
       console.log('   economia media per categoria', Object.fromEntries(Object.entries(econ).map(([k, v]) => [k, `+${Math.round(v.inc / v.n / 1000)}k −${Math.round(v.exp / v.n / 1000)}k`])));
       beginNextSeason(w);
       const prev = season;
+      const serieB = w.competitions[`B-${prev}`];
+      // In Serie B la promozione si decide ai playoff: una serie per girone, 4 promosse in tutto.
+      expect(serieB?.phases.filter((p) => p.purpose === 'promotion').length).toBe(4);
+      expect(serieB?.promoted.length).toBe(4);
       const a1 = w.competitions[`A1-${prev}`];
       expect(a1?.finished).toBe(true);
       expect(a1?.winnerId).toBeTruthy();
