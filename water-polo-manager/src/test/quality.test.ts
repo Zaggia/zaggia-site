@@ -181,3 +181,29 @@ describe('prime giornate di campionato', () => {
     for (const f of first) expect(dynamicImportance(w, f)).toBeLessThanOrEqual(0.3001);
   });
 });
+
+describe('punteggi realistici', () => {
+  it('in una stagione intera i gol per partita restano realistici: niente punteggi folli e i grandi scarti solo con divari enormi', async () => {
+    const { autoplaySeason } = await import('./autoplay');
+    const w = createWorld({
+      careerName: 'T', presidentName: 'T', clubName: 'Aquatica Test', short: 'AQT', city: 'Savona',
+      colors: ['#0b3d91', '#ffffff'], crest: { shape: 'scudo', pattern: 'strisce', symbol: 'palla', primary: '#0b3d91', secondary: '#ffffff', initials: 'AQT' },
+      poolName: 'P', founded: 2025, fansName: 'D', objective: 'metaClassifica', difficulty: 'normale', seed: 21,
+    });
+    autoplaySeason(w);
+    let n = 0, tot = 0, huge = 0, rout = 0, max = 0;
+    for (const f of Object.values(w.fixtures)) {
+      if (!f.played || w.competitions[f.compId]?.kind !== 'league') continue;
+      n++; tot += f.hg + f.ag;
+      const top = Math.max(f.hg, f.ag);
+      max = Math.max(max, top);
+      if (top >= 25) huge++;
+      if (Math.abs(f.hg - f.ag) >= 14) rout++;
+    }
+    console.log(`PUNTEGGI ${n} partite, gol medi ${(tot / n).toFixed(1)}, massimo ${max}, 25+ gol: ${huge}, scarto >=14: ${rout} (${((100 * rout) / n).toFixed(1)}%)`);
+    expect(tot / n).toBeGreaterThan(19);
+    expect(tot / n).toBeLessThan(25);
+    expect(max).toBeLessThanOrEqual(26);
+    expect(rout / n).toBeLessThan(0.1);
+  }, 120000);
+});

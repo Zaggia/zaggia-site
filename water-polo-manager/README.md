@@ -82,3 +82,7 @@ Requisiti: Node 20+.
 ### Piramide dei livelli
 - Ogni categoria ha una fascia di forza di squadra (A1 60-78, A2 47-62, B 34-50, C 24-44) e ogni giocatore di una società resta in una finestra attorno al livello della sua squadra (da -8 a +7). Così un titolare dell'ultima di A1 vale più del miglior giocatore di B, ruolo per ruolo (anche i centroboa).
 - Il bilanciamento (`src/engine/world/pyramid.ts`) gira alla creazione del mondo, a ogni inizio stagione dopo promozioni e retrocessioni e, una volta, sulle carriere esistenti (migrazione v6). La tua società e i tuoi giocatori non vengono toccati.
+
+### Punteggi
+- L'effetto della qualità sul risultato ha un tetto: con un divario moderato (10 punti) la favorita segna circa 15-10, con un divario grande circa 18-7, e solo con divari enormi si arriva a 20-5. Prima della correzione bastavano 10 punti di differenza per 19-8 e i divari enormi davano punteggi assurdi (fino a 50-0).
+- Le vittorie della favorita restano molto probabili (circa 82% con 10 punti di differenza, 99% con 20), ma gli scarti sono quelli di una partita di pallanuoto vera. Regolazione in `SKILL_LINEAR`, `SKILL_CONVEX`, `SKILL_CAP` e `DAY_FORM_SD` di `src/engine/match/engine.ts`.

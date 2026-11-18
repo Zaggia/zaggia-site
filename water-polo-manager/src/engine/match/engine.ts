@@ -349,15 +349,18 @@ function ratings(st: MatchState, s: number): Ratings {
  * (in pallanuoto la squadra migliore vince quasi sempre); la saturazione evita punteggi irreali con divari enormi.
  */
 /** Variazione casuale della forma di una squadra da una partita all'altra: rende possibili le sorprese tra squadre vicine. */
-export const DAY_FORM_SD = 0.075;
-export const SKILL_LINEAR = 1.0;
+export const DAY_FORM_SD = 0.06;
+export const SKILL_LINEAR = 1.6;
 /** Parte che cresce col divario: tra squadre vicine il risultato resta aperto, con grandi differenze la qualità decide. */
-export const SKILL_CONVEX = 3.6;
+export const SKILL_CONVEX = 0.8;
 const SKILL_SATURATION = 1.7;
+/** Tetto all'effetto della qualità: anche con divari enormi i punteggi restano realistici (circa 18-6 al massimo), pur con vittoria quasi certa. */
+const SKILL_CAP = 3.4;
 const d10 = (a: number, b: number) => {
   const x = (a - b) / 10;
   const ax = Math.abs(x);
-  return (x * (SKILL_LINEAR + SKILL_CONVEX * ax)) / (1 + ax / SKILL_SATURATION);
+  const f = (x * (SKILL_LINEAR + SKILL_CONVEX * ax)) / (1 + ax / SKILL_SATURATION);
+  return SKILL_CAP * Math.tanh(f / SKILL_CAP);
 };
 
 const COMPOSITES = {
