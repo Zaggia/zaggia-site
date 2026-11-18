@@ -211,6 +211,9 @@ export function createMatch(setup: MatchSetup): MatchState {
     finished: false,
     breakPending: false,
   };
+  // Giornata di forma: ogni squadra ha una partita migliore o peggiore del solito (indipendente dal generatore di gioco).
+  const day = Rng.fromSeed(setup.seed ^ 0x2f6e2b1);
+  for (const s of [0, 1] as const) st.sides[s].teamMod *= 1 + clamp(day.gauss(0, DAY_FORM_SD), -3 * DAY_FORM_SD, 3 * DAY_FORM_SD);
   for (const s of [0, 1] as const) {
     st.sides[s].tacticLog.push({ period: 1, clock: setup.periodSeconds, offense: st.sides[s].tactics.offense, defense: st.sides[s].tactics.defense });
   }
@@ -342,13 +345,19 @@ function ratings(st: MatchState, s: number): Ratings {
 }
 
 /**
- * Differenza di qualità tra due valori, in "decine di punti". SKILL_SENS regola quanto la qualità pesa sui risultati
+ * Differenza di qualità tra due valori, in "decine di punti". SKILL_LINEAR e SKILL_CONVEX regolano quanto la qualità pesa sui risultati
  * (in pallanuoto la squadra migliore vince quasi sempre); la saturazione evita punteggi irreali con divari enormi.
  */
-export const SKILL_SENS = 3.1;
+/** Variazione casuale della forma di una squadra da una partita all'altra: rende possibili le sorprese tra squadre vicine. */
+export const DAY_FORM_SD = 0.075;
+export const SKILL_LINEAR = 1.0;
+/** Parte che cresce col divario: tra squadre vicine il risultato resta aperto, con grandi differenze la qualità decide. */
+export const SKILL_CONVEX = 3.6;
+const SKILL_SATURATION = 1.7;
 const d10 = (a: number, b: number) => {
   const x = (a - b) / 10;
-  return (SKILL_SENS * x) / (1 + Math.abs(x) / 4);
+  const ax = Math.abs(x);
+  return (x * (SKILL_LINEAR + SKILL_CONVEX * ax)) / (1 + ax / SKILL_SATURATION);
 };
 
 const COMPOSITES = {

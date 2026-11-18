@@ -19,7 +19,7 @@ import { ctxOf } from './context';
 import { setTicketPrices } from '../club/manage';
 import { newFinances } from '../economy/ledger';
 
-export const WORLD_VERSION = 3;
+export const WORLD_VERSION = 4;
 
 export interface NewCareerOptions {
   careerName: string;

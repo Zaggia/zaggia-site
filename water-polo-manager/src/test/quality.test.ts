@@ -3,7 +3,7 @@ import { createWorld } from '../engine/world/generate';
 import { teamStrength } from '../engine/club/lineup';
 import { buildMatchSetup } from '../engine/match/setup';
 import { createMatch, simulateToEnd } from '../engine/match/engine';
-it('la squadra migliore del girone batte quasi sempre le ultime (come in pallanuoto vera)', () => {
+it('la squadra migliore del girone batte quasi sempre le ultime (ma la sorpresa resta possibile)', () => {
   const w = createWorld({ careerName: 'T', presidentName: 'T', clubName: 'Aquatica Test', short: 'AQT', city: 'Savona', colors: ['#0b3d91', '#ffffff'], crest: { shape: 'scudo', pattern: 'strisce', symbol: 'palla', primary: '#0b3d91', secondary: '#ffffff', initials: 'AQT' }, poolName: 'P', founded: 2025, fansName: 'D', objective: 'metaClassifica', difficulty: 'normale', seed: 4 });
   const proto = Object.values(w.fixtures)[0];
   const out: string[] = [];
@@ -30,8 +30,8 @@ it('la squadra migliore del girone batte quasi sempre le ultime (come in pallanu
         if (i < 3 && j >= ranked.length - 3) { top3bot3.n++; if (favGoals > dogGoals) top3bot3.fav++; else if (favGoals < dogGoals) top3bot3.up++; }
       }
     }
-    expect(top3bot3.up / top3bot3.n, `${div}: le prime tre perdono con le ultime tre`).toBeLessThan(0.06);
-    expect(top3bot3.fav / top3bot3.n, `${div}: le prime tre vincono con le ultime tre`).toBeGreaterThan(0.92);
+    expect(top3bot3.up / top3bot3.n, `${div}: le prime tre perdono con le ultime tre`).toBeLessThan(0.1);
+    expect(top3bot3.fav / top3bot3.n, `${div}: le prime tre vincono con le ultime tre`).toBeGreaterThan(0.86);
     out.push(`${div} forza ${ranked[0].s}->${ranked[ranked.length - 1].s}: prime3 vs ultime3 vince ${(100 * top3bot3.fav / top3bot3.n).toFixed(0)}% perde ${(100 * top3bot3.up / top3bot3.n).toFixed(1)}%`);
     void out;
     if (false) console.log(div, 'forza', ranked[0].s, '→', ranked[ranked.length - 1].s, '| ' + Object.entries(bins).map(([k, v]) => `Δ${k}: fav ${(100 * v.fav / v.n).toFixed(0)}% pari ${(100 * v.draw / v.n).toFixed(0)}% (${(v.goals / v.n).toFixed(1)} gol, n=${v.n})`).join(' | '), `| prime3 vs ultime3: vince ${(100 * top3bot3.fav / top3bot3.n).toFixed(0)}%, perde ${(100 * top3bot3.up / top3bot3.n).toFixed(1)}%`);
@@ -58,3 +58,49 @@ it('una carriera salvata con le vecchie forze viene riequilibrata (gironi con fo
   expect(Math.max(...means) - Math.min(...means), 'i gironi hanno forza media simile').toBeLessThan(7);
   for (const c of groups.flat()) for (const id of c.playerIds) expect(w.players[id].overall).toBeGreaterThan(0);
 });
+
+it('una carriera creata con società e giocatori inventati passa al mondo reale senza rompere nulla', async () => {
+  const { migrateWorld } = await import('../engine/world/migrate');
+  const { REAL_ROSTERS } = await import('../engine/data/realPlayers');
+  const { REAL_LEAGUES } = await import('../engine/data/realClubs');
+  const { autoplaySeason } = await import('./autoplay');
+  const w = createWorld({ careerName: 'T', presidentName: 'T', clubName: 'Aquatica Test', short: 'AQT', city: 'Savona', colors: ['#0b3d91', '#ffffff'], crest: { shape: 'scudo', pattern: 'strisce', symbol: 'palla', primary: '#0b3d91', secondary: '#ffffff', initials: 'AQT' }, poolName: 'P', founded: 2025, fansName: 'D', objective: 'metaClassifica', difficulty: 'normale', seed: 31 });
+  // Torna al "vecchio" mondo: società con nomi inventati e giocatori senza dati reali.
+  let n = 0;
+  for (const c of Object.values(w.clubs)) {
+    if (c.isUser) continue;
+    c.name = `Pallanuoto Inventata ${++n}`;
+    c.short = `X${n.toString(36).toUpperCase().padStart(2, '0')}`.slice(0, 3);
+    for (const id of c.playerIds) { w.players[id].real = false; w.players[id].firstName = 'Mario'; w.players[id].lastName = `Rossi${id}`; }
+  }
+  const counts = (key: string) => Object.values(w.clubs).filter((c) => c.division === key).length;
+  const before = { A1: counts('A1'), A2: counts('A2'), B: counts('B'), C: counts('C'), EST: counts('EST') };
+  const strengthBefore = Object.fromEntries(Object.values(w.clubs).map((c) => [c.id, teamStrength(w, c)]));
+  const user = w.clubs[w.userClubId];
+  const userPlayers = [...user.playerIds];
+  const total = Object.keys(w.players).length;
+  w.version = 3;
+  expect(migrateWorld(w)).toBe(true);
+  // Nomi reali, categorie e numero di società invariati, società dell'utente intatta.
+  const a1 = Object.values(w.clubs).filter((c) => c.division === 'A1').map((c) => c.name);
+  for (const rc of REAL_LEAGUES.A1) expect(a1, rc.name).toContain(rc.name);
+  expect({ A1: counts('A1'), A2: counts('A2'), B: counts('B'), C: counts('C'), EST: counts('EST') }).toEqual(before);
+  expect(user.name).toBe('Aquatica Test');
+  expect(user.playerIds).toEqual(userPlayers);
+  expect(new Set(Object.values(w.clubs).map((c) => c.short)).size, 'sigle uniche').toBe(Object.keys(w.clubs).length);
+  // Giocatori veri dove c'è una rosa pubblica, con la forza di prima e 15 in rosa.
+  const recco = Object.values(w.clubs).find((c) => c.name === 'Pro Recco')!;
+  expect(recco.playerIds.length).toBe(15);
+  expect(recco.playerIds.every((id) => w.players[id].real)).toBe(true);
+  for (const [name] of Object.entries(REAL_ROSTERS)) {
+    const c = Object.values(w.clubs).find((x) => x.name === name);
+    if (c) expect(Math.abs(teamStrength(w, c) - strengthBefore[c.id]), name).toBeLessThanOrEqual(3);
+  }
+  // I giocatori inventati sostituiti sono ritirati: non entrano nel mercato come svincolati.
+  const freeAgents = Object.values(w.players).filter((p) => !p.clubId && !p.retired).length;
+  expect(freeAgents).toBeLessThan(500);
+  expect(Object.keys(w.players).length).toBeGreaterThan(total);
+  // Il mondo migrato regge un'intera stagione.
+  autoplaySeason(w);
+  expect(w.phase === 'review' || w.phase === 'gameover').toBe(true);
+}, 120000);

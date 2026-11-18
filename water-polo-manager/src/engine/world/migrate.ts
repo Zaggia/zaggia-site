@@ -8,6 +8,7 @@ import { refreshValue } from '../player/value';
 import { clamp } from '../util';
 import { trimRoster } from '../club/roster';
 import { WORLD_VERSION } from './generate';
+import { realifyWorld } from './migrateReal';
 
 /** Porta un mondo salvato alla versione corrente. Restituisce true se è stato modificato. */
 export function migrateWorld(world: World): boolean {
@@ -32,6 +33,11 @@ export function migrateWorld(world: World): boolean {
     for (const club of Object.values(world.clubs)) if (!club.isUser) trimRoster(world, club);
   }
   if (from < 3) rebalanceDivisions(world);
+  if (from < 4) {
+    // v4: società e giocatori reali anche nelle carriere create prima.
+    realifyWorld(world);
+    world.flags.guideSeen = true;
+  }
   world.version = WORLD_VERSION;
   return true;
 }

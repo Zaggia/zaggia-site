@@ -217,7 +217,7 @@ export const useGame = create<Store>((set, get) => ({
         }
       }
       const migrated = migrateWorld(world);
-      if (migrated) get().toast('Salvataggio aggiornato: risultati più realistici, forze delle squadre riequilibrate e ruoli della pallanuoto.', 'info');
+      if (migrated) get().toast('Salvataggio aggiornato: società e giocatori reali, risultati più realistici e squadre riequilibrate.', 'info');
       set({ world, meta, view: 'dashboard', stack: [], market: { ...DEFAULT_MARKET_UI }, v: get().v + 1, live: null, conflict });
       savedV = migrated ? -1 : get().v;
       if (migrated) await get().saveNow();
