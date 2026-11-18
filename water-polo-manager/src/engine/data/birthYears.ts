@@ -240,4 +240,7 @@ export const BIRTH_YEARS: Record<string, number> = {
   "yutmaz mehmet": 2002,
   "yuval klarfeld": 1999,
   "zvonimir butic": 1998,
+  "duje pejkovic": 1998,
+  "dusan banicevic": 1998,
+  "duro radovic": 1999,
 };

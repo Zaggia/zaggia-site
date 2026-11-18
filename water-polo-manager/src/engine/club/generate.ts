@@ -110,7 +110,14 @@ export function splitName(full: string): [string, string] {
 export function generateRealRoster(ctx: GenCtx, clubId: string, level: number, country: string, real: RealPlayer[], size: number, foreignChance: number, fixed = false): Player[] {
   // Se la rosa pubblica è più lunga di quella ammessa si tengono i giocatori più forti (prima i famosi, poi chi ha una voce enciclopedica).
   const seenNames = new Set<string>();
-  real = real.filter((r) => { const k = plainName(r.n); if (seenNames.has(k)) return false; seenNames.add(k); return true; });
+  // Doppioni e giocatori oltre i 44 anni (rose non aggiornate: sono quasi sicuramente ritirati) non entrano in rosa.
+  real = real.filter((r) => {
+    const k = plainName(r.n);
+    if (seenNames.has(k)) return false;
+    seenNames.add(k);
+    const y = r.y ?? BIRTH_YEARS[k];
+    return !(y && ctx.season - y > 44);
+  });
   const strongFirst = (a: RealPlayer, b: RealPlayer) => (starRating(b.n) ?? 0) - (starRating(a.n) ?? 0) || (b.f ?? 0) - (a.f ?? 0);
   const gks = real.filter((r) => r.r === 'P').sort(strongFirst).slice(0, 2);
   const field = real.filter((r) => r.r !== 'P').sort(strongFirst).slice(0, size - Math.max(2, gks.length));
@@ -132,18 +139,20 @@ export function generateRealRoster(ctx: GenCtx, clubId: string, level: number, c
     const [firstName, lastName] = splitName(r.n);
     // Senza anno di nascita l'età è fissa (calcolata dal nome), così il giocatore è sempre lo stesso in ogni carriera.
     const by = r.y ?? BIRTH_YEARS[plainName(r.n)];
-    const age = by ? clamp(ctx.season - by, 16, 42) : 22 + (nameHash(r.n + 'e') % 10);
+    const age = by ? clamp(ctx.season - by, 16, 44) : 22 + (nameHash(r.n + 'e') % 10);
     const nat = r.c && NATIONS[r.c] ? r.c : country;
     // Gli stranieri nei club italiani sono di norma tra i più forti; i primi portieri sono i titolari.
     // Chi ha una voce enciclopedica (nazionali, olimpionici) è un giocatore affermato: livello più alto.
     // Overall preciso, senza casualità: i giocatori famosi hanno il valore fissato in `PLAYER_RATINGS`; gli altri dipendono dal livello
     // del club, dall'esperienza internazionale, dall'età e da una piccola differenza fissa (calcolata dal nome, uguale in ogni carriera).
     const star = starRating(r.n);
+    // Con l'età oltre i 34 anni si perde in fretta (resistenza, velocità): lo stesso vale per i campioni in elenco.
+    const veteran = age > 34 ? (age - 34) * 1.3 : 0;
     let exact: number;
-    if (star != null) exact = star;
+    if (star != null) exact = Math.round(star - veteran);
     else {
       const young = age < 22 ? (22 - age) * 1.4 : 0;
-      exact = Math.round(clamp(level + (r.f ? 3 : -2) + (nat !== country ? 1 : 0) + (role === 'POR' && i === 0 ? 1 : 0) + (nameHash(r.n) % 5) - 2 - young, 20, 95));
+      exact = Math.round(clamp(level + (r.f ? 3 : -2) + (nat !== country ? 1 : 0) + (role === 'POR' && i === 0 ? 1 : 0) + (nameHash(r.n) % 5) - 2 - young - veteran, 20, 95));
     }
     // Potenziale fisso: i più giovani hanno ancora margine, chi ha più di 26 anni è al massimo.
     const potential = Math.min(99, exact + (age <= 20 ? 6 : age <= 23 ? 3 : age <= 26 ? 1 : 0));

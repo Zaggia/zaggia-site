@@ -68,6 +68,24 @@ describe('overall precisi dei giocatori veri', () => {
   });
 });
 
+describe('età dei giocatori veri', () => {
+  it('le età sono credibili: nessuno oltre i 44 anni, i veterani oltre i 37 non sono più dei fuoriclasse e i giovani sono tra i 17 e i 44', () => {
+    const w = newWorld(5);
+    const real = Object.values(w.players).filter((p) => p.real && !p.retired && !p.youth);
+    expect(real.length).toBeGreaterThan(500);
+    for (const p of real) {
+      const age = w.season - p.birthYear;
+      expect(age, `${p.firstName} ${p.lastName}`).toBeGreaterThanOrEqual(16);
+      expect(age, `${p.firstName} ${p.lastName}`).toBeLessThanOrEqual(44);
+      if (age >= 38) expect(p.overall, `${p.firstName} ${p.lastName} (${age} anni)`).toBeLessThanOrEqual(82);
+    }
+    // I campioni di cui si conosce l'anno di nascita hanno l'età giusta.
+    expect(w.season - byLast(w, 'Granados').birthYear).toBe(w.season - 1998);
+    expect(w.season - byLast(w, 'Mandić').birthYear).toBe(w.season - 1994);
+    expect(w.season - byLast(w, 'Argyropoulos').birthYear).toBe(w.season - 1996);
+  });
+});
+
 describe('allenamento', () => {
   it('l’allenamento mirato fa crescere molto di più la caratteristica scelta', () => {
     const w = newWorld(11);

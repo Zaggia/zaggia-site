@@ -183,8 +183,10 @@ export function applyStarRatings(world: World): { stars: number; clubs: number }
   let stars = 0;
   for (const p of Object.values(world.players)) {
     if (p.retired) continue;
-    const r = starRating(`${p.firstName} ${p.lastName}`);
-    if (r == null) continue;
+    const base = starRating(`${p.firstName} ${p.lastName}`);
+    if (base == null) continue;
+    const age = world.season - p.birthYear;
+    const r = Math.round(base - (age > 34 ? (age - 34) * 1.3 : 0));
     tuneOverall(p.attrs, p.role, r);
     p.overall = computeOverall(p.attrs, p.role);
     p.potential = Math.max(p.potential, p.overall);
