@@ -341,7 +341,15 @@ function ratings(st: MatchState, s: number): Ratings {
   };
 }
 
-const d10 = (a: number, b: number) => (a - b) / 10;
+/**
+ * Differenza di qualità tra due valori, in "decine di punti". SKILL_SENS regola quanto la qualità pesa sui risultati
+ * (in pallanuoto la squadra migliore vince quasi sempre); la saturazione evita punteggi irreali con divari enormi.
+ */
+export const SKILL_SENS = 3.1;
+const d10 = (a: number, b: number) => {
+  const x = (a - b) / 10;
+  return (SKILL_SENS * x) / (1 + Math.abs(x) / 4);
+};
 
 const COMPOSITES = {
   ballSecurity: { controlloPalla: 0.4, passaggio: 0.3, decisioni: 0.3 },

@@ -105,9 +105,13 @@ export function createWorld(opts: NewCareerOptions): World {
   for (const rules of world.rules.leagues) {
     const count = rules.groups * rules.teamsPerGroup - (rules.key === 'C' ? 1 : 0);
     const real = (REAL_LEAGUES[rules.key] ?? []).filter((c) => c.name.toLowerCase() !== opts.clubName.trim().toLowerCase());
+    // In A1 l'ordine dell'elenco è l'ordine di forza. Nelle categorie a gironi l'elenco è per zona geografica:
+    // la forza si assegna a caso, così ogni girone ha squadre forti, medie e deboli.
+    const order = Array.from({ length: count }, (_, k) => k);
+    if (rules.key !== 'A1') rng.shuffle(order);
     for (let i = 0; i < count; i++) {
       // Distribuzione: poche big, molte medie, qualche squadra debole.
-      const t = clamp(1 - Math.pow(i / Math.max(1, count - 1), 0.8) + rng.gauss(0, 0.04), 0, 1);
+      const t = clamp(1 - Math.pow(order[i] / Math.max(1, count - 1), 0.8) + rng.gauss(0, 0.04), 0, 1);
       const rc = real[i];
       const city = cityOf(rc?.city ?? rng.pick(ITALIAN_CITIES).name);
       const name = rc?.name ?? `Pallanuoto ${city.name} ${i + 1}`;

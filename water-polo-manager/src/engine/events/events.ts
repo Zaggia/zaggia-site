@@ -36,8 +36,8 @@ const P = (world: World, id: string): Player => world.players[id];
 const TEMPLATES: Template[] = [
   {
     kind: 'starLeave',
-    weight: 6,
-    cooldown: 150,
+    weight: 5,
+    cooldown: 260,
     blocking: true,
     check: (world, rng) => {
       const club = userClub(world);
@@ -133,8 +133,8 @@ const TEMPLATES: Template[] = [
   },
   {
     kind: 'coachPressure',
-    weight: 8,
-    cooldown: 45,
+    weight: 6,
+    cooldown: 120,
     blocking: true,
     check: (world) => {
       const club = userClub(world);
@@ -214,13 +214,27 @@ const TEMPLATES: Template[] = [
   },
   {
     kind: 'poolBreakdown',
-    weight: 3,
-    cooldown: 250,
+    weight: 2,
+    // Un guasto serio è raro: in media uno ogni diversi anni, e quasi mai con impianti recenti.
+    cooldown: 1000,
     blocking: true,
-    check: (world, rng) => (world.day > 60 && world.day < 300 && rng.chance(0.6) ? { cost: niceMoney(3000 + userClub(world).facilities.piscina.level * 3000 * rng.float(0.8, 1.4)) } : null),
+    check: (world, rng) => {
+      if (world.day < 60 || world.day > 300) return null;
+      const lvl = userClub(world).facilities.piscina.level;
+      const risk = [0, 0.2, 0.1, 0.03, 0.015, 0.01][lvl] ?? 0.01;
+      if (!rng.chance(risk)) return null;
+      const problems = [
+        { what: 'la pompa di ricircolo dell’acqua', mult: 0.8 },
+        { what: 'una perdita nel bordo vasca', mult: 1.0 },
+        { what: 'il sistema di filtraggio', mult: 1.2 },
+        { what: 'l’impianto di riscaldamento della vasca', mult: 1.5 },
+      ];
+      const pr = rng.pick(problems);
+      return { cost: niceMoney((2000 + lvl * 1500) * pr.mult * rng.float(0.8, 1.3)), what: pr.what };
+    },
     build: (_world, d) => ({
       title: 'Guasto alla piscina',
-      body: `Si è rotto l’impianto di riscaldamento della vasca. La riparazione costa ${fmtMoney(d.cost)}.`,
+      body: `Si è rotto ${d.what ?? 'l’impianto di riscaldamento della vasca'}. La riparazione costa ${fmtMoney(d.cost)}.`,
       choices: [
         { id: 'ripara', label: 'Ripari subito', hint: `−${fmtMoney(d.cost)}` },
         { id: 'comune', label: 'Chiedi l’intervento del Comune', hint: 'Metà dei costi, se il Comune accetta; altrimenti piscina chiusa' },
@@ -305,8 +319,8 @@ const TEMPLATES: Template[] = [
   },
   {
     kind: 'fansProtest',
-    weight: 5,
-    cooldown: 90,
+    weight: 4,
+    cooldown: 200,
     blocking: true,
     check: (world) => {
       const club = userClub(world);
@@ -342,8 +356,8 @@ const TEMPLATES: Template[] = [
   },
   {
     kind: 'discipline',
-    weight: 4,
-    cooldown: 60,
+    weight: 3,
+    cooldown: 150,
     blocking: true,
     check: (world, rng) => {
       const club = userClub(world);
@@ -381,8 +395,8 @@ const TEMPLATES: Template[] = [
   },
   {
     kind: 'playingTime',
-    weight: 6,
-    cooldown: 40,
+    weight: 5,
+    cooldown: 90,
     blocking: true,
     check: (world) => {
       const club = userClub(world);
@@ -535,10 +549,11 @@ const TEMPLATES: Template[] = [
   },
   {
     kind: 'energyCrisis',
-    weight: 2,
-    cooldown: 365,
+    weight: 1,
+    // Un rincaro dell'energia è un fenomeno raro: una volta ogni qualche stagione.
+    cooldown: 1400,
     blocking: true,
-    check: (world, rng) => (world.day > 120 && world.day < 250 && rng.chance(0.5) ? { cost: niceMoney(3000 + userClub(world).facilities.piscina.level * 2500) } : null),
+    check: (world, rng) => (world.day > 120 && world.day < 250 && rng.chance(0.12) ? { cost: niceMoney(2000 + userClub(world).facilities.piscina.level * 1500) } : null),
     build: (_world, d) => ({
       title: 'Caro energia',
       body: `Le bollette per il riscaldamento della vasca aumentano di ${fmtMoney(d.cost)}.`,
@@ -640,7 +655,7 @@ export function weeklyEvents(world: World, rng: Rng) {
   if (world.phase !== 'regular') return;
   if (world.events.some((e) => !e.resolved && e.blocking)) return;
   const forced = TEMPLATES.find((t) => t.kind === 'unpaidWages' && ready(world, t) && t.check(world, rng));
-  if (!forced && !rng.chance(0.3)) return;
+  if (!forced && !rng.chance(0.2)) return;
   const candidates = TEMPLATES.filter((t) => ready(world, t));
   rng.shuffle(candidates);
   candidates.sort((a, b) => b.weight * rng.next() - a.weight * rng.next());
@@ -652,9 +667,19 @@ export function weeklyEvents(world: World, rng: Rng) {
   }
 }
 
+/** Eventi che impongono una spesa non scelta dal presidente: non devono susseguirsi. */
+const FORCED_COST = new Set(['poolBreakdown', 'energyCrisis']);
+const FORCED_COST_GAP = 300;
+
 function ready(world: World, t: Template): boolean {
+  const now = world.season * 400 + world.day;
   const last = world.eventCooldowns[t.kind];
-  return last == null || world.season * 400 + world.day - last >= t.cooldown;
+  if (last != null && now - last < t.cooldown) return false;
+  if (FORCED_COST.has(t.kind)) {
+    const lastCost = Math.max(...[...FORCED_COST].map((k) => world.eventCooldowns[k] ?? -1e9));
+    if (now - lastCost < FORCED_COST_GAP) return false;
+  }
+  return true;
 }
 
 function fire(world: World, t: Template, data: Record<string, any>) {

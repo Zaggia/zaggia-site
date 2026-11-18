@@ -53,7 +53,9 @@ describe('motore partita', () => {
       simulateToEnd(st);
       if (st.score[1] > st.score[0]) upsets++;
     }
-    expect(upsets).toBeGreaterThan(20);
+    // Con 4 punti di differenza la sorpresa è possibile ma poco frequente (in pallanuoto il favorito vince quasi sempre).
+    expect(upsets).toBeGreaterThan(5);
+    expect(upsets).toBeLessThan(60);
   });
 
   it('la zona limita il gioco sul centroboa ma concede il tiro da fuori', () => {
