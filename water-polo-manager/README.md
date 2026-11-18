@@ -86,3 +86,4 @@ Requisiti: Node 20+.
 ### Punteggi
 - L'effetto della qualità sul risultato ha un tetto: con un divario moderato (10 punti) la favorita segna circa 15-10, con un divario grande circa 18-7, e solo con divari enormi si arriva a 20-5. Prima della correzione bastavano 10 punti di differenza per 19-8 e i divari enormi davano punteggi assurdi (fino a 50-0).
 - Le vittorie della favorita restano molto probabili (circa 82% con 10 punti di differenza, 99% con 20), ma gli scarti sono quelli di una partita di pallanuoto vera. Regolazione in `SKILL_LINEAR`, `SKILL_CONVEX`, `SKILL_CAP` e `DAY_FORM_SD` di `src/engine/match/engine.ts`.
+- Con un largo vantaggio (da 6 gol in su) chi è in testa gestisce la partita: segna meno e perde più palloni. Così gli scarti enormi (tipo 26-0) non succedono più, mentre la favorita vince comunque quasi sempre.

@@ -356,6 +356,10 @@ export const SKILL_CONVEX = 0.8;
 const SKILL_SATURATION = 1.7;
 /** Tetto all'effetto della qualità: anche con divari enormi i punteggi restano realistici (circa 18-6 al massimo), pur con vittoria quasi certa. */
 const SKILL_CAP = 3.4;
+/** Vantaggio (in gol) oltre il quale chi è in testa rallenta: parte da 7 gol e a ogni gol in più cresce, fino a un massimo. */
+const LEAD_EASE_FROM = 6;
+const LEAD_EASE_STEP = 0.22;
+const LEAD_EASE_MAX = 2.4;
 const d10 = (a: number, b: number) => {
   const x = (a - b) / 10;
   const ax = Math.abs(x);
@@ -769,6 +773,9 @@ function possession(st: MatchState, rng: Rng) {
   const prevOff = scaleOff(OFFENSE[sd.tactics.offense].fx, tacticEff(st, D, sd.tactics.offense));
   const homeEdge = st.setup.neutral ? 0 : A === 0 ? 0.03 : -0.01;
   const mom = 0.15 * (sa.momentum - sd.momentum);
+  // Con un largo vantaggio la partita è decisa: la squadra in testa gestisce il pallone e fa girare la panchina, quindi segna meno.
+  const lead = st.score[A] - st.score[D];
+  const easing = lead >= LEAD_EASE_FROM ? Math.min(LEAD_EASE_MAX, LEAD_EASE_STEP * (lead - LEAD_EASE_FROM + 1)) : 0;
   const famA = team(st, A).familiarity[sa.tactics.offense] ?? 25;
   const disorg = famA < 40 ? (40 - famA) / 100 : 0;
 
@@ -776,7 +783,7 @@ function possession(st: MatchState, rng: Rng) {
   if (st.transition === 'rebound' || st.transition === 'steal' || st.transition === 'turnover') {
     const steal = st.transition === 'steal' ? 0.85 : st.transition === 'turnover' ? 0.4 : 0;
     const gkLaunch = st.transition === 'rebound' && sa.slots[0] >= 0 ? d10(eff(st, A, sa.slots[0], 'rinvio'), 50) * 0.15 : 0;
-    const pC = sigmoid(logit(0.09) + 0.15 * d10(rA.speed, rD.speed) + ofx.counter + prevOff.counterAgainst + steal + gkLaunch + mom);
+    const pC = sigmoid(logit(0.09) + 0.15 * d10(rA.speed, rD.speed) + ofx.counter + prevOff.counterAgainst + steal + gkLaunch + mom - easing * 0.6);
     if (rng.chance(pC)) {
       counterAttack(st, rng, A, D, rA, rD);
       return;
@@ -790,7 +797,7 @@ function possession(st: MatchState, rng: Rng) {
   // 2) Palla persa / recupero difensivo
   const speedTerm = -dfx.speedSensitivity * 0.12 * d10(rA.speed, rD.speed);
   const techTerm = dfx.techSensitivity * 0.1 * d10(rD.tech, rA.tech);
-  const pTO = sigmoid(logit(0.13) + 0.13 * d10(rD.press, rA.ballSecurity) + ofx.turnover + dfx.steal + disorg + speedTerm + techTerm - mom * 0.5 + (hurried ? 0.6 : 0));
+  const pTO = sigmoid(logit(0.13) + 0.13 * d10(rD.press, rA.ballSecurity) + ofx.turnover + dfx.steal + disorg + speedTerm + techTerm - mom * 0.5 + (hurried ? 0.6 : 0) + easing * 0.5);
   if (rng.chance(pTO)) {
     turnover(st, rng, A, D);
     return;
@@ -828,7 +835,7 @@ function possession(st: MatchState, rng: Rng) {
   ];
   const type = weights[rng.weightedIndex(weights.map((w) => w[1]))][0];
   const conc = type === 'distanza' ? dfx.distance : type === 'centro' ? dfx.center : type === 'ala' ? dfx.wing : dfx.drive;
-  const qual = ofx.quality + 0.6 * Math.log(conc) + homeEdge + mom + (hurried ? -0.4 : 0) - disorg * 0.5;
+  const qual = ofx.quality + 0.6 * Math.log(conc) + homeEdge + mom + (hurried ? -0.4 : 0) - disorg * 0.5 - easing;
   shoot(st, rng, A, D, type, qual, ofx.blockAgainst, rD, null);
 }
 

@@ -203,7 +203,7 @@ describe('punteggi realistici', () => {
     console.log(`PUNTEGGI ${n} partite, gol medi ${(tot / n).toFixed(1)}, massimo ${max}, 25+ gol: ${huge}, scarto >=14: ${rout} (${((100 * rout) / n).toFixed(1)}%)`);
     expect(tot / n).toBeGreaterThan(19);
     expect(tot / n).toBeLessThan(25);
-    expect(max).toBeLessThanOrEqual(26);
-    expect(rout / n).toBeLessThan(0.1);
+    expect(max).toBeLessThanOrEqual(24);
+    expect(rout / n).toBeLessThan(0.03);
   }, 120000);
 });
