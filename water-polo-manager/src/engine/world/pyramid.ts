@@ -10,7 +10,7 @@ import { clamp } from '../util';
 import { shiftClub } from './migrate';
 
 /** Fasce di forza di squadra per categoria (le stesse delle regole delle nuove carriere). */
-export const PYRAMID_BANDS: Record<string, [number, number]> = { A1: [60, 78], A2: [47, 62], B: [34, 50], C: [24, 44] };
+export const PYRAMID_BANDS: Record<string, [number, number]> = { A1: [60, 88], A2: [47, 62], B: [34, 50], C: [24, 44] };
 /** Quanto un giocatore può stare sotto/sopra il livello della propria squadra. */
 export const BELOW = 8;
 export const ABOVE = 7;
@@ -23,7 +23,7 @@ function shiftPlayer(world: World, p: Player, delta: number) {
 }
 
 /** Forza media delle società (tranne la tua) in ogni categoria: è quella di una carriera appena creata e si mantiene nel tempo. */
-export const DIVISION_MEAN: Record<string, number> = { A1: 70, A2: 55, B: 43, C: 35 };
+export const DIVISION_MEAN: Record<string, number> = { A1: 72, A2: 55, B: 43, C: 35 };
 
 /**
  * Impedisce l'inflazione: mercato e sviluppo fanno salire piano piano il livello medio dei club gestiti dal computer
@@ -61,7 +61,7 @@ export function balancePyramid(world: World, maxStep = 3): number {
     }
     for (const id of club.playerIds) {
       const p = world.players[id];
-      if (!p || p.retired || p.loan) continue;
+      if (!p || p.retired || p.loan || p.rated) continue;
       // I giovani del vivaio crescono con lo sviluppo: la finestra riguarda solo la prima squadra.
       if (p.overall < s - BELOW) { shiftPlayer(world, p, Math.ceil(s - BELOW - p.overall)); changed++; }
       else if (p.overall > s + ABOVE) { shiftPlayer(world, p, -Math.ceil(p.overall - (s + ABOVE))); changed++; }

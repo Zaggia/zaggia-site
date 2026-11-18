@@ -16,6 +16,8 @@ import { crestFor } from '../club/crest';
 import { addForeignClub } from './generate';
 import { ctxOf } from './context';
 import { assignRealRosters } from './migrateReal';
+import { TOP_CLUB_LEVELS, starRating } from '../data/playerRatings';
+import { tuneOverall } from '../player/generate';
 
 /** Porta un mondo salvato alla versione corrente. Restituisce true se è stato modificato. */
 export function migrateWorld(world: World): boolean {
@@ -73,6 +75,11 @@ export function migrateWorld(world: World): boolean {
     // v8: stop all'inflazione dei club del computer: in una carriera lunga i livelli medi vanno riportati a quelli di partenza.
     balancePyramid(world, 8);
   }
+  if (from < 9) {
+    // v9: overall precisi per i giocatori famosi (Granados & co.) e rose più forti per i club di vertice.
+    applyStarRatings(world);
+    for (const lg of world.rules.leagues) if (lg.key === 'A1') lg.strength = [...DEFAULT_RULES.leagues[0].strength];
+  }
   world.version = WORLD_VERSION;
   return true;
 }
@@ -111,12 +118,16 @@ export function rebalanceDivisions(world: World): void {
 
 export function shiftClub(world: World, clubId: string, target: number): void {
   const club = world.clubs[clubId];
+  let moved = 0;
   for (let pass = 0; pass < 4; pass++) {
     const delta = target - teamStrength(world, club);
     if (Math.abs(delta) < 0.6) break;
+    // I giocatori famosi con overall fissato non si spostano: se la squadra è piena di campioni lo spostamento ha un limite.
+    moved += delta;
+    if (Math.abs(moved) > 24) break;
     for (const id of club.playerIds) {
       const p = world.players[id];
-      if (!p) continue;
+      if (!p || p.rated) continue;
       for (const k of Object.keys(p.attrs) as (keyof typeof p.attrs)[]) p.attrs[k] = clamp(Math.round(p.attrs[k] + delta), 1, 99);
       p.overall = computeOverall(p.attrs, p.role);
       p.potential = Math.max(p.potential, p.overall);
@@ -158,8 +169,37 @@ export function addEuropeanClubs(world: World): number {
 }
 
 /** Nessun club estero supera la forza dei migliori club di A1 (i giocatori veri delle rose pubbliche gonfiano la stima). */
-export const FOREIGN_MAX_STRENGTH = 80;
+export const FOREIGN_MAX_STRENGTH = 88;
 export function capForeignStrength(world: World, clubId: string): void {
   const club = world.clubs[clubId];
   if (club && teamStrength(world, club) > FOREIGN_MAX_STRENGTH) shiftClub(world, clubId, FOREIGN_MAX_STRENGTH);
+}
+
+/**
+ * Dà ai giocatori famosi il loro overall preciso (anche se gioca nella tua squadra) e porta i club di vertice
+ * almeno al livello previsto: tutti i loro giocatori non famosi salgono insieme.
+ */
+export function applyStarRatings(world: World): { stars: number; clubs: number } {
+  let stars = 0;
+  for (const p of Object.values(world.players)) {
+    if (p.retired) continue;
+    const r = starRating(`${p.firstName} ${p.lastName}`);
+    if (r == null) continue;
+    tuneOverall(p.attrs, p.role, r);
+    p.overall = computeOverall(p.attrs, p.role);
+    p.potential = Math.max(p.potential, p.overall);
+    p.rated = true;
+    refreshValue(p, world.season);
+    stars++;
+  }
+  let clubs = 0;
+  for (const club of Object.values(world.clubs)) {
+    const level = TOP_CLUB_LEVELS[club.name];
+    if (level == null || club.isUser) continue;
+    const want = level + 2;
+    if (teamStrength(world, club) < want) { shiftClub(world, club.id, want); clubs++; }
+    // Da qui i giocatori veri di questi club hanno un overall fisso (non lo tocca il bilanciamento dei livelli).
+    for (const id of club.playerIds) if (world.players[id]?.real) world.players[id].rated = true;
+  }
+  return { stars, clubs };
 }

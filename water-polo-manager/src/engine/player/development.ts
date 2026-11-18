@@ -29,6 +29,10 @@ export function remainingGrowth(age: number, gk = false): number {
 }
 
 const TRAINING_WEEKS = 42;
+/** Quanto pesa l'allenamento sulla crescita: più alto = i giocatori migliorano di più (e più in fretta) con strutture, staff e intensità giuste. */
+export const TRAINING_BOOST = 1.45;
+/** Moltiplicatore della crescita delle caratteristiche su cui il giocatore si allena in modo mirato. */
+export const TARGETED_BOOST = 2.6;
 
 const FOCUS_GROUPS: Record<string, Partial<Record<'tecnica' | 'fisico' | 'mentale' | 'portiere', number>>> = {
   bilanciato: { tecnica: 1, fisico: 1, mentale: 1, portiere: 1 },
@@ -70,7 +74,7 @@ export function devContext(world: World, club: Club | null): DevContext {
     coachYouth: coach?.attrs.giovani ?? 30,
     coachFitness: coach?.attrs.preparazione ?? 30,
     gkCoach: gk?.rating ?? 0,
-    intensity: club.training.intensity === 'alta' ? 1.15 : club.training.intensity === 'bassa' ? 0.85 : 1,
+    intensity: club.training.intensity === 'alta' ? 1.3 : club.training.intensity === 'bassa' ? 0.8 : 1,
     focus: club.training.focus,
     youthAcademy: 0.8 + club.facilities.giovanile.level * 0.08,
   };
@@ -92,11 +96,11 @@ export function developWeekly(world: World, p: Player, ctx: DevContext, rng: Rng
       const youthCoach = age <= 21 ? 0.88 + ctx.coachYouth / 400 : 1;
       const academy = p.youth ? ctx.youthAcademy : 1;
       const gkF = gk ? 0.9 + ctx.gkCoach / 300 : 1;
-      annual *= gapF * prof * minutes * youthCoach * academy * gkF * Math.pow(ctx.training, 0.7) * ctx.intensity;
+      annual *= TRAINING_BOOST * gapF * prof * minutes * youthCoach * academy * gkF * Math.pow(ctx.training, 1.1) * ctx.intensity;
     }
   } else {
     // Il declino è più lento per i professionisti e con una buona preparazione fisica.
-    annual *= 1.2 - pers.professionalita / 50 - (ctx.physical - 1) * 0.3;
+    annual *= 1.2 - pers.professionalita / 50 - (ctx.physical - 1) * 0.6;
   }
   const weekly = annual / TRAINING_WEEKS;
   if (Math.abs(weekly) < 0.0005) return;
@@ -108,14 +112,17 @@ export function developWeekly(world: World, p: Player, ctx: DevContext, rng: Rng
     const relevance = (w[k] ?? 0) > 0 ? 1 : gk ? 0.25 : 0.45;
     let d: number;
     if (weekly > 0) {
-      const indiv = p.devFocus === g ? 1.35 : 1;
+      const indiv = p.devFocus === g ? 1.45 : 1;
       const phys = g === 'fisico' ? ctx.physical : 1;
-      d = weekly * relevance * (focus[g] ?? 1) * indiv * phys * rng.float(0.3, 1.7);
+      // Allenamento mirato: le caratteristiche scelte crescono molto più in fretta (e contano per intero anche se poco rilevanti per il ruolo).
+      const targeted = p.devAttrs?.includes(k) ? TARGETED_BOOST : 1;
+      d = weekly * (targeted > 1 ? Math.max(relevance, 0.8) : relevance) * (focus[g] ?? 1) * indiv * phys * targeted * rng.float(0.3, 1.7);
     } else {
       // Con l'età cala il fisico, la testa invece migliora un po'.
       // Normalizzato in modo che il calo dell'overall corrisponda alla curva d'età.
       const mult = g === 'fisico' ? 2.0 : g === 'mentale' ? -0.1 : g === 'portiere' ? 0.95 : 0.9;
-      d = weekly * relevance * mult * rng.float(0.4, 1.6);
+      // Chi si allena in modo mirato su una caratteristica rallenta il suo calo.
+      d = weekly * relevance * mult * (p.devAttrs?.includes(k) ? 0.25 : 1) * rng.float(0.4, 1.6);
     }
     p.attrs[k] = clamp(Math.round((p.attrs[k] + d) * 100) / 100, 1, 99);
   }

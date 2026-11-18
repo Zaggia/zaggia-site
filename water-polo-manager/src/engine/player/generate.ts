@@ -23,6 +23,20 @@ export interface PlayerGenOptions {
   firstName?: string;
   lastName?: string;
   real?: boolean;
+  /** Overall preciso da raggiungere esattamente (senza età né casualità). */
+  exactOverall?: number;
+  /** Giocatore famoso con valutazione precisa: il bilanciamento dei livelli non lo modifica. */
+  rated?: boolean;
+}
+
+/** Porta l'overall di un giocatore al valore indicato muovendo le sue caratteristiche chiave. */
+export function tuneOverall(attrs: Attributes, role: Role, target: number): void {
+  const w = ROLE_WEIGHTS[role];
+  for (let i = 0; i < 60; i++) {
+    const diff = target - computeOverall(attrs, role);
+    if (Math.abs(diff) < 0.5) return;
+    for (const k of Object.keys(w) as AttrKey[]) attrs[k] = clamp(Math.round((attrs[k] + diff * 0.9) * 10) / 10, 1, 99);
+  }
 }
 
 const ROLE_DISTRIBUTION: [Role, number][] = [
@@ -128,9 +142,11 @@ export function generatePlayer(ctx: GenCtx, opts: PlayerGenOptions): Player {
   const pool = namePool(nationality);
   const { height, weight } = physique(ctx, role);
   // Per età: un giovane è più indietro rispetto al livello che raggiungerà nel pieno della carriera.
-  const ageAdj = opts.potential == null && !opts.youth ? -remainingGrowth(age, role === 'POR') * 0.75 + 1.5 : 0;
-  const level = clamp(opts.level + ageAdj, 5, 95);
+  const exact = opts.exactOverall != null;
+  const ageAdj = !exact && opts.potential == null && !opts.youth ? -remainingGrowth(age, role === 'POR') * 0.75 + 1.5 : 0;
+  const level = clamp(exact ? opts.exactOverall! : opts.level + ageAdj, 5, 99);
   const attrs = generateAttributes(ctx, role, level, age, height);
+  if (exact) tuneOverall(attrs, role, Math.round(opts.exactOverall!));
   const overall = computeOverall(attrs, role);
   const potential = opts.potential != null
     ? Math.max(overall, Math.round(opts.potential))
@@ -140,6 +156,7 @@ export function generatePlayer(ctx: GenCtx, opts: PlayerGenOptions): Player {
     firstName: opts.firstName ?? ctx.rng.pick(pool.first),
     lastName: opts.lastName ?? ctx.rng.pick(pool.last),
     ...(opts.real ? { real: true } : {}),
+    ...(opts.rated ? { rated: true } : {}),
     nationality,
     birthYear: ctx.season - age,
     height,

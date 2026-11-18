@@ -100,3 +100,13 @@ Requisiti: Node 20+.
 ### Niente inflazione
 - Mercato, sviluppo e stipendi facevano salire piano piano il livello dei club del computer: in 12 stagioni la forza media della A2 passava da 55 a 61 e quella della B da 43 a 49, così chi giocava da anni trovava avversari sempre più forti senza colpa sua.
 - Ora a ogni inizio stagione la forza media di ogni categoria (A1 70, A2 55, B 43, C 35) torna a quella di partenza spostando in blocco la forza dei club del computer: le differenze tra i club restano, il livello complessivo no. La tua società non viene mai toccata. Sulle carriere esistenti lo fa la migrazione v8 (fino a 8 punti in una volta).
+
+### Overall precisi e giocatori famosi
+- Ogni giocatore vero ha un overall **preciso**, non un intervallo: i fuoriclasse sono in `src/engine/data/playerRatings.ts` (Alvaro Granados 97, Argyropoulos e Skoumpakis 96, Mandić 95, Manhercz 94, Kakaris e Glušac 93…), con un giudizio basato su premi e risultati recenti (MVP dei Mondiali 2025, giocatore dell'anno 2025 e 2026, squadra ideale degli Europei 2026). Hanno lo stesso valore in ogni carriera e il bilanciamento dei livelli non li tocca.
+- Chi non è in elenco ha un overall calcolato dal livello del club, dall'esperienza internazionale, dall'età e da una piccola differenza fissa derivata dal nome: stesso risultato in ogni carriera. I club di vertice (Recco, Ferencváros, Barceloneta, Olympiacos, Brescia, Radnički, Novi Beograd, Mladost…) hanno rose molto più forti: `TOP_CLUB_LEVELS`. I loro giocatori veri sono fissi.
+- Il campionato italiano di A1 va da 60 a 88 di forza di squadra (l'ultima contro la prima è un abisso, come nella realtà).
+- Le carriere esistenti vengono aggiornate dalla migrazione v9 (valori precisi dei campioni e club di vertice rinforzati).
+
+### Allenamento
+- La crescita dei giocatori con l'allenamento è molto più forte (`TRAINING_BOOST`): strutture, preparatore, intensità alta (+30%) e minutaggio pesano di più, e un buon preparatore atletico rallenta davvero il declino dei veterani.
+- **Allenamento mirato**: dalla scheda del giocatore si scelgono fino a 3 caratteristiche (per esempio Tiro o Marcatura) che crescono 2,6 volte più in fretta e, per i veterani, calano molto più piano. Le caratteristiche segnate con ★ sono quelle che pesano di più sull'overall del ruolo.

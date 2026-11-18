@@ -135,6 +135,10 @@ export interface Player {
   playingTime: number;
   joinedSeason: number;
   devFocus?: AttrGroup;
+  /** Caratteristiche specifiche su cui il giocatore si allena in modo mirato (fino a 3). */
+  devAttrs?: AttrKey[];
+  /** Overall fissato (giocatore famoso con valutazione precisa): non lo tocca il bilanciamento dei livelli. */
+  rated?: boolean;
   stats: Record<string, StatLine>;
   history: PlayerSeasonRecord[];
   retired?: boolean;

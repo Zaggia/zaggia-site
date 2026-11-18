@@ -1,6 +1,8 @@
 import type { RealPlayer } from '../data/realPlayers';
 import { FANS_NAMES } from '../data/cities';
 import { NATIONS } from '../data/names';
+import { TOP_CLUB_LEVELS, plainName, starRating } from '../data/playerRatings';
+import { BIRTH_YEARS } from '../data/birthYears';
 import { generatePlayer } from '../player/generate';
 import { expectedWage } from '../player/value';
 import { remainingGrowth } from '../player/development';
@@ -83,6 +85,13 @@ export function generateRoster(ctx: GenCtx, clubId: string, level: number, count
   return players;
 }
 
+/** Numero fisso calcolato dal nome (stesso risultato in ogni carriera). */
+function nameHash(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+  return (h >>> 0) % 1000;
+}
+
 const REAL_ROLE: Record<string, Role> = { P: 'POR', CB: 'CEN', CV: 'CVA', D: 'DIF', U: 'UNI' };
 const TARGET: Partial<Record<Role, number>> = { POR: 2, CEN: 2, DIF: 2, CVA: 2, MAN: 2, ALA: 3, UNI: 2 };
 
@@ -98,9 +107,13 @@ export function splitName(full: string): [string, string] {
  * le caratteristiche sono stimate dal livello della squadra. Si tengono 15 giocatori (2 portieri);
  * se la rosa pubblica è incompleta, i posti mancanti vanno a giocatori generati.
  */
-export function generateRealRoster(ctx: GenCtx, clubId: string, level: number, country: string, real: RealPlayer[], size: number, foreignChance: number): Player[] {
-  const gks = real.filter((r) => r.r === 'P').slice(0, 2);
-  const field = real.filter((r) => r.r !== 'P').slice(0, size - Math.max(2, gks.length));
+export function generateRealRoster(ctx: GenCtx, clubId: string, level: number, country: string, real: RealPlayer[], size: number, foreignChance: number, fixed = false): Player[] {
+  // Se la rosa pubblica è più lunga di quella ammessa si tengono i giocatori più forti (prima i famosi, poi chi ha una voce enciclopedica).
+  const seenNames = new Set<string>();
+  real = real.filter((r) => { const k = plainName(r.n); if (seenNames.has(k)) return false; seenNames.add(k); return true; });
+  const strongFirst = (a: RealPlayer, b: RealPlayer) => (starRating(b.n) ?? 0) - (starRating(a.n) ?? 0) || (b.f ?? 0) - (a.f ?? 0);
+  const gks = real.filter((r) => r.r === 'P').sort(strongFirst).slice(0, 2);
+  const field = real.filter((r) => r.r !== 'P').sort(strongFirst).slice(0, size - Math.max(2, gks.length));
   const chosen = [...gks, ...field].slice(0, size);
   const count = (roles: Role[], r: Role) => roles.filter((x) => x === r).length;
   const roles: Role[] = [];
@@ -117,12 +130,24 @@ export function generateRealRoster(ctx: GenCtx, clubId: string, level: number, c
   const players: Player[] = chosen.map((r, i) => {
     const role = assigned[i]!;
     const [firstName, lastName] = splitName(r.n);
-    const age = r.y ? clamp(ctx.season - r.y, 16, 42) : clamp(Math.round(ctx.rng.gauss(25, 4)), 18, 35);
+    // Senza anno di nascita l'età è fissa (calcolata dal nome), così il giocatore è sempre lo stesso in ogni carriera.
+    const by = r.y ?? BIRTH_YEARS[plainName(r.n)];
+    const age = by ? clamp(ctx.season - by, 16, 42) : 22 + (nameHash(r.n + 'e') % 10);
     const nat = r.c && NATIONS[r.c] ? r.c : country;
     // Gli stranieri nei club italiani sono di norma tra i più forti; i primi portieri sono i titolari.
     // Chi ha una voce enciclopedica (nazionali, olimpionici) è un giocatore affermato: livello più alto.
-    const boost = (r.f ? 5 : -2) + (nat !== country ? 2 : 0) + (role === 'POR' && i === 0 ? 1 : 0) + ctx.rng.gauss(0, 3.5);
-    const p = generatePlayer(ctx, { level: level + boost, role, age, clubId, nationality: nat, firstName, lastName, real: true, contractYears: ctx.rng.int(1, 3) });
+    // Overall preciso, senza casualità: i giocatori famosi hanno il valore fissato in `PLAYER_RATINGS`; gli altri dipendono dal livello
+    // del club, dall'esperienza internazionale, dall'età e da una piccola differenza fissa (calcolata dal nome, uguale in ogni carriera).
+    const star = starRating(r.n);
+    let exact: number;
+    if (star != null) exact = star;
+    else {
+      const young = age < 22 ? (22 - age) * 1.4 : 0;
+      exact = Math.round(clamp(level + (r.f ? 3 : -2) + (nat !== country ? 1 : 0) + (role === 'POR' && i === 0 ? 1 : 0) + (nameHash(r.n) % 5) - 2 - young, 20, 95));
+    }
+    // Potenziale fisso: i più giovani hanno ancora margine, chi ha più di 26 anni è al massimo.
+    const potential = Math.min(99, exact + (age <= 20 ? 6 : age <= 23 ? 3 : age <= 26 ? 1 : 0));
+    const p = generatePlayer(ctx, { level: exact, exactOverall: exact, potential, rated: star != null || fixed, role, age, clubId, nationality: nat, firstName, lastName, real: true, contractYears: ctx.rng.int(1, 3) });
     if (role === 'MAN') p.hand = 'L';
     return p;
   });
@@ -251,7 +276,7 @@ export function generateClub(ctx: GenCtx, seed: ClubSeed): GeneratedClub {
   };
   const size = seed.rosterSize ?? 15;
   const players = seed.realRoster?.length
-    ? generateRealRoster(ctx, id, seed.level, seed.country, seed.realRoster, size, seed.foreignChance)
+    ? generateRealRoster(ctx, id, TOP_CLUB_LEVELS[seed.name] ?? seed.level, seed.country, seed.realRoster, size, seed.foreignChance, TOP_CLUB_LEVELS[seed.name] != null)
     : generateRoster(ctx, id, seed.level, seed.country, seed.foreignChance, size);
   club.playerIds = players.map((p) => p.id);
   const youth = generateYouth(ctx, id, academyMean(facilities.giovanile.level, 30, club.reputation), seed.isUser ? 3 : ctx.rng.int(2, 4), facilities.giovanile.level);

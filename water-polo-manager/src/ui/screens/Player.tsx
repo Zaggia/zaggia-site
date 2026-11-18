@@ -110,6 +110,22 @@ function PlayerView({ p }: { p: Player }) {
                 <option value="">Nessun focus particolare</option>
                 {(['tecnica', 'fisico', 'mentale', ...(p.role === 'POR' ? ['portiere'] : [])] as AttrGroup[]).map((g) => <option key={g} value={g}>{GROUP_LABELS[g]}</option>)}
               </select>
+              <div className="text-xs text-mute mt-3 mb-1">Allenamento mirato (fino a 3 caratteristiche: crescono molto più in fretta)</div>
+              {[0, 1, 2].map((i) => (
+                <select key={i} className="w-full mb-1.5" value={p.devAttrs?.[i] ?? ''} onChange={(e) => s.act((w) => {
+                  const pl = w.players[p.id];
+                  const cur = [...(pl.devAttrs ?? [])];
+                  const v = e.target.value as AttrKey | '';
+                  if (v) cur[i] = v; else cur.splice(i, 1);
+                  pl.devAttrs = [...new Set(cur.filter(Boolean))].slice(0, 3) as AttrKey[];
+                })}>
+                  <option value="">{i === 0 ? 'Nessuna caratteristica' : '—'}</option>
+                  {([...ATTR_GROUPS.tecnica, ...ATTR_GROUPS.fisico, ...ATTR_GROUPS.mentale, ...(p.role === 'POR' ? ATTR_GROUPS.portiere : [])] as AttrKey[])
+                    .filter((k) => (ROLE_WEIGHTS[p.role][k] ?? 0) > 0 || p.devAttrs?.[i] === k)
+                    .map((k) => <option key={k} value={k}>{ATTR_LABELS[k]}{(ROLE_WEIGHTS[p.role][k] ?? 0) >= 0.1 ? ' ★' : ''}</option>)}
+                </select>
+              ))}
+              <div className="text-[11px] text-faint">★ = caratteristica che pesa di più sull’overall del suo ruolo.</div>
             </div>
           )}
           <div className="mt-2"><KnowledgeNote world={world} p={p} /></div>

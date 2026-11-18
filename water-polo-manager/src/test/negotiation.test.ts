@@ -14,7 +14,8 @@ function newWorld(): World {
 
 function userPlayer(world: World) {
   const club = world.clubs[world.userClubId];
-  const p = world.players[club.playerIds[0]];
+  const p = club.playerIds.map((id) => world.players[id]).sort((a, b) => b.overall - a.overall)[0];
+  p.overall = Math.max(p.overall, 55);
   p.wantsToLeave = false;
   p.morale = 55;
   return { club, p };
