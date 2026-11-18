@@ -20,7 +20,7 @@ Gestionale di pallanuoto giocabile nel browser. Sei il presidente di una piccola
 - **Cronaca**: risultato immediato, simulazione veloce o cronaca interattiva con cambi, tattiche e time-out durante la gara; tabellino con voti, migliore in acqua e statistiche complete.
 - **Tattiche**: 8 sistemi offensivi e 7 difensivi con vantaggi e svantaggi reali, superiorità (4-2/3-3, circolazione, strategia, tiratori designati) e inferiorità (stili, marcatura speciale). Le tattiche avanzate si sbloccano con la capacità organizzativa (allenatore, vice, centro di allenamento, intelligenza tattica della rosa, esperienza della società) e vanno imparate (familiarità).
 - **Giocatori**: 31 caratteristiche (tecniche, fisiche, mentali, da portiere), overall pesato per ruolo, potenziale stimato dagli osservatori, personalità, crescita e declino con l'età, allenamento individuale, infortuni rari e per lo più brevi (come nella pallanuoto vera), recupero fisico rapido, squalifiche, morale, richieste di minutaggio, promesse.
-- **Mercato**: ricerca, osservati, osservatori in missione, offerte e controfferte, trattativa dell'ingaggio, prestiti, svincoli, rinnovi, offerte dei club AI per i tuoi giocatori. I giocatori da categoria superiore scendono malvolentieri.
+- **Mercato**: ricerca, osservati, osservatori in missione, offerte e controfferte, trattative a più giri (richiesta che scende verso un minimo, pazienza limitata, offerte offensive che irritano il giocatore o il club e possono chiudere la trattativa), prestiti, svincoli, rinnovi, offerte dei club AI per i tuoi giocatori. I giocatori da categoria superiore scendono malvolentieri.
 - **Economia**: sponsor con obiettivi, bonus e malus; biglietti e abbonamenti con prezzi regolabili; merchandising; scuola nuoto; contributi; premi; stipendi settimanali, staff, piscina, trasferte, manutenzione, interessi; fido bancario, prestiti, investimenti del presidente; stipendi arretrati, penalizzazioni, giocatori in mora e fallimento.
 - **Strutture** (7, livelli 1-5) con effetti concreti e **livello di sviluppo della società** che sblocca i livelli più alti.
 - **Settore giovanile** con ingresso annuale di ragazzi: qualità legata al vivaio e al responsabile; raramente nasce un fuoriclasse.
@@ -67,3 +67,8 @@ npm run brand        # rigenera favicon e loghi SVG da src/ui/brand.ts
 ```
 
 Requisiti: Node 20+.
+
+### Contratti e trattative
+- Il rinnovo segue il valore *attuale* del giocatore: chi è migliorato chiede di più, chi è calato, invecchiato o è pagato sopra il suo valore accetta uno stipendio più basso. Anche morale e lealtà contano.
+- Ogni trattativa (giocatore o club venditore) ha richiesta iniziale, minimo e pazienza (numero di giri). A ogni giro la richiesta scende; la controproposta si può accettare con un click.
+- Vale anche per le carriere già avviate: la logica è del motore, non serve migrare i salvataggi.

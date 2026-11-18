@@ -809,6 +809,14 @@ export interface Negotiation {
   playerId: ID;
   rounds: number;
   lastDemand?: { wage: number; years: number };
+  /** Richiesta attuale del club venditore (trattative per il cartellino). */
+  lastFee?: number;
+  /** Quanto si è irritata la controparte con offerte troppo basse. */
+  irritation?: number;
+  /** Scarto personale (±) sulla soglia di accettazione: due trattative uguali non finiscono sempre allo stesso modo. */
+  bias?: number;
+  /** Giorno dell'ultimo scambio: le trattative ferme da tempo ripartono da zero. */
+  day?: number;
 }
 
 export interface PendingMatch {

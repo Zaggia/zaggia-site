@@ -2,7 +2,7 @@
 
 import { expense } from '../economy/ledger';
 import { addNews } from '../news';
-import type { Club, Player, SquadStatus, World } from '../types';
+import type { Club, Negotiation, Player, SquadStatus, World } from '../types';
 import { clamp, niceMoney } from '../util';
 import { ageOf, expectedWage, refreshValue, yearsLeft } from '../player/value';
 import { leagueRules } from '../data/config';
@@ -82,9 +82,14 @@ export function wageDemand(world: World, p: Player, club: Club, status: SquadSta
   const renewal = cur?.id === club.id;
   const age = ageOf(p, world.season);
   if (renewal && p.contract) {
-    // Chi è contento accetta di restare alle stesse cifre; i veterani accettano un taglio.
-    const floor = age >= 30 ? p.contract.wage * 0.8 : p.contract.wage * (p.morale > 60 ? 0.95 : 1.05);
-    w = Math.max(w, floor);
+    // Il nuovo ingaggio segue il valore attuale del giocatore, non quello vecchio: chi è migliorato chiede di più,
+    // chi è calato o invecchiato accetta di meno. Chi è contento resta volentieri, chi è scontento alza le pretese.
+    const mood = p.wantsToLeave ? 1.3 : p.morale > 65 ? 0.94 : p.morale < 40 ? 1.08 : 1;
+    const loyal = 1 - Math.max(0, p.personality.lealta - 10) * 0.008;
+    w *= mood * loyal;
+    // Chi è pagato più del suo valore non scende subito al valore giusto: si ancora in parte al vecchio stipendio.
+    const cur = p.contract.wage;
+    if (cur > w) w += (cur - w) * (age >= 31 ? 0.12 : 0.3);
   }
   w *= STATUS_WAGE[status];
   // Scendere di categoria costa: chi è da categoria superiore chiede di più.
@@ -114,6 +119,39 @@ export interface NegotiationResult {
   result: 'accept' | 'counter' | 'reject';
   demand?: { wage: number; years: number };
   message: string;
+  /** Giri di trattativa ancora disponibili prima che il giocatore si stufi. */
+  roundsLeft?: number;
+  /** Quanto sono vicine le parti. */
+  mood?: 'offeso' | 'distante' | 'vicino' | 'quasi';
+}
+
+export interface ContractTerms {
+  /** Ingaggio "giusto" (quello che chiederebbe senza trattare). */
+  fair: number;
+  /** Prima richiesta. */
+  ask: number;
+  /** Minimo che alla fine accetterebbe. */
+  reserve: number;
+  /** Quanti giri di trattativa è disposto a fare. */
+  patience: number;
+}
+
+/** Condizioni di trattativa di un giocatore: parte da una richiesta alta e, giro dopo giro, scende verso il suo minimo. */
+export function contractTerms(world: World, p: Player, club: Club, offer: ContractOffer): ContractTerms {
+  const interest = interestIn(world, p, club);
+  const renewal = p.clubId === club.id;
+  const pers = p.personality;
+  const fair = wageDemand(world, p, club, offer.status, offer.years);
+  const greed = clamp(0.07 + (pers.ambizione - 10) * 0.008 + (renewal && p.morale < 45 ? 0.05 : 0) + (interest.value < 50 ? 0.04 : 0), 0.04, 0.26);
+  const slack = clamp(0.1 + (interest.value - 50) / 600 + (renewal ? (pers.lealta - 10) * 0.004 : 0), 0.04, 0.2);
+  const patience = clamp(3 + (pers.professionalita >= 14 ? 1 : 0) + (interest.value >= 70 ? 1 : 0) - (pers.temperamento >= 15 ? 1 : 0), 2, 5);
+  return { fair, ask: niceMoney(fair * (1 + greed)), reserve: niceMoney(fair * (1 - slack)), patience };
+}
+
+/** Quanto chiede in un dato giro: scende dalla prima richiesta al minimo. */
+function demandAtRound(t: ContractTerms, round: number, bias: number): number {
+  const f = Math.min(1, Math.pow(round / t.patience, 0.85));
+  return Math.max(t.reserve, niceMoney((t.ask - (t.ask - t.reserve) * f) * (1 + bias)));
 }
 
 export function negotiate(world: World, p: Player, club: Club, offer: ContractOffer): NegotiationResult {
@@ -121,28 +159,54 @@ export function negotiate(world: World, p: Player, club: Club, offer: ContractOf
   const renewal = p.clubId === club.id;
   if (!renewal && interest.value < 30) return { result: 'reject', message: interest.reason };
   if (renewal && p.wantsToLeave && p.morale < 25) return { result: 'reject', message: 'Ha deciso di cambiare aria e non vuole rinnovare.' };
-  const neg = (world.negotiations[p.id] ||= { playerId: p.id, rounds: 0 });
+  // Una trattativa ferma da settimane riparte da zero.
+  let neg: Negotiation | undefined = world.negotiations[p.id];
+  if (neg && neg.day != null && world.day - neg.day > 14) neg = undefined;
+  if (!neg) {
+    neg = { playerId: p.id, rounds: 0, irritation: 0, bias: (((p.id.length * 7 + world.day) % 9) - 4) / 200, day: world.day };
+    world.negotiations[p.id] = neg;
+  }
   neg.rounds++;
-  const demand = wageDemand(world, p, club, offer.status, offer.years);
+  neg.day = world.day;
+  const t = contractTerms(world, p, club, offer);
+  const bias = neg.bias ?? 0;
+  const now = demandAtRound(t, neg.rounds, bias);
   const age = ageOf(p, world.season);
-  const prefYears = age >= 31 ? 2 : age <= 23 ? 3 : 3;
-  const yearsOk = age >= 31 ? offer.years >= 1 : true;
-  const tolerance = 0.97 - (interest.value - 50) / 500;
-  if (offer.wage >= demand * tolerance && yearsOk) {
+  const prefYears = age >= 31 ? 2 : 3;
+  const roundsLeft = Math.max(0, t.patience - neg.rounds);
+  const name = `${p.firstName} ${p.lastName}`;
+  const end = (days: number, message: string): NegotiationResult => {
     delete world.negotiations[p.id];
-    return { result: 'accept', message: `${p.firstName} ${p.lastName} accetta l’offerta.` };
-  }
-  if (neg.rounds >= 4) {
+    p.negotiationBlockedUntil = world.day + days;
+    return { result: 'reject', message, roundsLeft: 0 };
+  };
+  // Accordo: l'offerta raggiunge quello che chiede in questo giro (o il suo minimo all'ultimo giro).
+  if (offer.wage >= now || (neg.rounds >= t.patience && offer.wage >= t.reserve && (neg.irritation ?? 0) < 3)) {
     delete world.negotiations[p.id];
-    p.negotiationBlockedUntil = world.day + 30;
-    return { result: 'reject', message: 'Le parti sono troppo lontane: il giocatore interrompe la trattativa per un mese.' };
+    return { result: 'accept', message: `${name} accetta l’offerta: accordo trovato.` };
   }
-  if (offer.wage >= demand * 0.7) {
-    const counter = niceMoney(demand * (1 + (neg.rounds - 1) * 0.02));
-    neg.lastDemand = { wage: counter, years: Math.max(offer.years, prefYears) };
-    return { result: 'counter', demand: neg.lastDemand, message: `Chiede ${counter.toLocaleString('it-IT')} € l’anno per ${neg.lastDemand.years} stagioni.` };
+  // Offerta offensiva: lo irrita e può far saltare tutto.
+  if (offer.wage < t.reserve * 0.82) {
+    neg.irritation = (neg.irritation ?? 0) + 2;
+    if ((neg.irritation ?? 0) >= 3 || roundsLeft === 0) return end(21, `${name} si sente preso in giro e interrompe la trattativa per tre settimane.`);
+    return {
+      result: 'reject', roundsLeft, mood: 'offeso',
+      message: 'L’offerta è lontanissima dal suo valore: è offeso. Un’altra così e se ne va.',
+      demand: { wage: now, years: Math.max(offer.years, prefYears) },
+    };
   }
-  return { result: 'reject', message: 'L’offerta è lontanissima dalle sue richieste.' };
+  const gap = (now - offer.wage) / now;
+  if (gap > 0.08) neg.irritation = (neg.irritation ?? 0) + 1;
+  if (roundsLeft === 0 || (neg.irritation ?? 0) >= 3) {
+    return end(30, `Le parti sono rimaste troppo distanti: ${name} interrompe la trattativa per un mese.`);
+  }
+  neg.lastDemand = { wage: now, years: Math.max(offer.years, prefYears) };
+  const mood = gap < 0.03 ? 'quasi' : gap < 0.08 ? 'vicino' : 'distante';
+  const tone = mood === 'quasi' ? 'Siamo vicinissimi' : mood === 'vicino' ? 'Ci siamo quasi' : 'Siamo ancora distanti';
+  return {
+    result: 'counter', demand: neg.lastDemand, roundsLeft, mood,
+    message: `${tone}: chiede ${now.toLocaleString('it-IT')} € l’anno per ${neg.lastDemand.years} stagioni.${roundsLeft <= 1 ? ' Non ha molta pazienza: questa è quasi l’ultima occasione.' : ''}`,
+  };
 }
 
 export function signContract(world: World, p: Player, club: Club, offer: ContractOffer) {

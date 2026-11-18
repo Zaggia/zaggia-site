@@ -4,7 +4,7 @@ import { rosterFullError, trimRoster } from '../club/roster';
 import { inRange } from '../calendar';
 import { expense, income } from '../economy/ledger';
 import { addMessage, addNews, fmtMoney } from '../news';
-import type { Club, Player, TransferOffer, World } from '../types';
+import type { Club, Negotiation, Player, TransferOffer, World } from '../types';
 import { clamp, niceMoney } from '../util';
 import { ageOf, refreshValue, yearsLeft } from '../player/value';
 import { assignNumbers } from '../club/generate';
@@ -53,6 +53,87 @@ export interface BidResponse {
   result: 'accept' | 'counter' | 'reject';
   counterFee?: number;
   message: string;
+}
+
+export interface BidTerms {
+  /** Prima richiesta del club (quella mostrata). */
+  ask: number;
+  /** Minimo a cui alla fine cederebbe. */
+  reserve: number;
+  /** Giri di trattativa prima che il club si stufi. */
+  patience: number;
+}
+
+/** Condizioni del club venditore: parte dalla richiesta e, giro dopo giro, scende verso il suo minimo. */
+export function bidTerms(world: World, p: Player, buyer: Club): BidTerms {
+  const seller = p.clubId ? world.clubs[p.clubId] : null;
+  const ask = askingPrice(world, p);
+  const ds = buyer.staff.ds ? world.staff[buyer.staff.ds]?.rating ?? 0 : 0;
+  const imp = importanceInSquad(world, p);
+  let low = 0.8;
+  if (seller && seller.finances.balance < 0) low -= 0.07;
+  if (p.transferListed || p.wantsToLeave) low -= 0.06;
+  if (ds > 0) low -= ds / 1500;
+  let reserve = ask * low;
+  // I giocatori insostituibili si cedono solo a cifre molto alte.
+  if (imp >= 1.6 && !p.wantsToLeave) reserve = ask * 1.25;
+  const patience = seller && seller.finances.balance < 0 ? 5 : imp >= 1.6 ? 3 : 4;
+  return { ask, reserve: niceMoney(reserve), patience };
+}
+
+function bidDemand(t: BidTerms, round: number): number {
+  const f = Math.min(1, Math.pow(round / t.patience, 0.85));
+  return Math.max(t.reserve, niceMoney(t.ask - (t.ask - t.reserve) * f));
+}
+
+/**
+ * Giro di trattativa dell'utente con il club venditore: la richiesta scende a ogni giro verso il minimo,
+ * ma offerte troppo basse irritano il club e possono chiudere la trattativa.
+ */
+export function bidRound(world: World, p: Player, fee: number, buyer: Club): BidResponse & { roundsLeft?: number } {
+  const seller = p.clubId ? world.clubs[p.clubId] : null;
+  if (!seller) return { result: 'accept', message: 'Il giocatore è svincolato.' };
+  if (seller.playerIds.length <= 14) return { result: 'reject', message: `${seller.name} ha la rosa troppo corta per cedere giocatori.` };
+  const key = `bid:${p.id}`;
+  let neg: Negotiation | undefined = world.negotiations[key];
+  if (neg && neg.day != null && world.day - neg.day > 10) neg = undefined;
+  if (neg?.irritation != null && neg.irritation >= 99) {
+    return { result: 'reject', message: `${seller.name} non vuole più trattare per ora.` };
+  }
+  if (!neg) {
+    neg = { playerId: p.id, rounds: 0, irritation: 0, day: world.day };
+    world.negotiations[key] = neg;
+  }
+  neg.rounds++;
+  neg.day = world.day;
+  const t = bidTerms(world, p, buyer);
+  const now = bidDemand(t, neg.rounds);
+  const roundsLeft = Math.max(0, t.patience - neg.rounds);
+  const stop = (message: string) => {
+    neg!.irritation = 99;
+    neg!.day = world.day + 5;
+    return { result: 'reject' as const, message, roundsLeft: 0 };
+  };
+  if (fee >= now || (neg.rounds >= t.patience && fee >= t.reserve)) {
+    delete world.negotiations[key];
+    return { result: 'accept', message: `${seller.name} accetta l’offerta.`, roundsLeft };
+  }
+  if (fee < t.reserve * 0.7) {
+    neg.irritation = (neg.irritation ?? 0) + 2;
+    if (neg.irritation >= 3 || roundsLeft === 0) return stop(`${seller.name} considera l’offerta irrispettosa e chiude la trattativa.`);
+    return { result: 'reject', message: `${seller.name} rifiuta: l’offerta è troppo bassa e il club si irrita. Un’altra così e si alza dal tavolo.`, roundsLeft };
+  }
+  if ((now - fee) / now > 0.12) neg.irritation = (neg.irritation ?? 0) + 1;
+  if (roundsLeft === 0 || (neg.irritation ?? 0) >= 3) return stop(`${seller.name} ritiene le parti troppo distanti e chiude la trattativa.`);
+  neg.lastFee = now;
+  const gap = (now - fee) / now;
+  const tone = gap < 0.04 ? 'Siamo vicinissimi' : gap < 0.12 ? 'Ci siamo quasi' : 'Siamo ancora distanti';
+  const imp = importanceInSquad(world, p);
+  const extra = imp >= 1.6 && !p.wantsToLeave ? ' È un giocatore su cui il club non vuole rinunciare.' : '';
+  return {
+    result: 'counter', counterFee: now, roundsLeft,
+    message: `${tone}: ${seller.name} chiede ${fmtMoney(now)}.${extra}${roundsLeft <= 1 ? ' Il club non ha molta pazienza.' : ''}`,
+  };
 }
 
 /** Risposta di un club AI a un'offerta per un suo giocatore. */
@@ -134,7 +215,7 @@ export function userBid(world: World, playerId: string, fee: number, loan: boole
   if (!loan && fee > user.finances.balance + 5000) return { error: 'Non hai abbastanza liquidità per questa offerta.' };
   const interest = interestIn(world, p, user);
   if (interest.value < 25) return { error: `${fullName(p)} non è interessato: ${interest.reason}` };
-  const resp = evaluateBid(world, p, fee, user, loan);
+  const resp = loan ? evaluateBid(world, p, fee, user, true) : bidRound(world, p, fee, user);
   const offer: TransferOffer = {
     id: newId(world, 'o'), playerId, fromClubId: user.id, toClubId: p.clubId ?? '', fee, loan, day: world.day,
     expiresDay: world.day + 7, status: resp.result === 'accept' ? 'accepted' : resp.result === 'counter' ? 'countered' : 'rejected',
