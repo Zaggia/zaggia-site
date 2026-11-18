@@ -96,3 +96,7 @@ Requisiti: Node 20+.
 - I club esteri hanno una classifica nazionale simulata in base alla forza; i grandi club (Barceloneta, Ferencváros, Olympiacos, Radnički, Novi Beograd, Jadran Split, Mladost, Marseille) partono più forti. Le rose contengono i nazionali veri degli Europei 2026 (società e ruoli del 9 gennaio 2026); i posti restanti li completa il gioco con giocatori generati, le cui caratteristiche NON sono reali.
 - Semplificazioni: i turni di qualificazione (settembre/ottobre) non ci sono, si parte dalle fasi principali con i club ammessi in base alla forza; non c'è la finale per il terzo posto della Final Four.
 - Le carriere esistenti vengono aggiornate dalla migrazione v7 (regole, club europei mancanti, rose vere). La stagione europea già in corso termina con la formula vecchia: la nuova parte dalla prossima.
+
+### Niente inflazione
+- Mercato, sviluppo e stipendi facevano salire piano piano il livello dei club del computer: in 12 stagioni la forza media della A2 passava da 55 a 61 e quella della B da 43 a 49, così chi giocava da anni trovava avversari sempre più forti senza colpa sua.
+- Ora a ogni inizio stagione la forza media di ogni categoria (A1 70, A2 55, B 43, C 35) torna a quella di partenza spostando in blocco la forza dei club del computer: le differenze tra i club restano, il livello complessivo no. La tua società non viene mai toccata. Sulle carriere esistenti lo fa la migrazione v8 (fino a 8 punti in una volta).

@@ -22,9 +22,32 @@ function shiftPlayer(world: World, p: Player, delta: number) {
   refreshValue(p, world.season);
 }
 
-/** Riporta ogni società italiana (tranne la tua) nella fascia della sua categoria e avvicina i giocatori al livello di squadra. */
-export function balancePyramid(world: World): number {
+/** Forza media delle società (tranne la tua) in ogni categoria: è quella di una carriera appena creata e si mantiene nel tempo. */
+export const DIVISION_MEAN: Record<string, number> = { A1: 70, A2: 55, B: 43, C: 35 };
+
+/**
+ * Impedisce l'inflazione: mercato e sviluppo fanno salire piano piano il livello medio dei club gestiti dal computer
+ * (in 12 stagioni la media della A2 passava da 55 a 61), così chi gioca da anni si trova avversari sempre più forti
+ * senza che questo dipenda dalle sue scelte. A ogni stagione la media di ogni categoria torna a quella di partenza.
+ * Le differenze tra i club restano: si sposta in blocco la forza di tutti.
+ */
+export function stabilizeLevels(world: World, maxStep = 3): number {
   let changed = 0;
+  for (const [div, target] of Object.entries(DIVISION_MEAN)) {
+    const clubs = Object.values(world.clubs).filter((c) => c.country === 'ITA' && c.division === div && !c.isUser);
+    if (clubs.length < 4) continue;
+    const strengths = clubs.map((c) => teamStrength(world, c));
+    const mean = strengths.reduce((a, b) => a + b, 0) / strengths.length;
+    const delta = clamp(target - mean, -maxStep, maxStep);
+    if (Math.abs(target - mean) < 1) continue;
+    clubs.forEach((c, i) => { shiftClub(world, c.id, Math.round(strengths[i] + delta)); changed++; });
+  }
+  return changed;
+}
+
+/** Riporta ogni società italiana (tranne la tua) nella fascia della sua categoria e avvicina i giocatori al livello di squadra. */
+export function balancePyramid(world: World, maxStep = 3): number {
+  let changed = stabilizeLevels(world, maxStep);
   for (const club of Object.values(world.clubs)) {
     if (club.isUser || club.country !== 'ITA') continue;
     const band = PYRAMID_BANDS[club.division];

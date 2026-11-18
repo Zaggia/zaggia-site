@@ -68,6 +68,12 @@ describe('mondo di gioco', () => {
       }
       console.log('   economia media per categoria', Object.fromEntries(Object.entries(econ).map(([k, v]) => [k, `+${Math.round(v.inc / v.n / 1000)}k −${Math.round(v.exp / v.n / 1000)}k`])));
       beginNextSeason(w);
+      // Niente inflazione: la forza media di ogni categoria resta quella di partenza (il computer non migliora a oltranza).
+      for (const [div, target] of Object.entries({ A1: 70, A2: 55, B: 43, C: 35 })) {
+        const cs = Object.values(w.clubs).filter((c) => c.division === div && c.country === 'ITA' && !c.isUser);
+        const mean = cs.reduce((t, c) => t + teamStrength(w, c), 0) / cs.length;
+        expect(Math.abs(mean - target), `${div} forza media ${mean.toFixed(1)}`).toBeLessThanOrEqual(3);
+      }
       const prev = season;
       const serieB = w.competitions[`B-${prev}`];
       // In Serie B la promozione si decide ai playoff: una serie per girone, 4 promosse in tutto.

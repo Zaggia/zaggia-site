@@ -52,7 +52,7 @@ describe('coppe europee', () => {
     expect(ecGroupIds.some((id) => clIds.has(id))).toBe(false);
   }, 200000);
 
-  it('i grandi club europei hanno giocatori veri e le vecchie carriere ricevono club, rose e regole nuove (migrazione v7)', () => {
+  it('i grandi club europei hanno giocatori veri e le vecchie carriere ricevono club, rose e regole nuove (migrazione v7+)', () => {
     const w = newWorld();
     const byName = (n: string) => Object.values(w.clubs).find((c) => c.name === n)!;
     const ftc = byName('Ferencváros');
@@ -68,7 +68,7 @@ describe('coppe europee', () => {
     w.rules.cups = w.rules.cups.filter((c) => c.key !== 'EUSC');
     w.version = 6;
     expect(migrateWorld(w)).toBe(true);
-    expect(w.version).toBe(7);
+    expect(w.version).toBe(8);
     expect(w.rules.continental[0].name).toBe('European Aquatics Champions League');
     expect(w.rules.continental[0].stage2?.groupCount).toBe(2);
     expect(w.rules.cups.some((c) => c.key === 'EUSC')).toBe(true);

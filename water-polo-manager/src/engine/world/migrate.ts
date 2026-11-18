@@ -69,6 +69,10 @@ export function migrateWorld(world: World): boolean {
     if (eusc && !world.rules.cups.some((c) => c.key === 'EUSC')) world.rules.cups.unshift(JSON.parse(JSON.stringify(eusc)));
     addEuropeanClubs(world);
   }
+  if (from < 8) {
+    // v8: stop all'inflazione dei club del computer: in una carriera lunga i livelli medi vanno riportati a quelli di partenza.
+    balancePyramid(world, 8);
+  }
   world.version = WORLD_VERSION;
   return true;
 }

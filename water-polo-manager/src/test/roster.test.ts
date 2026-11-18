@@ -95,7 +95,7 @@ describe('società reali, rose da 15 e ruoli della pallanuoto', () => {
     w.version = 1;
     expect(migrateWorld(w)).toBe(true);
     for (const id of ids) expect(ROLES).toContain(w.players[id].role);
-    expect(w.version).toBe(7);
+    expect(w.version).toBe(8);
     expect(migrateWorld(w)).toBe(false);
   });
 });
