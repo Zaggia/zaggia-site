@@ -166,3 +166,18 @@ describe('piramide dei livelli', () => {
     expect(worstStarter('A1')).toBeGreaterThan(best('B') - 12);
   });
 });
+
+describe('prime giornate di campionato', () => {
+  it('l’ordine alfabetico della classifica a zero punti non influisce sull’importanza delle partite', async () => {
+    const { dynamicImportance } = await import('../engine/match/setup');
+    const w = createWorld({
+      careerName: 'T', presidentName: 'T', clubName: 'Aquatica Test', short: 'AQT', city: 'Savona',
+      colors: ['#0b3d91', '#ffffff'], crest: { shape: 'scudo', pattern: 'strisce', symbol: 'palla', primary: '#0b3d91', secondary: '#ffffff', initials: 'AQT' },
+      poolName: 'P', founded: 2025, fansName: 'D', objective: 'metaClassifica', difficulty: 'normale', seed: 3,
+    });
+    const first = Object.values(w.fixtures).filter((f) => f.phase === 0 && f.round === 0 && w.competitions[f.compId]?.kind === 'league');
+    expect(first.length).toBeGreaterThan(10);
+    // Alla prima giornata (round 0) l'importanza è quella di base (0.25, +0.05 se derby di regione), mai quella di uno scontro al vertice.
+    for (const f of first) expect(dynamicImportance(w, f)).toBeLessThanOrEqual(0.3001);
+  });
+});

@@ -7,7 +7,7 @@ import { availableTactics, chooseTactics } from '../ai/tactics';
 import { ensureMinimumSquad } from '../ai/clubAI';
 import { worldRng } from '../world/context';
 import { shortName } from '../player/generate';
-import { positionOf } from '../competition/standings';
+import { reliablePosition } from '../competition/standings';
 import type { MatchPlayerInput, MatchSetup, MatchTeamInput } from './engine';
 
 export function lineupFor(world: World, club: Club, opponent: Club): Lineup {
@@ -71,9 +71,10 @@ export function buildTeamInput(world: World, club: Club, opponent: Club, lineup?
 export function dynamicImportance(world: World, f: Fixture): number {
   const comp = world.competitions[f.compId];
   if (!comp || comp.kind !== 'league' || f.phase !== 0) return f.importance;
-  const ph = positionOf(world, comp, f.homeId);
-  const pa = positionOf(world, comp, f.awayId);
-  const groupSize = comp.phases[0].groups[ph?.group ?? 0]?.clubIds.length ?? 12;
+  // Nelle prime giornate la classifica è a pari punti e in ordine alfabetico: non conta ancora.
+  const ph = reliablePosition(world, comp, f.homeId);
+  const pa = reliablePosition(world, comp, f.awayId);
+  const groupSize = comp.phases[0].groups.find((g) => g.clubIds.includes(f.homeId))?.clubIds.length ?? 12;
   const totalRounds = (groupSize - 1) * 2;
   const late = f.round / Math.max(1, totalRounds);
   let imp = 0.25 + late * 0.25;

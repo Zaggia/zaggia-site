@@ -68,6 +68,22 @@ export function computeStandings(world: World, comp: Competition, phaseIdx = 0, 
   return list;
 }
 
+/**
+ * Posizione "affidabile" per il motore: finché il club ha giocato poche partite la classifica è quasi tutta a pari
+ * punti e l'ordine dipende dal nome (chi inizia per A sarebbe "primo"), quindi non si deve usare per decidere nulla.
+ */
+export function reliablePosition(world: World, comp: Competition, clubId: string, minPlayed = 3): { group: number; pos: number } | null {
+  const phase = comp.phases[0];
+  if (!phase) return null;
+  for (let g = 0; g < phase.groups.length; g++) {
+    if (!phase.groups[g].clubIds.includes(clubId)) continue;
+    const st = computeStandings(world, comp, 0, g);
+    const i = st.findIndex((r) => r.clubId === clubId);
+    return st[i] && st[i].p >= minPlayed ? { group: g, pos: i + 1 } : null;
+  }
+  return null;
+}
+
 export function positionOf(world: World, comp: Competition, clubId: string): { group: number; pos: number } | null {
   const phase = comp.phases[0];
   if (!phase) return null;
