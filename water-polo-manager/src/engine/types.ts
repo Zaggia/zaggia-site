@@ -474,6 +474,10 @@ export interface ContinentalRules {
   prizePerWin: number;
   prizeByRound: number[];
   reputationGain: number;
+  /** Seconda fase a gironi (nella Champions i "quarti di finale" sono un girone da 4 prima della Final Four). */
+  stage2?: { name: string; groupCount: number; dates: string[] };
+  /** Chi esce dalla fase a gironi scende in un'altra coppa (chiave), dove entra nel tabellone a eliminazione diretta. */
+  dropTo?: string;
 }
 
 export interface TransferWindow {

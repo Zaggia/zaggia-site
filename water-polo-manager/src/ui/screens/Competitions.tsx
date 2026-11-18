@@ -11,7 +11,7 @@ import { fmtMoney, seasonLabel } from '../format';
 export function CompetitionsScreen() {
   const world = useWorld();
   const comps = Object.values(world.competitions).filter((c) => c.season === world.season && c.kind !== 'league');
-  const order = ['SUPERCOPPA', 'COPPA', 'CL', 'EC', 'CC'];
+  const order = ['SUPERCOPPA', 'COPPA', 'EUSC', 'CL', 'EC', 'CC'];
   comps.sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key));
   const [tab, setTab] = useState<string>(comps[0]?.id ?? 'regole');
   const cur = comps.find((c) => c.id === tab);
@@ -42,7 +42,7 @@ function CompView({ world, comp }: { world: World; comp: Competition }) {
               {p.groups.map((g, gi) => (
                 <div key={gi}>
                   <div className="text-xs uppercase tracking-wider text-mute font-semibold mb-1">{g.name}</div>
-                  <StandingsTable world={world} comp={comp} group={gi} compact />
+                  <StandingsTable world={world} comp={comp} group={gi} phase={i} compact />
                 </div>
               ))}
             </div>
@@ -78,7 +78,7 @@ function Rules({ world }: { world: World }) {
         {world.rules.cups.map((c) => (
           <Panel key={c.key} title={c.name}>
             <ul className="text-sm space-y-1 text-mute">
-              <li>• {c.kind === 'supercup' ? 'Campione d’Italia contro vincitrice della Coppa Italia, gara secca in campo neutro' : `Eliminazione diretta in gara secca tra le squadre di ${c.eligible.join(', ')}; le teste di serie entrano nei turni successivi`}</li>
+              <li>• {c.key === 'EUSC' ? 'Vincitrice della Champions League contro vincitrice della Euro Cup, gara secca' : c.kind === 'supercup' ? 'Campione d’Italia contro vincitrice della Coppa Italia, gara secca in campo neutro' : `Eliminazione diretta in gara secca tra le squadre di ${c.eligible.join(', ')}; le teste di serie entrano nei turni successivi`}</li>
               {c.finalFourFrom != null && c.kind !== 'supercup' && <li>• Semifinali e finale in Final Four su campo neutro</li>}
               <li>• Premio al vincitore {fmtMoney(c.prize[c.prize.length - 1])}</li>
             </ul>
@@ -109,7 +109,7 @@ function Rules({ world }: { world: World }) {
 
 function Honours({ world }: { world: World }) {
   const keys: [string, string][] = [
-    ['A1', 'Scudetto (Serie A1)'], ['COPPA', 'Coppa Italia'], ['SUPERCOPPA', 'Supercoppa Italiana'], ['CL', 'LEN Champions League'], ['EC', 'LEN Euro Cup'], ['CC', 'LEN Challenger Cup'],
+    ['A1', 'Scudetto (Serie A1)'], ['COPPA', 'Coppa Italia'], ['SUPERCOPPA', 'Supercoppa Italiana'], ['EUSC', 'European Aquatics Super Cup'], ['CL', 'Champions League'], ['EC', 'Euro Cup'], ['CC', 'Conference Cup'],
   ];
   return (
     <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-5">

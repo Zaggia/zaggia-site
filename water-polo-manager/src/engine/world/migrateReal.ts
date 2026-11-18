@@ -91,7 +91,7 @@ function assignRealClubs(world: World, rng: Rng): number {
 }
 
 /** Sostituisce i giocatori inventati con quelli veri per le società che hanno una rosa pubblica. */
-function assignRealRosters(world: World): number {
+export function assignRealRosters(world: World): number {
   let done = 0;
   const ctx = ctxOf(world);
   for (const club of Object.values(world.clubs)) {

@@ -135,8 +135,8 @@ export function zoneFor(world: World, comp: Competition, pos: number, size: numb
   return null;
 }
 
-export function StandingsTable({ world, comp, group, compact, highlight }: { world: World; comp: Competition; group: number; compact?: boolean; highlight?: string }) {
-  const rows = computeStandings(world, comp, 0, group);
+export function StandingsTable({ world, comp, group, compact, highlight, phase = 0 }: { world: World; comp: Competition; group: number; compact?: boolean; highlight?: string; phase?: number }) {
+  const rows = computeStandings(world, comp, phase, group);
   const zones = rows.map((_, i) => zoneFor(world, comp, i + 1, rows.length));
   const legend = new Map<string, string>();
   zones.forEach((z) => z && legend.set(z.label, z.color));

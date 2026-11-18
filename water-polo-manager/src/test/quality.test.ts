@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createWorld } from '../engine/world/generate';
+import { REAL_FOREIGN } from '../engine/data/realClubs';
 import { migrateWorld } from '../engine/world/migrate';
 import { teamStrength } from '../engine/club/lineup';
 import { buildMatchSetup } from '../engine/match/setup';
@@ -95,7 +96,9 @@ it('una carriera creata con società e giocatori inventati passa al mondo reale 
   expect(recco.playerIds.every((id) => w.players[id].real)).toBe(true);
   for (const [name] of Object.entries(REAL_ROSTERS)) {
     const c = Object.values(w.clubs).find((x) => x.name === name);
-    if (c) expect(Math.abs(teamStrength(w, c) - strengthBefore[c.id]), name).toBeLessThanOrEqual(3);
+    // I grandi club europei guadagnano il loro bonus di forza (migrazione v7).
+    const bonus = REAL_FOREIGN.find((f) => f.name === name)?.bonus ?? 0;
+    if (c) expect(Math.abs(teamStrength(w, c) - strengthBefore[c.id]), name).toBeLessThanOrEqual(3 + bonus);
   }
   // I giocatori inventati sostituiti sono ritirati: non entrano nel mercato come svincolati.
   const freeAgents = Object.values(w.players).filter((p) => !p.clubId && !p.retired).length;
@@ -126,7 +129,7 @@ describe('playoff promozione in Serie B', () => {
     b.postseason = [];
     w.version = 4;
     expect(migrateWorld(w)).toBe(true);
-    expect(w.version).toBe(6);
+    expect(w.version).toBe(7);
     expect(b.directPromotion).toBe(0);
     expect(b.postseason).toHaveLength(1);
   });

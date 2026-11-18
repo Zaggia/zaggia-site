@@ -1,7 +1,7 @@
 // Generazione dell'intero ecosistema sportivo all'inizio di una carriera.
 
 import { ITALIAN_CITIES, type City } from '../data/cities';
-import { FOREIGN_CITY_SIZE, REAL_FOREIGN, REAL_LEAGUES } from '../data/realClubs';
+import { FOREIGN_CITY_SIZE, REAL_FOREIGN, REAL_LEAGUES, type RealForeignClub } from '../data/realClubs';
 import { crestFor } from '../club/crest';
 import { REAL_ROSTERS } from '../data/realPlayers';
 import { DEFAULT_RULES, DIFFICULTIES } from '../data/config';
@@ -14,13 +14,14 @@ import { generateCoach, generateStaff, STAFF_ROLES } from '../staff/coach';
 import { generatePlayer } from '../player/generate';
 import { startSeason } from '../season/start';
 import { balancePyramid } from './pyramid';
+import { capForeignStrength } from './migrate';
 import { addMessage, addNews, fmtMoney } from '../news';
 import { autoLineup } from '../club/lineup';
-import { ctxOf } from './context';
+import { ctxOf, type GenCtx } from './context';
 import { setTicketPrices } from '../club/manage';
 import { newFinances } from '../economy/ledger';
 
-export const WORLD_VERSION = 6;
+export const WORLD_VERSION = 7;
 
 export interface NewCareerOptions {
   careerName: string;
@@ -200,37 +201,9 @@ export function createWorld(opts: NewCareerOptions): World {
   // Club esteri reali per le coppe europee.
   const rankInNation = new Map<string, number>();
   for (const fc of REAL_FOREIGN) {
-    const nation = NATIONS[fc.nation];
     const rank = rankInNation.get(fc.nation) ?? 0;
     rankInNation.set(fc.nation, rank + 1);
-    const size = FOREIGN_CITY_SIZE[fc.city] ?? 2;
-    const level = clamp(52 + nation.school * 4.2 - rank * 2.4 + size * 0.8 + rng.gauss(0, 1.5), 48, 79);
-    const short = !usedShort.has(fc.short) ? (usedShort.add(fc.short), fc.short) : makeShort(fc.city, usedShort);
-    const g = generateClub(ctx, {
-      name: fc.name,
-      short,
-      city: fc.city,
-      region: nation.name,
-      country: fc.nation,
-      lat: 0,
-      lon: 0,
-      division: 'EST',
-      level,
-      reputation: clamp(level * 1.05 - 8, 30, 95),
-      fans: 800 + size * 900,
-      budget: 400_000 + (level - 50) * 60_000,
-      facilityLevel: 2 + size * 0.5,
-      devPoints: 400 + level * 10,
-      ticketPrice: 8,
-      foreignChance: 0,
-      staffRoles: 8,
-      colors: fc.colors,
-      crest: crestFor(fc.name, short, fc.colors),
-      realRoster: REAL_ROSTERS[fc.name]?.players,
-      poolName: `Piscina di ${fc.city}`,
-      rosterSize: world.rules.rosterSize,
-    });
-    register(world, g);
+    addForeignClub(world, ctx, fc, rank, usedShort);
   }
   // Svincolati, allenatori e staff senza squadra.
   for (let i = 0; i < 180; i++) {
@@ -257,6 +230,41 @@ export function createWorld(opts: NewCareerOptions): World {
     { important: true });
   addNews(world, `Nasce un nuovo progetto a ${user.city}`, `${user.name} si presenta ai nastri di partenza della Serie C con il presidente ${opts.presidentName}.`, 'societa');
   return world;
+}
+
+/** Crea un club estero reale (con la rosa pubblica se c'è) e lo aggiunge al mondo. `rank` = posizione nella classifica della sua nazione. */
+export function addForeignClub(world: World, ctx: GenCtx, fc: RealForeignClub, rank: number, usedShort: Set<string>) {
+  const nation = NATIONS[fc.nation];
+  const size = FOREIGN_CITY_SIZE[fc.city] ?? 2;
+  const level = clamp(52 + nation.school * 4.2 - rank * 2.4 + size * 0.8 + (fc.bonus ?? 0) + ctx.rng.gauss(0, 1.5), 48, 82);
+  const short = !usedShort.has(fc.short) ? (usedShort.add(fc.short), fc.short) : makeShort(fc.city, usedShort);
+  const g = generateClub(ctx, {
+    name: fc.name,
+    short,
+    city: fc.city,
+    region: nation.name,
+    country: fc.nation,
+    lat: 0,
+    lon: 0,
+    division: 'EST',
+    level,
+    reputation: clamp(level * 1.05 - 8, 30, 95),
+    fans: 800 + size * 900,
+    budget: 400_000 + (level - 50) * 60_000,
+    facilityLevel: 2 + size * 0.5,
+    devPoints: 400 + level * 10,
+    ticketPrice: 8,
+    foreignChance: 0,
+    staffRoles: 8,
+    colors: fc.colors,
+    crest: crestFor(fc.name, short, fc.colors),
+    realRoster: REAL_ROSTERS[fc.name]?.players,
+    poolName: `Piscina di ${fc.city}`,
+    rosterSize: world.rules.rosterSize,
+  });
+  register(world, g);
+  capForeignStrength(world, g.club.id);
+  return g.club;
 }
 
 function register(world: World, g: ReturnType<typeof generateClub>) {

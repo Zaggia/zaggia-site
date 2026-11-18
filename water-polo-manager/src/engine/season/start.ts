@@ -7,7 +7,7 @@ import { aiSponsors, refreshUserSponsorOffers } from '../economy/sponsors';
 import { addMessage, addNews } from '../news';
 import type { Rng } from '../rng';
 import type { World } from '../types';
-import { createContinental, createLeague, createNationalCup, createSupercup, foreignRanking } from '../competition/builder';
+import { createContinental, createEuropeanSupercup, createLeague, createNationalCup, createSupercup, foreignRanking } from '../competition/builder';
 import { generatePlayer } from '../player/generate';
 import { aiHireCoach, aiSummerPlanning, ownerInvestment, setAiBudgets } from '../ai/clubAI';
 import { autoLineup } from '../club/lineup';
@@ -122,9 +122,11 @@ export function createSeasonCompetitions(world: World, rng: Rng) {
     if (comp) world.competitions[comp.id] = comp;
   }
   for (const cup of world.rules.cups) {
-    const comp = cup.kind === 'supercup'
-      ? createSupercup(world, cup, prev.champion, prev.cup, prev.runnerUp)
-      : createNationalCup(world, cup, rng);
+    const comp = cup.key === 'EUSC'
+      ? createEuropeanSupercup(world, cup)
+      : cup.kind === 'supercup'
+        ? createSupercup(world, cup, prev.champion, prev.cup, prev.runnerUp)
+        : createNationalCup(world, cup, rng);
     if (comp) world.competitions[comp.id] = comp;
   }
 }

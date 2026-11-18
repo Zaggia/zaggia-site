@@ -4,6 +4,8 @@
 // I club senza una rosa pubblica affidabile (gran parte di Serie B e C) usano giocatori generati.
 // File generato: per aggiornarlo si modificano i dati qui sotto.
 
+import { EU_ROSTERS } from './realPlayersEU';
+
 export interface RealPlayer {
   /** Nome e cognome. */
   n: string;
@@ -870,3 +872,18 @@ export const REAL_ROSTERS: Record<string, RealRoster> = {
     ],
   },
 };
+
+// Club esteri delle coppe europee: ai club che hanno già una rosa si aggiungono i nazionali (Europei 2026) mancanti, agli altri si dà la lista dei nazionali.
+// Un giocatore già presente in un'altra rosa (più recente) non viene ripetuto.
+const plain = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const present = new Set(Object.values(REAL_ROSTERS).flatMap((r) => r.players.map((p) => plain(p.n))));
+for (const [club, r] of Object.entries(EU_ROSTERS)) {
+  const fresh = r.players.filter((p) => !present.has(plain(p.n)));
+  const cur = REAL_ROSTERS[club];
+  if (!cur) {
+    if (fresh.length) REAL_ROSTERS[club] = { ...r, players: fresh };
+  } else if (cur.players.length < 14) {
+    cur.players.push(...fresh.slice(0, 14 - cur.players.length));
+  }
+  for (const p of fresh) present.add(plain(p.n));
+}

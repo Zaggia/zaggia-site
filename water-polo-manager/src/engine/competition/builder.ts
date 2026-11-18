@@ -227,7 +227,12 @@ export function createContinental(
         }
       });
     });
-    comp.phases.push({ kind: 'knockout', name: 'Fase finale', purpose: 'ko', groups: [], rounds: [], done: false, plan: koPlan, drawMode: 'bracket', seeds });
+    // Seconda fase a gironi (Champions League: i "quarti" sono due gironi da 4 prima della Final Four): si crea al termine della prima.
+    if (rules.stage2) comp.phases.push({ kind: 'groups', name: rules.stage2.name, purpose: 'stage2', groups: [], rounds: [], done: false, seeds });
+    comp.phases.push({
+      kind: 'knockout', name: rules.stage2 ? 'Final Four' : 'Fase finale', purpose: 'ko', groups: [], rounds: [], done: false,
+      plan: koPlan, drawMode: 'bracket', seeds, pool: [],
+    });
   } else {
     const phase: Phase = { kind: 'knockout', name: rules.name, purpose: 'main', groups: [], rounds: [], done: false, plan: koPlan, drawMode: 'random', seeds };
     comp.phases.push(phase);
@@ -244,6 +249,82 @@ export function createContinental(
     phase.rounds.push({ name: koPlan[0].name, ties, dates: [], format: koPlan[0].format });
     scheduleRound(world, comp, 0, 0, koPlan[0].dates[0], 0.55);
   }
+  return comp;
+}
+
+/**
+ * Seconda fase a gironi europea (Champions League: i "quarti" in due gironi da 4, andata e ritorno).
+ * Girone A: 1°A, 2°B, 1°C, 2°D. Girone B: 1°B, 2°A, 1°D, 2°C.
+ */
+export function startContinentalStage2(world: World, comp: Competition, stageIdx: number, rules: ContinentalRules, winners: string[], runners: string[], rng: Rng) {
+  const st = rules.stage2;
+  const phase = comp.phases[stageIdx];
+  if (!st || !phase) return;
+  const lists: string[][] = [[], []];
+  winners.forEach((w, g) => {
+    const opp = g % 2 === 0 ? g + 1 : g - 1;
+    lists[g % 2].push(w);
+    if (runners[opp]) lists[g % 2].push(runners[opp]);
+  });
+  const dates = st.dates.map((d) => dayOf(world.season, d));
+  lists.forEach((ids, gi) => {
+    if (ids.length < 2) return;
+    const group = { name: `Girone ${String.fromCharCode(65 + gi)}`, clubIds: ids, fixtureIds: [] as string[] };
+    phase.groups.push(group);
+    const first = roundRobin(ids, rng);
+    const all = [...first, ...first.map((r) => r.map(([h, a]) => [a, h] as [string, string]))];
+    all.forEach((round, ri) => {
+      for (const [h, a] of round) {
+        const f = createFixture(world, {
+          compId: comp.id, phase: stageIdx, group: gi, round: ri, day: dates[ri] ?? dates[dates.length - 1] + 7 * (ri - dates.length + 1),
+          homeId: h, awayId: a, neutral: false, importance: 0.65, label: `${rules.name} · ${group.name} · ${ri + 1}ª giornata`,
+        });
+        group.fixtureIds.push(f.id);
+      }
+    });
+  });
+}
+
+/** Ottavi della Euro Cup: le 8 qualificate dai gironi contro le 8 che scendono dalla Champions League (evitando club della stessa nazione). */
+export function dropInPairs(world: World, qualified: string[], dropped: string[], rng: Rng): [string, string][] {
+  const left = rng.shuffle([...dropped]);
+  const out: [string, string][] = [];
+  for (const q of qualified) {
+    let idx = left.findIndex((id) => world.clubs[id].country !== world.clubs[q].country);
+    if (idx < 0) idx = 0;
+    const d = left.splice(idx, 1)[0];
+    if (d) out.push([d, q]);
+  }
+  return out;
+}
+
+/** Super Cup europea: la vincitrice dell'ultima Champions League contro quella dell'ultima Euro Cup. */
+export function createEuropeanSupercup(world: World, rules: CupRules): Competition | null {
+  const prev = world.season - 1;
+  let a = world.competitions[`CL-${prev}`]?.winnerId ?? null;
+  let b = world.competitions[`EC-${prev}`]?.winnerId ?? null;
+  if (!a || !b) {
+    // Prima stagione: i vincitori dell'ultima edizione reale (2025/26) se ci sono, altrimenti i due club esteri più forti.
+    const byName = (n: string) => Object.values(world.clubs).find((c) => c.name === n)?.id ?? null;
+    a = a ?? byName('CN Atlètic-Barceloneta');
+    b = b ?? byName('CN Marseille');
+  }
+  if (!a || !b || a === b) {
+    const top = Object.values(world.clubs).filter((c) => c.country !== 'ITA').sort((x, y) => teamStrength(world, y) - teamStrength(world, x));
+    a = a ?? top[0]?.id ?? null;
+    b = b && b !== a ? b : top.find((c) => c.id !== a)?.id ?? null;
+  }
+  if (!a || !b || a === b) return null;
+  const comp = emptyCompetition(world, rules.key, rules.name, 'supercup', 0);
+  const day = nextWeekday(world.season, dayOf(world.season, rules.dates[0]), 3);
+  const phase: Phase = {
+    kind: 'knockout', name: rules.name, purpose: 'main', groups: [], rounds: [], done: false,
+    plan: [{ name: 'Finale', format: { kind: 'single' }, dates: [day], neutral: false }], drawMode: 'bracket', seeds: { [a]: 1, [b]: 2 },
+  };
+  comp.phases.push(phase);
+  // Si gioca in casa della vincitrice della Champions League.
+  phase.rounds.push({ name: 'Finale', ties: [makeTie(world, a, b, { kind: 'single' })], dates: [], format: { kind: 'single' } });
+  scheduleRound(world, comp, 0, 0, day, 0.7);
   return comp;
 }
 

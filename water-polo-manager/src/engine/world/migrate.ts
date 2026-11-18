@@ -11,6 +11,11 @@ import { WORLD_VERSION } from './generate';
 import { DEFAULT_RULES } from '../data/config';
 import { realifyWorld } from './migrateReal';
 import { PYRAMID_BANDS, balancePyramid } from './pyramid';
+import { REAL_FOREIGN } from '../data/realClubs';
+import { crestFor } from '../club/crest';
+import { addForeignClub } from './generate';
+import { ctxOf } from './context';
+import { assignRealRosters } from './migrateReal';
 
 /** Porta un mondo salvato alla versione corrente. Restituisce true se è stato modificato. */
 export function migrateWorld(world: World): boolean {
@@ -56,6 +61,13 @@ export function migrateWorld(world: World): boolean {
       if (band) lg.strength = [...band];
     }
     balancePyramid(world);
+  }
+  if (from < 7) {
+    // v7: coppe europee reali (Champions League con Final Four, Euro Cup, Conference Cup, Super Cup) e club europei veri.
+    world.rules.continental = JSON.parse(JSON.stringify(DEFAULT_RULES.continental));
+    const eusc = DEFAULT_RULES.cups.find((c) => c.key === 'EUSC');
+    if (eusc && !world.rules.cups.some((c) => c.key === 'EUSC')) world.rules.cups.unshift(JSON.parse(JSON.stringify(eusc)));
+    addEuropeanClubs(world);
   }
   world.version = WORLD_VERSION;
   return true;
@@ -107,4 +119,43 @@ export function shiftClub(world: World, clubId: string, target: number): void {
       refreshValue(p, world.season);
     }
   }
+}
+
+/** Aggiunge i club europei mancanti, rinomina quelli cambiati e porta i giocatori veri nelle rose dei club esteri. */
+export function addEuropeanClubs(world: World): number {
+  const clubs = Object.values(world.clubs);
+  // VK Šibenik è oggi VK Solaris.
+  const old = clubs.find((c) => c.name === 'VK Šibenik');
+  if (old && !clubs.some((c) => c.name === 'VK Solaris')) {
+    old.name = 'VK Solaris';
+    old.crest = crestFor(old.name, old.short, old.colors);
+  }
+  const names = new Set(Object.values(world.clubs).map((c) => c.name));
+  const usedShort = new Set(Object.values(world.clubs).map((c) => c.short));
+  const ctx = ctxOf(world);
+  const rankInNation = new Map<string, number>();
+  let added = 0;
+  for (const fc of REAL_FOREIGN) {
+    const rank = rankInNation.get(fc.nation) ?? 0;
+    rankInNation.set(fc.nation, rank + 1);
+    if (names.has(fc.name)) continue;
+    addForeignClub(world, ctx, fc, rank, usedShort);
+    added++;
+  }
+  // I grandi club europei sono più forti degli altri.
+  for (const fc of REAL_FOREIGN) {
+    if (!fc.bonus) continue;
+    const club = Object.values(world.clubs).find((c) => c.name === fc.name);
+    if (club) shiftClub(world, club.id, teamStrength(world, club) + fc.bonus);
+  }
+  for (const club of Object.values(world.clubs)) if (club.country !== 'ITA') capForeignStrength(world, club.id);
+  assignRealRosters(world);
+  return added;
+}
+
+/** Nessun club estero supera la forza dei migliori club di A1 (i giocatori veri delle rose pubbliche gonfiano la stima). */
+export const FOREIGN_MAX_STRENGTH = 80;
+export function capForeignStrength(world: World, clubId: string): void {
+  const club = world.clubs[clubId];
+  if (club && teamStrength(world, club) > FOREIGN_MAX_STRENGTH) shiftClub(world, clubId, FOREIGN_MAX_STRENGTH);
 }

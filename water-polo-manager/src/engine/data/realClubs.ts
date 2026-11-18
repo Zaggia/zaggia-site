@@ -21,6 +21,8 @@ export interface RealClub {
 
 export interface RealForeignClub extends RealClub {
   nation: string;
+  /** Punti di forza in più per i grandi club europei (finalisti delle ultime Champions League ed Euro Cup). */
+  bonus?: number;
 }
 
 export const REAL_LEAGUES: Record<string, RealClub[]> = {
@@ -155,52 +157,64 @@ export const REAL_LEAGUES: Record<string, RealClub[]> = {
 
 /** Club esteri per le coppe europee, per nazione e in ordine di forza. */
 export const REAL_FOREIGN: RealForeignClub[] = [
-  { nation: 'HUN', name: 'Ferencváros', short: 'FTC', city: 'Budapest', colors: ['#15803d', '#ffffff'] },
-  { nation: 'HUN', name: 'OSC Újbuda', short: 'OSC', city: 'Budapest', colors: ['#1e3a8a', '#facc15'] },
+  // L'ordine dentro ogni nazione segue la classifica 2024/25: determina la forza dei club (e quindi chi si qualifica alle coppe europee).
+  { nation: 'HUN', name: 'Ferencváros', short: 'FTC', city: 'Budapest', colors: ['#15803d', '#ffffff'] , bonus: 6 },
   { nation: 'HUN', name: 'Vasas', short: 'VAS', city: 'Budapest', colors: ['#dc2626', '#1e3a8a'] },
   { nation: 'HUN', name: 'BVSC-Zugló', short: 'BVS', city: 'Budapest', colors: ['#1e3a8a', '#ffffff'] },
   { nation: 'HUN', name: 'Szolnoki Dózsa', short: 'SZO', city: 'Szolnok', colors: ['#1e3a8a', '#ffffff'] },
+  { nation: 'HUN', name: 'Budapesti Honvéd', short: 'HON', city: 'Budapest', colors: ['#dc2626', '#111827'] },
+  { nation: 'HUN', name: 'OSC Újbuda', short: 'OSC', city: 'Budapest', colors: ['#1e3a8a', '#facc15'] },
   { nation: 'HUN', name: 'Egri VK', short: 'EGR', city: 'Eger', colors: ['#1e40af', '#ffffff'] },
-  { nation: 'SRB', name: 'VK Novi Beograd', short: 'NBG', city: 'Belgrado', colors: ['#1e3a8a', '#dc2626'] },
-  { nation: 'SRB', name: 'VK Radnički Kragujevac', short: 'RAD', city: 'Kragujevac', colors: ['#dc2626', '#ffffff'] },
-  { nation: 'SRB', name: 'VK Crvena Zvezda', short: 'CZV', city: 'Belgrado', colors: ['#dc2626', '#ffffff'] },
+  { nation: 'SRB', name: 'VK Radnički Kragujevac', short: 'RAD', city: 'Kragujevac', colors: ['#dc2626', '#ffffff'] , bonus: 4 },
+  { nation: 'SRB', name: 'VK Novi Beograd', short: 'NBG', city: 'Belgrado', colors: ['#1e3a8a', '#dc2626'] , bonus: 4 },
   { nation: 'SRB', name: 'VK Šabac', short: 'SAB', city: 'Šabac', colors: ['#1e3a8a', '#facc15'] },
-  { nation: 'CRO', name: 'VK Jug Dubrovnik', short: 'JUG', city: 'Dubrovnik', colors: ['#dc2626', '#ffffff'] },
-  { nation: 'CRO', name: 'HAVK Mladost', short: 'MLA', city: 'Zagabria', colors: ['#1e3a8a', '#ffffff'] },
-  { nation: 'CRO', name: 'VK Jadran Spalato', short: 'JAS', city: 'Spalato', colors: ['#1e40af', '#ffffff'] },
-  { nation: 'CRO', name: 'PVK Primorje', short: 'PRI', city: 'Fiume', colors: ['#0ea5e9', '#ffffff'] },
-  { nation: 'CRO', name: 'VK Šibenik', short: 'SIB', city: 'Sebenico', colors: ['#1e3a8a', '#ffffff'] },
-  { nation: 'ESP', name: 'CN Atlètic-Barceloneta', short: 'BCN', city: 'Barcellona', colors: ['#1e3a8a', '#facc15'] },
+  { nation: 'SRB', name: 'VK Crvena Zvezda', short: 'CZV', city: 'Belgrado', colors: ['#dc2626', '#ffffff'] },
+  { nation: 'SRB', name: 'VK Partizan', short: 'PAR', city: 'Belgrado', colors: ['#111827', '#ffffff'] },
+  { nation: 'ESP', name: 'CN Atlètic-Barceloneta', short: 'BCN', city: 'Barcellona', colors: ['#1e3a8a', '#facc15'] , bonus: 7 },
   { nation: 'ESP', name: 'CN Sabadell', short: 'SBD', city: 'Sabadell', colors: ['#1e3a8a', '#ffffff'] },
-  { nation: 'ESP', name: 'CN Terrassa', short: 'TER', city: 'Terrassa', colors: ['#dc2626', '#ffffff'] },
   { nation: 'ESP', name: 'CN Barcelona', short: 'CNB', city: 'Barcellona', colors: ['#1e3a8a', '#dc2626'] },
+  { nation: 'ESP', name: 'CN Terrassa', short: 'TER', city: 'Terrassa', colors: ['#dc2626', '#ffffff'] },
   { nation: 'ESP', name: 'Real Canoe NC', short: 'RCN', city: 'Madrid', colors: ['#1e3a8a', '#ffffff'] },
   { nation: 'ESP', name: 'CN Mataró', short: 'MAT', city: 'Mataró', colors: ['#facc15', '#1e3a8a'] },
-  { nation: 'GRE', name: 'Olympiacos', short: 'OLY', city: 'Pireo', colors: ['#dc2626', '#ffffff'] },
-  { nation: 'GRE', name: 'Panathinaikos', short: 'PAO', city: 'Atene', colors: ['#15803d', '#ffffff'] },
+  { nation: 'GRE', name: 'Olympiacos', short: 'OLY', city: 'Pireo', colors: ['#dc2626', '#ffffff'] , bonus: 6 },
   { nation: 'GRE', name: 'NO Vouliagmeni', short: 'VOU', city: 'Vouliagmeni', colors: ['#0ea5e9', '#ffffff'] },
+  { nation: 'GRE', name: 'Panathinaikos', short: 'PAO', city: 'Atene', colors: ['#15803d', '#ffffff'] },
   { nation: 'GRE', name: 'Apollon Smyrnis', short: 'APO', city: 'Atene', colors: ['#1e3a8a', '#facc15'] },
   { nation: 'GRE', name: 'Panionios', short: 'PAN', city: 'Atene', colors: ['#7f1d1d', '#facc15'] },
-  { nation: 'MNE', name: 'VK Jadran Herceg Novi', short: 'JHN', city: 'Herceg Novi', colors: ['#1e3a8a', '#ffffff'] },
-  { nation: 'MNE', name: 'PVK Primorac Kotor', short: 'KOT', city: 'Kotor', colors: ['#0ea5e9', '#ffffff'] },
-  { nation: 'MNE', name: 'VK Budvanska Rivijera', short: 'BUD', city: 'Budva', colors: ['#dc2626', '#1e3a8a'] },
-  { nation: 'FRA', name: 'CN Marseille', short: 'CNM', city: 'Marsiglia', colors: ['#0ea5e9', '#ffffff'] },
-  { nation: 'FRA', name: 'Montpellier Water-Polo', short: 'MWP', city: 'Montpellier', colors: ['#f97316', '#1e3a8a'] },
+  { nation: 'CRO', name: 'VK Jadran Spalato', short: 'JAS', city: 'Spalato', colors: ['#1e40af', '#ffffff'] , bonus: 3 },
+  { nation: 'CRO', name: 'HAVK Mladost', short: 'MLA', city: 'Zagabria', colors: ['#1e3a8a', '#ffffff'] , bonus: 2 },
+  { nation: 'CRO', name: 'VK Jug Dubrovnik', short: 'JUG', city: 'Dubrovnik', colors: ['#dc2626', '#ffffff'] },
+  { nation: 'CRO', name: 'VK Solaris', short: 'SOL', city: 'Sebenico', colors: ['#1e3a8a', '#ffffff'] },
+  { nation: 'CRO', name: 'PVK Primorje', short: 'PRI', city: 'Fiume', colors: ['#0ea5e9', '#ffffff'] },
+  { nation: 'FRA', name: 'CN Marseille', short: 'CNM', city: 'Marsiglia', colors: ['#0ea5e9', '#ffffff'] , bonus: 2 },
+  { nation: 'FRA', name: 'Pays d\'Aix Natation', short: 'PAX', city: 'Aix-en-Provence', colors: ['#f97316', '#1e3a8a'] },
   { nation: 'FRA', name: 'Olympic Nice Natation', short: 'ONN', city: 'Nizza', colors: ['#dc2626', '#111827'] },
+  { nation: 'FRA', name: 'Montpellier Water-Polo', short: 'MWP', city: 'Montpellier', colors: ['#f97316', '#1e3a8a'] },
+  { nation: 'FRA', name: 'Team Strasbourg', short: 'TST', city: 'Strasburgo', colors: ['#dc2626', '#ffffff'] },
   { nation: 'GER', name: 'Waspo 98 Hannover', short: 'WAS', city: 'Hannover', colors: ['#1e3a8a', '#ffffff'] },
   { nation: 'GER', name: 'Spandau 04', short: 'SPA', city: 'Berlino', colors: ['#dc2626', '#ffffff'] },
+  { nation: 'GER', name: 'ASC Duisburg', short: 'DUI', city: 'Duisburg', colors: ['#1e3a8a', '#ffffff'] },
+  { nation: 'MNE', name: 'VK Jadran Herceg Novi', short: 'JHN', city: 'Herceg Novi', colors: ['#1e3a8a', '#ffffff'] },
+  { nation: 'MNE', name: 'PVK Primorac Kotor', short: 'KOT', city: 'Kotor', colors: ['#0ea5e9', '#ffffff'] },
+  { nation: 'MNE', name: 'PVK Budućnost Podgorica', short: 'BUC', city: 'Podgorica', colors: ['#1e3a8a', '#ffffff'] },
+  { nation: 'MNE', name: 'VK Budvanska Rivijera', short: 'BUD', city: 'Budva', colors: ['#dc2626', '#1e3a8a'] },
   { nation: 'ROU', name: 'CSM Oradea', short: 'CSM', city: 'Oradea', colors: ['#dc2626', '#1e3a8a'] },
+  { nation: 'ROU', name: 'CSA Steaua București', short: 'STE', city: 'Bucarest', colors: ['#dc2626', '#1e3a8a'] },
   { nation: 'ROU', name: 'CS Dinamo Bucarest', short: 'DIN', city: 'Bucarest', colors: ['#dc2626', '#ffffff'] },
-  { nation: 'MLT', name: 'Sliema ASC', short: 'SLI', city: 'Sliema', colors: ['#1e3a8a', '#ffffff'] },
+  { nation: 'ROU', name: 'CS Rapid București', short: 'RAP', city: 'Bucarest', colors: ['#7f1d1d', '#ffffff'] },
+  { nation: 'GEO', name: 'A-Polo Sport Management', short: 'APS', city: 'Tbilisi', colors: ['#111827', '#dc2626'] },
   { nation: 'GEO', name: 'Dinamo Tbilisi', short: 'DTB', city: 'Tbilisi', colors: ['#1e3a8a', '#ffffff'] },
-  { nation: 'TUR', name: 'Galatasaray', short: 'GAL', city: 'Istanbul', colors: ['#facc15', '#dc2626'] },
   { nation: 'NED', name: 'ZV De Zaan', short: 'ZAA', city: 'Zaandam', colors: ['#f97316', '#1e3a8a'] },
+  { nation: 'MLT', name: 'Sliema ASC', short: 'SLI', city: 'Sliema', colors: ['#1e3a8a', '#ffffff'] },
+  { nation: 'MLT', name: 'San Giljan ASC', short: 'SGI', city: 'San Giljan', colors: ['#dc2626', '#ffffff'] },
+  { nation: 'TUR', name: 'Galatasaray', short: 'GAL', city: 'Istanbul', colors: ['#facc15', '#dc2626'] },
+  { nation: 'TUR', name: 'Enka SK', short: 'ENK', city: 'Istanbul', colors: ['#1e3a8a', '#ffffff'] },
 ];
 
 /** Dimensione della città per i club esteri (pubblico e ricavi). */
 export const FOREIGN_CITY_SIZE: Record<string, number> = {
   Budapest: 5, Belgrado: 5, Barcellona: 5, Madrid: 5, Atene: 5, Pireo: 4, Zagabria: 4, Spalato: 4, Marsiglia: 4, Berlino: 4,
   Istanbul: 4, Bucarest: 4, Fiume: 3, Dubrovnik: 3, Kragujevac: 3, Szolnok: 3, Eger: 3, Sabadell: 3, Terrassa: 3, Hannover: 3,
-  Montpellier: 3, Nizza: 3, Oradea: 3, Tbilisi: 3, Kotor: 2, 'Herceg Novi': 2, Budva: 2, Šabac: 2, Sebenico: 2, Mataró: 2,
+  Montpellier: 3, Nizza: 3, Oradea: 3, Tbilisi: 3, 'Aix-en-Provence': 3, Strasburgo: 3, Duisburg: 3, Podgorica: 3, 'San Giljan': 1, Kotor: 2, 'Herceg Novi': 2, Budva: 2, Šabac: 2, Sebenico: 2, Mataró: 2,
   Vouliagmeni: 2, Sliema: 1, Zaandam: 2,
 };

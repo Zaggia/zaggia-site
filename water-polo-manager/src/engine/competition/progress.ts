@@ -7,7 +7,7 @@ import { income } from '../economy/ledger';
 import { addNews } from '../news';
 import type { Rng } from '../rng';
 import type { Competition, Fixture, Phase, Tie, TieFormat, World } from '../types';
-import { continentalKnockoutPairs } from './builder';
+import { continentalKnockoutPairs, dropInPairs, startContinentalStage2 } from './builder';
 import { bracketPairs, buildNextRound, makeTie, phaseWinner, roundDone, scheduleRound, updateTie } from './knockout';
 import { computeStandings } from './standings';
 
@@ -92,8 +92,9 @@ function onTieDecided(world: World, comp: Competition, phase: Phase, roundIdx: n
 }
 
 function koRoundIndex(comp: Competition, phase: Phase, roundIdx: number): number {
-  // Per la Champions: 0 = partecipazione, 1 = quarti, 2 = semifinale, 3 = finale.
-  return comp.phases[0].kind === 'groups' ? roundIdx + 1 : roundIdx;
+  // Premi: 0 = uscita dai gironi, 1 = uscita dalla seconda fase a gironi (se c'è), poi un livello per ogni turno a eliminazione.
+  void phase;
+  return comp.phases.filter((p) => p.kind === 'groups').length + roundIdx;
 }
 
 function onPhaseDone(world: World, comp: Competition, idx: number, rng: Rng) {
@@ -104,24 +105,42 @@ function onPhaseDone(world: World, comp: Competition, idx: number, rng: Rng) {
   }
   if (comp.kind === 'continental' && comp.phases[idx].kind === 'groups') {
     const phase = comp.phases[idx];
+    const rules = contRules(world, comp.key);
     const winners: string[] = [];
     const runners: string[] = [];
+    const dropped: string[] = [];
     phase.groups.forEach((_, g) => {
       const st = computeStandings(world, comp, idx, g);
       winners.push(st[0].clubId);
       runners.push(st[1].clubId);
       for (const r of st.slice(2)) {
-        const rules = contRules(world, comp.key);
-        if (rules) income(world.clubs[r.clubId], 'premi', rules.prizeByRound[0]);
+        if (rules) income(world.clubs[r.clubId], 'premi', rules.prizeByRound[Math.min(idx, rules.prizeByRound.length - 2)]);
+        dropped.push(r.clubId);
       }
     });
-    const ko = comp.phases[idx + 1];
+    // Chi esce dai gironi della Champions League scende in Euro Cup, direttamente agli ottavi.
+    if (idx === 0 && rules?.dropTo) {
+      const target = world.competitions[`${rules.dropTo}-${comp.season}`];
+      const tko = target?.phases[target.phases.length - 1];
+      if (tko?.pool) tko.pool.push(...dropped);
+    }
+    const next = comp.phases[idx + 1];
+    // Seconda fase a gironi (quarti di finale della Champions League).
+    if (rules?.stage2 && next?.kind === 'groups') {
+      startContinentalStage2(world, comp, idx + 1, rules, winners, runners, rng);
+      return;
+    }
+    const ko = next;
     const plan = ko.plan!;
     const seeds: Record<string, number> = {};
     winners.forEach((id, i) => (seeds[id] = i + 1));
     runners.forEach((id, i) => (seeds[id] = 10 + i));
+    const pool = ko.pool ?? [];
+    const withDrops = pool.length >= winners.length + runners.length;
+    if (withDrops) pool.forEach((id, i) => (seeds[id] = 20 + i));
     ko.seeds = seeds;
-    const ties = continentalKnockoutPairs(winners, runners).map(([h, a]) => makeTie(world, h, a, plan[0].format));
+    const pairs = withDrops ? dropInPairs(world, [...winners, ...runners], pool, rng) : continentalKnockoutPairs(winners, runners);
+    const ties = pairs.map(([h, a]) => makeTie(world, h, a, plan[0].format));
     ko.rounds.push({ name: plan[0].name, ties, dates: [], format: plan[0].format });
     scheduleRound(world, comp, idx + 1, 0, plan[0].dates[0], importanceFor(comp, ko, 0));
     return;
