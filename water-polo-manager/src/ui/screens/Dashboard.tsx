@@ -27,7 +27,6 @@ export function Dashboard() {
   const last = lastResult(world, club.id);
   const players = clubPlayers(world, club);
   const injured = players.filter((p) => p.injury);
-  const suspended = players.filter((p) => p.suspension > 0);
   const unhappy = players.filter((p) => p.wantsToLeave || p.morale < 35);
   const expiring = players.filter((p) => p.contract && p.contract.endSeason <= world.season);
   const avgMorale = players.reduce((t, p) => t + p.morale, 0) / Math.max(1, players.length);
@@ -91,7 +90,7 @@ export function Dashboard() {
         <Stat label="Reputazione" value={Math.round(club.reputation)} sub="su 100" />
         <Stat label="Tifosi" value={club.fans.toLocaleString('it-IT')} sub={`Abbonati ${club.abbonati}`} />
         <Stat label="Forza squadra" value={teamStrength(world, club)} sub="media titolari e panchina" />
-        <Stat label="Rosa" value={`${players.length}/${rosterLimit(world)}`} sub={`${injured.length} infortunati · ${suspended.length} squalificati`} tone={players.length !== rosterLimit(world) ? 'bad' : undefined} />
+        <Stat label="Rosa" value={`${players.length}/${rosterLimit(world)}`} sub={`${injured.length} infortunati`} tone={players.length !== rosterLimit(world) ? 'bad' : undefined} />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5">
@@ -107,10 +106,9 @@ export function Dashboard() {
         <Panel title="Stato della rosa" actions={<Button size="sm" variant="ghost" onClick={() => go('rosa')}>Rosa</Button>}>
           <ul className="space-y-1.5 text-sm">
             {injured.map((p) => <li key={p.id} className="flex justify-between"><button className="hover:underline" onClick={() => go('player', p.id)}>{p.firstName[0]}. {p.lastName}</button><Badge tone="bad">{p.injury!.name} · {p.injury!.daysLeft}g</Badge></li>)}
-            {suspended.map((p) => <li key={p.id} className="flex justify-between"><span>{p.lastName}</span><Badge tone="bad">Squalificato</Badge></li>)}
             {unhappy.map((p) => <li key={p.id} className="flex justify-between"><button className="hover:underline" onClick={() => go('player', p.id)}>{p.firstName[0]}. {p.lastName}</button><Badge tone="warn">{p.wantsToLeave ? 'Vuole andarsene' : 'Scontento'}</Badge></li>)}
             {expiring.slice(0, 4).map((p) => <li key={p.id} className="flex justify-between"><button className="hover:underline" onClick={() => go('player', p.id)}>{p.firstName[0]}. {p.lastName}</button><Badge tone="warn">Contratto in scadenza</Badge></li>)}
-            {!injured.length && !suspended.length && !unhappy.length && !expiring.length && <li className="text-mute">Tutti disponibili e sereni.</li>}
+            {!injured.length && !unhappy.length && !expiring.length && <li className="text-mute">Tutti disponibili e sereni.</li>}
           </ul>
         </Panel>
       </div>

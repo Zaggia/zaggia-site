@@ -80,6 +80,10 @@ export function migrateWorld(world: World): boolean {
     applyStarRatings(world);
     for (const lg of world.rules.leagues) if (lg.key === 'A1') lg.strength = [...DEFAULT_RULES.leagues[0].strength];
   }
+  if (from < 10) {
+    // v10: niente più squalifiche (una al massimo all'anno non vale una regola): si cancellano quelle in corso.
+    for (const p of Object.values(world.players)) delete (p as unknown as { suspension?: number }).suspension;
+  }
   world.version = WORLD_VERSION;
   return true;
 }

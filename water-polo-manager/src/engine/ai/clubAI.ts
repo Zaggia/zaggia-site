@@ -144,7 +144,7 @@ export function fillRoster(world: World, club: Club): string[] {
 
 /** Rosa d'emergenza: rosa completa, almeno un portiere disponibile e abbastanza giocatori per scendere in acqua. */
 export function ensureMinimumSquad(world: World, club: Club, rng: Rng) {
-  const avail = () => club.playerIds.map((id) => world.players[id]).filter((p) => p && !p.injury && p.suspension <= 0);
+  const avail = () => club.playerIds.map((id) => world.players[id]).filter((p) => p && !p.injury);
   fillRoster(world, club);
   if (!club.isUser && !avail().some((p) => p.role === 'POR')) {
     const youthGk = club.youthIds.map((id) => world.players[id]).filter((p) => p && p.role === 'POR' && !p.injury).sort((a, b) => b.overall - a.overall)[0];

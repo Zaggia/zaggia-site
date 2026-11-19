@@ -20,7 +20,7 @@ import { releasePlayer, removeFromClub } from '../transfer/contracts';
 import { worldRng } from '../world/context';
 import { dayOf } from '../calendar';
 
-/** Ogni giorno: recupero fisico, decorso degli infortuni, squalifiche lunghe. */
+/** Ogni giorno: recupero fisico e decorso degli infortuni. */
 export function dailyPlayers(world: World) {
   const clubRecovery = new Map<string, number>();
   for (const c of Object.values(world.clubs)) {
@@ -66,7 +66,7 @@ export function weeklyTraining(world: World, rng: Rng) {
     developWeekly(world, p, ctx, rng);
     if (!p.clubId || p.injury) continue;
     const club = world.clubs[p.clubId];
-    const risk = 0.0003 * (club.training.intensity === 'alta' ? 1.6 : club.training.intensity === 'bassa' ? 0.6 : 1) *
+    const risk = 0.00009 * (club.training.intensity === 'alta' ? 1.6 : club.training.intensity === 'bassa' ? 0.6 : 1) *
       (1.25 - club.facilities.palestra.level * 0.06) * (p.condition < 70 ? 1.5 : 1);
     if (rng.chance(risk)) injuryFor(world, p, rng, 0.7);
   }

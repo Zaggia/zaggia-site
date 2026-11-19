@@ -124,7 +124,6 @@ export interface Player {
   experience: number;
   reputation: number;
   injury?: Injury;
-  suspension: number;
   value: number;
   transferListed: boolean;
   loanListed: boolean;

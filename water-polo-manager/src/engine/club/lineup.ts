@@ -4,7 +4,7 @@ import type { Club, Lineup, Player, World } from '../types';
 import { slotSuitability } from '../player/attributes';
 
 export function isAvailable(p: Player | undefined): p is Player {
-  return !!p && !p.injury && p.suspension <= 0 && !p.retired;
+  return !!p && !p.injury && !p.retired;
 }
 
 /** Valore di un giocatore in una posizione, considerando la condizione fisica. */
@@ -102,7 +102,6 @@ export function validateLineup(world: World, club: Club, lineup: Lineup): Lineup
     const p = world.players[id];
     if (!p || p.clubId !== club.id) { issues.push({ level: 'error', text: 'Un giocatore selezionato non fa più parte della rosa.' }); continue; }
     if (p.injury) issues.push({ level: 'error', text: `${p.firstName} ${p.lastName} è infortunato.` });
-    if (p.suspension > 0) issues.push({ level: 'error', text: `${p.firstName} ${p.lastName} è squalificato.` });
   }
   if (!lineup.bench.some((id) => world.players[id]?.role === 'POR')) issues.push({ level: 'warning', text: 'Nessun portiere di riserva in panchina.' });
   for (let i = 0; i < 7; i++) {

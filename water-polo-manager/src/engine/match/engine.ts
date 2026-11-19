@@ -356,6 +356,8 @@ export const SKILL_CONVEX = 0.8;
 const SKILL_SATURATION = 1.7;
 /** Tetto all'effetto della qualità: anche con divari enormi i punteggi restano realistici (circa 18-6 al massimo), pur con vittoria quasi certa. */
 const SKILL_CAP = 3.4;
+/** Probabilità di infortunio in partita (ogni 20 secondi in vasca, prima del fattore stanchezza): rarissima in pallanuoto. */
+const INJURY_RATE = 0.000018;
 /** Vantaggio (in gol) oltre il quale chi è in testa rallenta: parte da 7 gol e a ogni gol in più cresce, fino a un massimo. */
 const LEAD_EASE_FROM = 6;
 const LEAD_EASE_STEP = 0.22;
@@ -508,7 +510,7 @@ function tick(st: MatchState, seconds: number, attacker: 0 | 1, rng: Rng) {
         const drain = 0.0072 * (t / 20) * (1.25 - pl.attrs.resistenza / 200) * fxE * prep * (isGk ? 0.3 : 1);
         ps.energy = Math.max(0.15, ps.energy - drain);
         // Infortunio: in pallanuoto è raro (sport senza impatti col terreno), un po' più probabile se stanchi.
-        if (rng.chance(0.00005 * (t / 20) * (1.6 - ps.energy) * (isGk ? 0.4 : 1))) injure(st, s, i, rng);
+        if (rng.chance(INJURY_RATE * (t / 20) * (1.6 - ps.energy) * (isGk ? 0.4 : 1))) injure(st, s, i, rng);
       } else {
         ps.energy = Math.min(ps.maxEnergy, ps.energy + 0.02 * (t / 20) * (0.5 + pl.attrs.recupero / 100));
       }
@@ -892,14 +894,7 @@ function registerFoul(st: MatchState, s: number, idx: number, rng: Rng, kind: 'e
   } else {
     push(st, { type: 'penalty', side: att, p1: pl.id, tag: 'excl' });
   }
-  // Brutalità (rarissima): rosso e squalifica.
-  if (rng.chance(0.004 * (pl.temperament / 10))) {
-    ps.out = true;
-    ps.line.redCard = true;
-    push(st, { type: 'red', side: s as 0 | 1, p1: pl.id, tag: 'bad' });
-    replaceOut(st, s, idx, rng);
-    return;
-  }
+  // Niente squalifiche: l'espulsione definitiva dalla partita (3 falli) vale solo per quella gara.
   if (ps.fouls >= 3 && hasReplacement(st, s, idx)) {
     ps.out = true;
     ps.line.fouledOut = true;

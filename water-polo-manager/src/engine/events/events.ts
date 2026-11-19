@@ -370,7 +370,7 @@ const TEMPLATES: Template[] = [
       body: `${fullName(P(world, d.playerId))} ha litigato pesantemente con un compagno durante l’allenamento.`,
       choices: [
         { id: 'multa', label: 'Multi il giocatore', hint: 'Il gruppo apprezza, lui no' },
-        { id: 'sospendi', label: 'Lo sospendi per una partita', hint: 'Segnale forte allo spogliatoio' },
+        { id: 'sospendi', label: 'Lo tieni fuori dagli allenamenti', hint: 'Segnale forte allo spogliatoio' },
         { id: 'ignora', label: 'Lasci correre', hint: 'Lo spogliatoio si divide' },
       ],
     }),
@@ -384,10 +384,9 @@ const TEMPLATES: Template[] = [
         return `${fullName(p)} multato.`;
       }
       if (choice === 'sospendi') {
-        p.suspension += 1;
         p.morale = clamp(p.morale - 15, 0, 100);
         club.chemistry = clamp(club.chemistry + 3, 0, 100);
-        return `${fullName(p)} sospeso per una partita.`;
+        return `${fullName(p)} tenuto fuori dagli allenamenti per qualche giorno.`;
       }
       club.chemistry = clamp(club.chemistry - 5, 0, 100);
       return 'Lo spogliatoio si divide.';

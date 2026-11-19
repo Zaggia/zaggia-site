@@ -15,7 +15,7 @@ export function lineupFor(world: World, club: Club, opponent: Club): Lineup {
     club.lineup = repairLineup(world, club);
     return club.lineup;
   }
-  const avail = club.playerIds.filter((id) => !world.players[id].injury && world.players[id].suspension <= 0).length;
+  const avail = club.playerIds.filter((id) => !world.players[id].injury).length;
   if (avail < 10) ensureMinimumSquad(world, club, worldRng(world));
   const l = autoLineup(world, club, { rotate: true });
   club.lineup = l;

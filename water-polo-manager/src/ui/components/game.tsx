@@ -44,7 +44,6 @@ export function PlayerName({ p, world, avatar }: { p: Player; world: World; avat
 export function StatusBadges({ p, world }: { p: Player; world: World }) {
   const out: ReactNode[] = [];
   if (p.injury) out.push(<Badge key="i" tone="bad" title={`${p.injury.name}: ${p.injury.daysLeft} giorni`}>✚ {p.injury.daysLeft}g</Badge>);
-  if (p.suspension > 0) out.push(<Badge key="s" tone="bad" title="Squalificato">Squal. {p.suspension}</Badge>);
   if (p.transferListed) out.push(<Badge key="t" tone="warn">In vendita</Badge>);
   if (p.loanListed) out.push(<Badge key="l" tone="warn">Prestito</Badge>);
   if (p.wantsToLeave) out.push(<Badge key="w" tone="bad">Vuole andare</Badge>);

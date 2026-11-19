@@ -111,3 +111,7 @@ Requisiti: Node 20+.
 - La crescita dei giocatori con l'allenamento è molto più forte (`TRAINING_BOOST`): strutture, preparatore, intensità alta (+30%) e minutaggio pesano di più, e un buon preparatore atletico rallenta davvero il declino dei veterani.
 - **Allenamento mirato**: dalla scheda del giocatore si scelgono fino a 3 caratteristiche (per esempio Tiro o Marcatura) che crescono 2,6 volte più in fretta e, per i veterani, calano molto più piano. Le caratteristiche segnate con ★ sono quelle che pesano di più sull'overall del ruolo.
 - **Età dei giocatori veri**: 224 giocatori su 629 hanno l'anno di nascita reale (rose pubbliche ed elenchi degli Europei 2026); per gli altri l'età è fissa (22-31 anni, calcolata dal nome). Chi ha più di 44 anni (rose non aggiornate) non entra in rosa; oltre i 34 anni l'overall cala di 1,3 punti per anno (anche per i campioni in elenco), quindi un veterano di 40 anni non è più un fuoriclasse.
+
+### Niente squalifiche, infortuni rari
+- Le squalifiche non esistono più (in pallanuoto capitano al massimo una volta l'anno): niente cartellini rossi per brutalità, niente giocatori che saltano partite per squalifica, niente badge né avvisi in formazione. L'espulsione definitiva dopo 3 falli vale solo per quella partita. Le carriere esistenti le cancellano con la migrazione v10.
+- Gli infortuni sono ancora più rari: in partita circa 1 ogni 77 gare (prima 1 ogni 33), in allenamento un terzo di prima, e durano il 20% in meno. Strutture mediche e preparatore atletico li riducono ancora.

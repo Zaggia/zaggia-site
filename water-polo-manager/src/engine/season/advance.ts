@@ -168,7 +168,7 @@ export function prepareUserMatch(world: World): { fixture: Fixture; state: Match
 export function availableCount(world: World, club: { playerIds: string[]; youthIds: string[] }): number {
   return [...club.playerIds, ...club.youthIds].filter((id) => {
     const p = world.players[id];
-    return p && !p.injury && p.suspension <= 0;
+    return p && !p.injury;
   }).length;
 }
 

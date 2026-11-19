@@ -181,7 +181,6 @@ export function generatePlayer(ctx: GenCtx, opts: PlayerGenOptions): Player {
     form: [],
     experience: clamp(Math.round((age - 15) * 4 + overall * 0.35 + ctx.rng.gauss(0, 6)), 0, 100),
     reputation: clamp(Math.round(overall * 1.1 - 22 + ctx.rng.gauss(0, 5)), 1, 99),
-    suspension: 0,
     value: 0,
     transferListed: false,
     loanListed: false,

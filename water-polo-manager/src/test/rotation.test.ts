@@ -79,3 +79,24 @@ describe('ingaggio dell’allenatore', () => {
     expect(user.coachId).toBe(pick.id);
   });
 });
+
+describe('niente squalifiche, infortuni rari', () => {
+  it('nelle partite non ci sono più cartellini rossi né squalifiche e gli infortuni sono rarissimi', () => {
+    const w = newWorld();
+    const user = w.clubs[w.userClubId];
+    const fx = Object.values(w.fixtures).find((f) => f.homeId === user.id || f.awayId === user.id)!;
+    const lineup = autoLineup(w, user);
+    let injuries = 0, reds = 0;
+    const n = 300;
+    for (let r = 0; r < n; r++) {
+      w.day = fx.day;
+      const st = createMatch(buildMatchSetup(w, { ...fx, id: fx.id + r }, lineup));
+      simulateToEnd(st);
+      for (const s of st.sides) for (const p of s.p) { if (p.line.injured) injuries++; if (p.line.redCard) reds++; }
+    }
+    expect(reds).toBe(0);
+    // Meno di un infortunio ogni 12 partite (due squadre) in media.
+    expect(injuries / n).toBeLessThan(0.09);
+    expect(Object.values(w.players).every((p) => (p as unknown as { suspension?: number }).suspension == null)).toBe(true);
+  });
+});

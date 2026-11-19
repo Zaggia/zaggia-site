@@ -62,7 +62,7 @@ export function LineupScreen() {
       if (typeof sel === 'number') return b.overall * slotSuitability(b.role, b.hand, sel) - a.overall * slotSuitability(a.role, a.hand, sel);
       return b.overall - a.overall;
     });
-  const unavailable = squad.filter((p) => p.injury != null || p.suspension > 0);
+  const unavailable = squad.filter((p) => p.injury != null);
 
   return (
     <div>
@@ -215,7 +215,7 @@ export function LineupScreen() {
               })}
             </div>
             {unavailable.length > 0 && (
-              <div className="mt-3 text-xs text-mute">Non disponibili: {unavailable.map((p) => `${p.lastName} (${p.injury ? 'infortunato' : 'squalificato'})`).join(', ')}</div>
+              <div className="mt-3 text-xs text-mute">Non disponibili: {unavailable.map((p) => `${p.lastName} (infortunato)`).join(', ')}</div>
             )}
           </Panel>
           {club.savedLineups.length > 0 && (

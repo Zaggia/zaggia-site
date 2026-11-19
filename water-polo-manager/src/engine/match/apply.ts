@@ -44,7 +44,7 @@ function addLine(p: Player, key: string, l: PlayerMatchLine, mvp: boolean) {
 export function injuryFor(world: World, p: Player, rng: Rng, severity = 1) {
   const club = p.clubId ? world.clubs[p.clubId] : null;
   const inj = rng.weighted(INJURIES, (i) => i.weight);
-  let days = rng.int(inj.min, inj.max) * severity;
+  let days = rng.int(inj.min, inj.max) * severity * 0.8;
   if (club) {
     const med = club.facilities.medico.level;
     const doc = club.staff.medico ? world.staff[club.staff.medico]?.rating ?? 0 : 0;
@@ -100,10 +100,6 @@ export function applyMatch(world: World, f: Fixture, st: MatchState): MatchRepor
       if (mvp === p.id) dm += 3;
       p.morale = clamp(p.morale + dm, 5, 100);
       if (l.injured) injuryFor(world, p, rng, 1);
-      if (l.redCard) {
-        p.suspension += rng.int(1, 3);
-        if (club.isUser) addMessage(world, 'partita', `Squalifica per ${p.firstName} ${p.lastName}`, `Espulso per brutalità: salterà ${p.suspension} partite.`, { link: { view: 'player', id: p.id } });
-      }
       refreshValue(p, world.season);
     }
     // Chi è in rosa ma non è sceso in vasca perde minutaggio.
@@ -124,13 +120,6 @@ export function applyMatch(world: World, f: Fixture, st: MatchState): MatchRepor
   }
   // I marcatori dettagliati si conservano solo per le partite dell'utente (il resto è nelle statistiche).
   if (f.homeId === world.userClubId || f.awayId === world.userClubId) f.scorers = scorers;
-  // Squalifiche scontate: chi era squalificato e non poteva giocare.
-  for (const cid of clubsIds) {
-    for (const id of world.clubs[cid].playerIds) {
-      const p = world.players[id];
-      if (p && p.suspension > 0 && !st.sides[cid === f.homeId ? 0 : 1].p.some((x) => x.line.id === id)) p.suspension--;
-    }
-  }
   const attendance = attendanceFor(world, f);
   matchdayFinance(world, f, attendance);
   let report: MatchReport | null = null;
