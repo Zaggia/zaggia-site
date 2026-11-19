@@ -96,6 +96,7 @@ export function CloudStatus() {
   const account = useGame((s) => s.account);
   const cloud = useGame((s) => s.cloud);
   const conflict = useGame((s) => s.conflict);
+  const paused = useGame((s) => s.cloudPaused);
   const s = useGame.getState();
   const [auth, setAuth] = useState(false);
   if (!account) {
@@ -108,11 +109,11 @@ export function CloudStatus() {
       </>
     );
   }
-  const label = conflict ? 'Conflitto da risolvere' : cloud.status === 'syncing' ? 'Sincronizzo…' : cloud.status === 'error' ? 'Cloud non raggiungibile' : cloud.lastSync ? `Cloud aggiornato ${new Date(cloud.lastSync).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}` : 'Cloud collegato';
-  const tone = conflict || cloud.status === 'error' ? 'text-warn' : 'text-good';
+  const label = conflict ? 'Conflitto da risolvere' : paused ? 'Cloud in pausa' : cloud.status === 'syncing' ? 'Sincronizzo…' : cloud.status === 'error' ? 'Cloud non raggiungibile' : cloud.lastSync ? `Cloud aggiornato ${new Date(cloud.lastSync).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}` : 'Cloud collegato';
+  const tone = conflict || paused || cloud.status === 'error' ? 'text-warn' : 'text-good';
   return (
     <button onClick={() => void s.syncNow()} title={cloud.error ?? 'Sincronizza ora'} className="w-[calc(100%-16px)] mx-2 mb-2 flex items-center gap-2 px-3 h-8 rounded-lg text-xs text-mute hover:text-ink hover:bg-white/[0.04]">
-      <span className={cls('h-2 w-2 rounded-full shrink-0', conflict || cloud.status === 'error' ? 'bg-warn' : cloud.status === 'syncing' ? 'bg-aqua animate-pulse' : 'bg-good')} aria-hidden />
+      <span className={cls('h-2 w-2 rounded-full shrink-0', conflict || paused || cloud.status === 'error' ? 'bg-warn' : cloud.status === 'syncing' ? 'bg-aqua animate-pulse' : 'bg-good')} aria-hidden />
       <span className={cls('truncate', tone)}>{label}</span>
     </button>
   );
@@ -127,13 +128,14 @@ export function ConflictModal() {
   return (
     <Modal open onClose={() => { /* serve una scelta */ }} title="Due versioni della stessa carriera"
       footer={<>
+        <Button variant="ghost" onClick={() => void s.resolveConflict('later')}>Decido dopo</Button>
         <Button variant="outline" onClick={() => void s.resolveConflict('local')}>Tieni questa e sovrascrivi il cloud</Button>
         <Button onClick={() => void s.resolveConflict('cloud')}>Usa la versione del cloud</Button>
       </>}>
       <p className="text-sm text-mute leading-relaxed">
         La carriera <b className="text-ink">{meta?.name}</b> è stata salvata da un altro dispositivo il{' '}
         <b className="text-ink">{new Date(conflict.cloudUpdatedAt).toLocaleString('it-IT')}</b>, e qui hai fatto altre modifiche.
-        Scegli quale versione tenere: l’altra andrà persa.
+        Scegli quale versione tenere: l’altra andrà persa. Se l’altro dispositivo è spento e non sai ancora cosa fare, scegli “Decido dopo”: continui a giocare qui e non te lo richiedo più.
       </p>
     </Modal>
   );

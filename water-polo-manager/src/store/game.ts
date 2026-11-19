@@ -82,6 +82,8 @@ interface Store {
   account: Account | null;
   cloud: CloudState;
   conflict: CloudConflict | null;
+  /** Sincronizzazione sospesa dall'utente ("Decido dopo"): si gioca solo su questo dispositivo finché non si riapre la carriera. */
+  cloudPaused: boolean;
 
   refreshCareers: () => Promise<void>;
   newCareer: (opts: NewCareerOptions) => Promise<void>;
@@ -94,9 +96,9 @@ interface Store {
   signOut: () => Promise<void>;
   removeAccount: (password: string) => Promise<string | null>;
   refreshCloud: () => Promise<void>;
-  syncNow: (force?: boolean) => Promise<void>;
+  syncNow: (force?: boolean, retried?: boolean) => Promise<void>;
   pullCareer: (id: string) => Promise<boolean>;
-  resolveConflict: (keep: 'cloud' | 'local') => Promise<void>;
+  resolveConflict: (keep: 'cloud' | 'local' | 'later') => Promise<void>;
   renameCareer: (id: string, name: string) => Promise<void>;
   go: (view: ViewName, param?: string) => void;
   back: () => void;
@@ -119,6 +121,11 @@ interface Store {
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
 let lastPush = 0;
+/** Caricamento nel cloud in corso: non se ne avviano due insieme (un secondo caricamento con la base vecchia sembrerebbe un conflitto). */
+let uploading = false;
+let uploadAgain = false;
+/** Versioni del cloud create da questo dispositivo: se il "conflitto" riguarda una di queste, non è un altro dispositivo. */
+const myUploads = new Set<number>();
 /** Versione (`v`) già salvata: senza modifiche non si riscrive la carriera, così `updatedAt` conta solo i cambiamenti veri. */
 let savedV = -1;
 const PUSH_EVERY_MS = 20_000;
@@ -160,6 +167,7 @@ export const useGame = create<Store>((set, get) => ({
   account: null,
   cloud: { list: [], status: 'idle' },
   conflict: null,
+  cloudPaused: false,
 
   refreshCareers: async () => {
     try {
@@ -225,7 +233,7 @@ export const useGame = create<Store>((set, get) => ({
             ? 'Salvataggio aggiornato: coppe europee vere (Champions League con Final Four, Euro Cup, Conference Cup, Super Cup) con club e giocatori europei reali.'
             : 'Salvataggio aggiornato.', 'info');
       }
-      set({ world, meta, view: 'dashboard', stack: [], market: { ...DEFAULT_MARKET_UI }, v: get().v + 1, live: null, conflict });
+      set({ world, meta, view: 'dashboard', stack: [], market: { ...DEFAULT_MARKET_UI }, v: get().v + 1, live: null, conflict, cloudPaused: false });
       savedV = migrated ? -1 : get().v;
       if (migrated) await get().saveNow();
       return true;
@@ -245,8 +253,8 @@ export const useGame = create<Store>((set, get) => ({
 
   closeCareer: async () => {
     await get().saveNow();
-    if (get().account && get().world && !get().conflict) await get().syncNow();
-    set({ world: null, meta: null, live: null, view: 'dashboard', stack: [], conflict: null });
+    if (get().account && get().world && !get().conflict && !get().cloudPaused) await get().syncNow();
+    set({ world: null, meta: null, live: null, view: 'dashboard', stack: [], conflict: null, cloudPaused: false });
     await get().refreshCareers();
     void get().refreshCloud();
   },
@@ -340,25 +348,43 @@ export const useGame = create<Store>((set, get) => ({
     }
   },
 
-  syncNow: async (force = false) => {
+  syncNow: async (force = false, retried = false) => {
     const { account: acc, world, meta } = get();
     if (!acc || !world || !meta) return;
+    if (get().cloudPaused && !force) return;
     if (get().conflict && !force) return;
     if (pushTimer) { clearTimeout(pushTimer); pushTimer = null; }
+    // Un caricamento è già in corso: se ne farà un altro appena finisce.
+    if (uploading) { uploadAgain = true; return; }
+    uploading = true;
     set({ cloud: { ...get().cloud, status: 'syncing', error: undefined } });
     try {
       const saved = await cloud.uploadCareer(acc, world, meta, force);
+      myUploads.add(saved.updatedAt);
       lastPush = Date.now();
       set({ conflict: null, cloud: { list: [saved, ...get().cloud.list.filter((c) => c.id !== saved.id)], status: 'ok', lastSync: Date.now() } });
     } catch (e) {
       if (e instanceof CloudError && e.code === 'cloud_newer') {
-        set({ conflict: { id: meta.id, cloudUpdatedAt: Number(e.params?.updatedAt ?? 0) }, cloud: { ...get().cloud, status: 'error', error: e.message } });
+        const theirs = Number(e.params?.updatedAt ?? 0);
+        if (myUploads.has(theirs) && !retried) {
+          // La versione "più recente" l'ha caricata questo stesso dispositivo (caricamenti sovrapposti): nessun conflitto vero.
+          cloud.setSyncedAt(meta.id, theirs);
+          uploading = false;
+          return await get().syncNow(force, true);
+        }
+        set({ conflict: { id: meta.id, cloudUpdatedAt: theirs }, cloud: { ...get().cloud, status: 'error', error: e.message } });
       } else if (e instanceof CloudError && e.status === 401) {
         cloud.storeAccount(null);
         set({ account: null, cloud: { list: [], status: 'idle' } });
         get().toast('La sessione è scaduta: accedi di nuovo per usare il cloud.', 'info');
       } else {
         set({ cloud: { ...get().cloud, status: 'error', error: (e as Error).message } });
+      }
+    } finally {
+      uploading = false;
+      if (uploadAgain) {
+        uploadAgain = false;
+        if (!get().conflict && !get().cloudPaused) pushTimer = setTimeout(() => void get().syncNow(), 2000);
       }
     }
   },
@@ -384,8 +410,15 @@ export const useGame = create<Store>((set, get) => ({
   resolveConflict: async (keep) => {
     const { conflict } = get();
     if (!conflict) return;
+    if (keep === 'later') {
+      // L'altro dispositivo è spento: si continua qui, senza chiedere di nuovo e senza toccare il cloud.
+      if (pushTimer) { clearTimeout(pushTimer); pushTimer = null; }
+      set({ conflict: null, cloudPaused: true });
+      get().toast('Cloud in pausa: continui a giocare su questo dispositivo, senza altre domande. Potrai scegliere quando riapri la carriera.', 'info');
+      return;
+    }
     if (keep === 'local') {
-      set({ conflict: null });
+      set({ conflict: null, cloudPaused: false });
       await get().saveNow();
       await get().syncNow(true);
       get().toast('Versione di questo dispositivo salvata nel cloud.', 'ok');
@@ -555,7 +588,7 @@ export const useGame = create<Store>((set, get) => ({
       await saveCareer(world, m);
       savedV = v;
       set({ meta: m, lastSaved: Date.now(), saveError: null });
-      if (get().account && !get().conflict) {
+      if (get().account && !get().conflict && !get().cloudPaused) {
         if (pushTimer) clearTimeout(pushTimer);
         pushTimer = setTimeout(() => void get().syncNow(), Math.max(1500, PUSH_EVERY_MS - (Date.now() - lastPush)));
       }

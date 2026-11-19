@@ -115,3 +115,7 @@ Requisiti: Node 20+.
 ### Niente squalifiche, infortuni rari
 - Le squalifiche non esistono più (in pallanuoto capitano al massimo una volta l'anno): niente cartellini rossi per brutalità, niente giocatori che saltano partite per squalifica, niente badge né avvisi in formazione. L'espulsione definitiva dopo 3 falli vale solo per quella partita. Le carriere esistenti le cancellano con la migrazione v10.
 - Gli infortuni sono ancora più rari: in partita circa 1 ogni 77 gare (prima 1 ogni 33), in allenamento un terzo di prima, e durano il 20% in meno. Strutture mediche e preparatore atletico li riducono ancora.
+
+### Cloud: niente più domande ogni 20 secondi
+- Il salvataggio nel cloud parte ogni 20 secondi. Se un caricamento era ancora in corso (salvataggio grosso o connessione lenta) ne partiva un secondo con la versione "vecchia" come base, e il server lo scambiava per un altro dispositivo: usciva la finestra del conflitto a ogni giro. Ora un solo caricamento alla volta (il successivo parte quando il primo finisce) e un "conflitto" causato da una versione caricata da questo stesso dispositivo viene risolto senza chiedere nulla.
+- Se l'altro dispositivo ha davvero salvato (e magari è spento), nella finestra c'è la scelta **"Decido dopo"**: continui a giocare qui, il cloud va in pausa e non ti viene più chiesto finché non riapri la carriera.
