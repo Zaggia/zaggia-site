@@ -119,3 +119,9 @@ Requisiti: Node 20+.
 ### Cloud: niente più domande ogni 20 secondi
 - Il salvataggio nel cloud parte ogni 20 secondi. Se un caricamento era ancora in corso (salvataggio grosso o connessione lenta) ne partiva un secondo con la versione "vecchia" come base, e il server lo scambiava per un altro dispositivo: usciva la finestra del conflitto a ogni giro. Ora un solo caricamento alla volta (il successivo parte quando il primo finisce) e un "conflitto" causato da una versione caricata da questo stesso dispositivo viene risolto senza chiedere nulla.
 - Se l'altro dispositivo ha davvero salvato (e magari è spento), nella finestra c'è la scelta **"Decido dopo"**: continui a giocare qui, il cloud va in pausa e non ti viene più chiesto finché non riapri la carriera.
+
+### Mercato più ricco
+- **Tutti i giocatori del mondo sono visibili** nel Mercato, anche quelli dei club esteri (è lì che stanno molti campioni). Prima, con il centro scouting sotto il livello 3, i giocatori stranieri erano nascosti e sembrava che il migliore comprabile fosse un 84. Ora gli stranieri meno noti hanno solo una stima approssimativa dell'overall; i fuoriclasse (88+ o in elenco) li conoscono tutti.
+- **Ricambio dei campioni**: ogni stagione il mondo mantiene un numero minimo di giocatori forti (almeno 5 sopra 93, 10 sopra 91, 20 sopra 89, 36 sopra 87, 70 sopra 84, 130 sopra 80): i migliori giovani e giocatori nel pieno della carriera salgono di qualche punto fino a riempire la scala. Senza ricambio i campioni invecchiavano e dopo qualche anno il massimo era 84.
+- **Svincolati di livello**: ogni estate ci sono almeno 12 svincolati sopra 72, 4 sopra 80 e 1 sopra 86 (si pagano con l'ingaggio, non con il cartellino). I buoni giocatori senza squadra non "spariscono" più: restano sul mercato fino a 41 anni e non vengono tolti per fare spazio.
+- Le carriere esistenti ricevono tutto con la migrazione v11.

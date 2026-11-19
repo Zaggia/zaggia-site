@@ -10,7 +10,9 @@ import { trimRoster } from '../club/roster';
 import { WORLD_VERSION } from './generate';
 import { DEFAULT_RULES } from '../data/config';
 import { realifyWorld } from './migrateReal';
-import { PYRAMID_BANDS, balancePyramid } from './pyramid';
+import { PYRAMID_BANDS, balancePyramid, sustainTalent } from './pyramid';
+import { ensureLuxuryFreeAgents } from '../season/start';
+import { worldRng } from './context';
 import { REAL_FOREIGN } from '../data/realClubs';
 import { crestFor } from '../club/crest';
 import { addForeignClub } from './generate';
@@ -83,6 +85,12 @@ export function migrateWorld(world: World): boolean {
   if (from < 10) {
     // v10: niente più squalifiche (una al massimo all'anno non vale una regola): si cancellano quelle in corso.
     for (const p of Object.values(world.players)) delete (p as unknown as { suspension?: number }).suspension;
+  }
+  if (from < 11) {
+    // v11: ricambio dei campioni e mercato più ricco: tornano i giocatori forti (in una carriera lunga restava un 84 al massimo)
+    // e sul mercato degli svincolati ci sono giocatori di alto livello.
+    sustainTalent(world, 14);
+    ensureLuxuryFreeAgents(world, ctxOf(world), worldRng(world));
   }
   world.version = WORLD_VERSION;
   return true;

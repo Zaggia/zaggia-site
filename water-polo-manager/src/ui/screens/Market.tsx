@@ -73,9 +73,8 @@ function Search() {
     return Object.values(world.players)
       .filter((p) => {
         if (p.retired || p.clubId === user.id || p.youth) return false;
-        const club = p.clubId ? world.clubs[p.clubId] : null;
-        // La rete di osservatori limita la visibilità dei club esteri.
-        if (club && club.country !== 'ITA' && scouting < 3 && !world.knowledge[p.id]) return false;
+        // Tutti i giocatori del mondo sono visibili (anche quelli dei club esteri, dove stanno i campioni): la rete di osservatori
+        // serve a conoscerne davvero il livello, non a vederli.
         if (role && p.role !== role) return false;
         const age = ageOf(p, world.season);
         if (age < minAge || age > maxAge) return false;
@@ -118,7 +117,7 @@ function Search() {
         </div>
         <div className="flex justify-end mt-3"><Button size="sm" variant="ghost" onClick={() => setMarket({ role: '', minAge: 16, maxAge: 36, minOvr: 30, maxValue: 0, scope: 'all', name: '' })}>Azzera i filtri</Button></div>
         <p className="text-[11px] text-faint mt-1">
-          {scouting < 3 ? 'La rete di osservatori copre solo l’Italia: migliora il centro scouting (livello 3) per vedere i giocatori dei club esteri.' : 'La rete di osservatori copre anche l’Europa.'}
+          {scouting < 3 ? 'Vedi tutti i giocatori del mondo, anche dei club esteri, ma di quelli stranieri meno noti conosci il livello solo in modo approssimativo: migliora il centro scouting o manda un osservatore.' : 'La rete di osservatori copre anche l’Europa.'}
           {' '}Overall e potenziale dei giocatori altrui sono stime: più conosci un giocatore, più sono precise.
         </p>
       </Panel>

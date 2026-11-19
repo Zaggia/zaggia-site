@@ -19,7 +19,7 @@ import { ctxOf } from '../world/context';
 import { expectedWage } from '../player/value';
 import { clamp } from '../util';
 import { sanitizeTactics } from '../tactics/tactics';
-import { balancePyramid } from '../world/pyramid';
+import { balancePyramid, sustainTalent } from '../world/pyramid';
 
 /** Applica promozioni e retrocessioni della stagione appena conclusa. */
 export function applyMovements(world: World) {
@@ -59,7 +59,8 @@ function cleanup(world: World) {
   for (const r of Object.values(world.reports)) if (r.season < world.season - 1) delete world.reports[r.id];
   // Giocatori ritirati non più utili.
   for (const p of Object.values(world.players)) {
-    if (p.retired || (!p.clubId && world.season - p.birthYear > 37)) {
+    // Un buon giocatore senza squadra resta sul mercato finché non ha 41 anni (prima spariva a 37).
+    if (p.retired || (!p.clubId && world.season - p.birthYear > (p.overall >= 62 ? 40 : 37))) {
       delete world.players[p.id];
       delete world.knowledge[p.id];
     }
@@ -72,13 +73,30 @@ function cleanup(world: World) {
   world.negotiations = {};
 }
 
+/**
+ * Ogni estate sul mercato degli svincolati ci sono anche giocatori di alto livello (campioni a fine contratto, veterani, stranieri):
+ * almeno 12 sopra 72, 4 sopra 80 e 1 sopra 86. Si pagano con l'ingaggio, non con il cartellino.
+ */
+export function ensureLuxuryFreeAgents(world: World, ctx: ReturnType<typeof ctxOf>, rng: Rng) {
+  const free = () => Object.values(world.players).filter((p) => !p.clubId && !p.retired && !p.youth);
+  for (const [min, need, lo, hi] of [[86, 1, 86, 90], [80, 4, 80, 86], [72, 12, 72, 80]] as const) {
+    let have = free().filter((p) => p.overall >= min).length;
+    for (; have < need; have++) {
+      const level = lo + rng.float(0, hi - lo);
+      const p = generatePlayer(ctx, { level, exactOverall: Math.round(level), age: rng.int(26, 34), foreignChance: 0.55, potential: Math.round(level) });
+      world.players[p.id] = p;
+    }
+  }
+}
+
 /** Mantiene vivo il mercato degli svincolati e il ricambio generazionale. */
 function replenishFreeAgents(world: World, rng: Rng) {
   const ctx = ctxOf(world);
   let free = Object.values(world.players).filter((p) => !p.clubId && !p.retired);
   // Chi resta troppo a lungo senza squadra abbandona l'attività: il mercato degli svincolati resta gestibile.
   if (free.length > 450) {
-    const sorted = [...free].sort((a, b) => a.overall - b.overall + (b.birthYear - a.birthYear) * 0.5);
+    // Si ritirano solo i più deboli: i giocatori buoni restano sul mercato e non "spariscono" l'anno dopo.
+    const sorted = [...free].filter((p) => p.overall < 58 || (world.season - p.birthYear >= 34 && p.overall < 70)).sort((a, b) => a.overall - b.overall + (b.birthYear - a.birthYear) * 0.5);
     for (const p of sorted.slice(0, free.length - 450)) {
       p.retired = true;
       delete world.players[p.id];
@@ -93,6 +111,7 @@ function replenishFreeAgents(world: World, rng: Rng) {
     const p = generatePlayer(ctx, { level, foreignChance: 0.3, age: rng.int(19, 32) });
     world.players[p.id] = p;
   }
+  ensureLuxuryFreeAgents(world, ctx, rng);
   // Allenatori e staff senza squadra.
   const coaches = Object.values(world.coaches).filter((c) => !c.clubId).length;
   for (let i = coaches; i < 40; i++) {
@@ -138,6 +157,7 @@ export function startSeason(world: World, rng: Rng, first = false) {
     world.phase = 'regular';
     applyMovements(world);
     balancePyramid(world);
+    sustainTalent(world);
     cleanup(world);
   }
   replenishFreeAgents(world, rng);

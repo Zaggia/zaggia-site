@@ -55,6 +55,8 @@ export function knowledgeOf(world: World, p: Player): number {
   let base = 18 + scouting * 8 + obs / 5;
   if (p.nationality !== 'ITA' && (!p.clubId || world.clubs[p.clubId]?.country !== 'ITA')) base -= scouting >= 4 ? 0 : 15;
   if (p.clubId && world.clubs[p.clubId]?.division === user.division) base += 10;
+  // I fuoriclasse li conoscono tutti: il loro livello è pubblico.
+  if (p.rated || p.overall >= 88) base = Math.max(base, 85);
   return clamp(Math.round(Math.max(base, world.knowledge[p.id] ?? 0)), 5, 100);
 }
 

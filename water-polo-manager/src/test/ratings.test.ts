@@ -64,7 +64,7 @@ describe('overall precisi dei giocatori veri', () => {
     expect(migrateWorld(w)).toBe(true);
     expect(g.overall).toBe(97);
     expect(g.rated).toBe(true);
-    expect(w.version).toBe(10);
+    expect(w.version).toBe(11);
   });
 });
 
@@ -103,5 +103,24 @@ describe('allenamento', () => {
     for (let i = 0; i < 42; i++) { developWeekly(w, a, ctx, rngA); developWeekly(w, b, ctx, rngB); }
     expect(b.attrs.tiro - 50).toBeGreaterThan((a.attrs.tiro - 50) * 1.8);
     expect(b.overall).toBeGreaterThanOrEqual(a.overall);
+  });
+});
+
+describe('mercato ricco', () => {
+  it('una carriera vecchia senza campioni (il migliore è un 84) riceve fuoriclasse e svincolati di livello con la migrazione v11', () => {
+    const w = newWorld(8);
+    // Si simula una carriera lunga: nessuno sopra 84, mercato degli svincolati povero.
+    for (const p of Object.values(w.players)) {
+      if (p.clubId === w.userClubId) continue;
+      if (p.overall > 84) { for (const k of Object.keys(p.attrs) as (keyof typeof p.attrs)[]) p.attrs[k] = Math.max(1, p.attrs[k] - (p.overall - 84)); p.overall = 84; p.rated = false; }
+      if (!p.clubId) p.overall = Math.min(p.overall, 60);
+    }
+    w.version = 10;
+    expect(migrateWorld(w)).toBe(true);
+    const live = Object.values(w.players).filter((p) => !p.retired && !p.youth);
+    expect(Math.max(...live.map((p) => p.overall))).toBeGreaterThanOrEqual(93);
+    expect(live.filter((p) => p.clubId && p.overall >= 90).length).toBeGreaterThanOrEqual(8);
+    expect(live.filter((p) => !p.clubId && p.overall >= 80).length).toBeGreaterThanOrEqual(4);
+    expect(live.filter((p) => !p.clubId && p.overall >= 86).length).toBeGreaterThanOrEqual(1);
   });
 });

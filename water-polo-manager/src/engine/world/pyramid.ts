@@ -8,6 +8,7 @@ import { refreshValue } from '../player/value';
 import type { Player, World } from '../types';
 import { clamp } from '../util';
 import { shiftClub } from './migrate';
+import { tuneOverall } from '../player/generate';
 
 /** Fasce di forza di squadra per categoria (le stesse delle regole delle nuove carriere). */
 export const PYRAMID_BANDS: Record<string, [number, number]> = { A1: [60, 88], A2: [47, 62], B: [34, 50], C: [24, 44] };
@@ -23,7 +24,7 @@ function shiftPlayer(world: World, p: Player, delta: number) {
 }
 
 /** Forza media delle società (tranne la tua) in ogni categoria: è quella di una carriera appena creata e si mantiene nel tempo. */
-export const DIVISION_MEAN: Record<string, number> = { A1: 72, A2: 55, B: 43, C: 35 };
+export const DIVISION_MEAN: Record<string, number> = { A1: 74, A2: 55, B: 43, C: 35 };
 
 /**
  * Impedisce l'inflazione: mercato e sviluppo fanno salire piano piano il livello medio dei club gestiti dal computer
@@ -41,6 +42,39 @@ export function stabilizeLevels(world: World, maxStep = 3): number {
     const delta = clamp(target - mean, -maxStep, maxStep);
     if (Math.abs(target - mean) < 1) continue;
     clubs.forEach((c, i) => { shiftClub(world, c.id, Math.round(strengths[i] + delta)); changed++; });
+  }
+  return changed;
+}
+
+/**
+ * Quanti giocatori forti devono esserci sempre nel mondo (overall minimo, quanti): senza ricambio i campioni invecchiano, si ritirano
+ * e dopo qualche anno il migliore in circolazione è un 84. Ogni stagione i migliori giovani e giocatori nel pieno della carriera
+ * salgono di qualche punto fino a riempire la scala: così nascono nuovi fuoriclasse e il mercato ha sempre giocatori da sogno.
+ */
+export const TALENT_TARGETS: [number, number][] = [[93, 5], [91, 10], [89, 20], [87, 36], [84, 70], [80, 130]];
+
+export function sustainTalent(world: World, maxStep = 4): number {
+  const user = world.userClubId;
+  const active = () => Object.values(world.players).filter((p) => !p.retired && !p.youth && p.clubId && !p.loan && p.clubId !== user);
+  let changed = 0;
+  for (const [thr, need] of TALENT_TARGETS) {
+    const pool = active();
+    let have = pool.filter((p) => p.overall >= thr).length;
+    if (have >= need) continue;
+    const age = (p: Player) => world.season - p.birthYear;
+    const cands = pool
+      .filter((p) => p.overall < thr && p.overall >= thr - maxStep && age(p) <= 32)
+      .sort((a, b) => (b.overall + (b.potential - b.overall) * 0.5 - Math.max(0, age(b) - 27)) - (a.overall + (a.potential - a.overall) * 0.5 - Math.max(0, age(a) - 27)));
+    for (const p of cands) {
+      if (have >= need) break;
+      tuneOverall(p.attrs, p.role, thr);
+      p.overall = computeOverall(p.attrs, p.role);
+      p.potential = Math.max(p.potential, p.overall);
+      p.rated = true;
+      refreshValue(p, world.season);
+      have++;
+      changed++;
+    }
   }
   return changed;
 }

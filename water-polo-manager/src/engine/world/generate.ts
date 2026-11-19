@@ -21,7 +21,7 @@ import { ctxOf, type GenCtx } from './context';
 import { setTicketPrices } from '../club/manage';
 import { newFinances } from '../economy/ledger';
 
-export const WORLD_VERSION = 10;
+export const WORLD_VERSION = 11;
 
 export interface NewCareerOptions {
   careerName: string;
