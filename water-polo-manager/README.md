@@ -125,3 +125,8 @@ Requisiti: Node 20+.
 - **Ricambio dei campioni**: ogni stagione il mondo mantiene un numero minimo di giocatori forti (almeno 5 sopra 93, 10 sopra 91, 20 sopra 89, 36 sopra 87, 70 sopra 84, 130 sopra 80): i migliori giovani e giocatori nel pieno della carriera salgono di qualche punto fino a riempire la scala. Senza ricambio i campioni invecchiavano e dopo qualche anno il massimo era 84.
 - **Svincolati di livello**: ogni estate ci sono almeno 12 svincolati sopra 72, 4 sopra 80 e 1 sopra 86 (si pagano con l'ingaggio, non con il cartellino). I buoni giocatori senza squadra non "spariscono" più: restano sul mercato fino a 41 anni e non vengono tolti per fare spazio.
 - Le carriere esistenti ricevono tutto con la migrazione v11.
+
+### Offerte di mercato
+- **Bug corretto**: nella finestra dell'offerta gli errori (liquidità insufficiente, mercato chiuso, giocatore non interessato, "categoria superiore") non comparivano più dopo il rifacimento a più giri, quindi "Invia offerta" sembrava non fare nulla. Ora compaiono in un riquadro rosso, e la cifra proposta non supera la liquidità.
+- La **rosa piena (15) non blocca più le offerte né le trattative** con i giocatori: si tratta normalmente e, quando c'è l'accordo, il gioco chiede chi svincolare (con il costo della buonuscita) e firma. Prima il pulsante era disattivato e per fare un'offerta bisognava prima liberare un posto.
+- A mercato chiuso la finestra dice quando riapre; gli svincolati si ingaggiano sempre.

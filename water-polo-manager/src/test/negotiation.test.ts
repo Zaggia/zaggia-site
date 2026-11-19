@@ -135,3 +135,30 @@ describe('trattativa con il club venditore', () => {
     expect(bidRound(w, p, 10_000_000, user).result).toBe('reject');
   });
 });
+
+describe('offerte con la rosa piena', () => {
+  it('si può fare un’offerta anche con 15 giocatori; per firmare si libera un posto', async () => {
+    const { userBid, finalizeUserSigning } = await import('../engine/transfer/market');
+    const { releasePlayer } = await import('../engine/transfer/contracts');
+    const w = newWorld();
+    w.day = 5; // mercato estivo aperto
+    const user = w.clubs[w.userClubId];
+    expect(user.playerIds.length).toBe(15);
+    const target = Object.values(w.clubs)
+      .filter((c) => c.id !== user.id && c.country === user.country && c.division === user.division)
+      .flatMap((c) => c.playerIds.map((id) => w.players[id]))
+      .find((p) => !p.youth && p.overall <= 45)!;
+    const r = userBid(w, target.id, 10_000_000 > user.finances.balance ? Math.round(user.finances.balance * 0.9) : 10_000_000, false);
+    expect('error' in r, 'error' in r ? r.error : '').toBe(false);
+    // Accordo (cifra molto alta): si firma solo dopo aver liberato un posto.
+    const rich = userBid(w, target.id, Math.max(1000, user.finances.balance - 1000), false);
+    if (!('error' in rich) && rich.offer.status === 'accepted') {
+      expect(finalizeUserSigning(w, rich.offer.id, { wage: 2000, years: 2, status: 'rotazione' })).toMatch(/Rosa al completo/);
+      const out = w.players[user.playerIds[user.playerIds.length - 1]];
+      releasePlayer(w, out);
+      expect(finalizeUserSigning(w, rich.offer.id, { wage: 2000, years: 2, status: 'rotazione' })).toBeNull();
+      expect(user.playerIds).toContain(target.id);
+      expect(user.playerIds.length).toBe(15);
+    }
+  });
+});

@@ -210,8 +210,7 @@ export function userBid(world: World, playerId: string, fee: number, loan: boole
   if (!p) return { error: 'Giocatore non trovato.' };
   if (p.clubId === user.id) return { error: 'Il giocatore è già tuo.' };
   if (!transferWindowOpen(world).open && p.clubId) return { error: 'Il mercato è chiuso: puoi ingaggiare solo svincolati.' };
-  const full = rosterFullError(world, user);
-  if (full) return { error: full };
+  // La rosa piena non blocca l'offerta: il posto si libera al momento della firma.
   if (!loan && fee > user.finances.balance + 5000) return { error: 'Non hai abbastanza liquidità per questa offerta.' };
   const interest = interestIn(world, p, user);
   if (interest.value < 25) return { error: `${fullName(p)} non è interessato: ${interest.reason}` };
