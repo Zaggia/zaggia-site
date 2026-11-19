@@ -11,7 +11,7 @@ import { physicalFactor, trainingFactor } from '../club/facilities';
 /** Crescita annua dell'overall in funzione dell'età (prima dei moltiplicatori). */
 const CURVE: [number, number][] = [
   [15, 6], [16, 5.5], [17, 5], [18, 4.5], [19, 4], [20, 3.5], [21, 3], [22, 2.4], [23, 1.8], [24, 1.2], [25, 0.7], [26, 0.3],
-  [27, 0.1], [28, 0], [29, -0.6], [30, -1.1], [31, -1.7], [32, -2.4], [33, -3.1], [34, -3.9],
+  [27, 0.1], [28, 0], [29, -0.25], [30, -0.5], [31, -0.85], [32, -1.3], [33, -1.9], [34, -2.6], [35, -3.4],
 ];
 
 export function ageCurve(age: number, gk: boolean): number {
@@ -88,8 +88,11 @@ export function developWeekly(world: World, p: Player, ctx: DevContext, rng: Rng
   const pers = p.personality;
   if (annual > 0) {
     const gap = p.potential - p.overall;
-    if (gap <= 0) annual = 0.03;
-    else {
+    if (gap <= 0) {
+      // Al potenziale non si smette di migliorare del tutto: chi si allena bene (strutture, intensità, allenamento mirato) continua a guadagnare
+      // qualcosa fino a 31 anni, e il potenziale sale con lui.
+      annual = 0.03 + (age <= 31 ? Math.max(0, ctx.training - 1) * 1.6 * ctx.intensity + (p.devAttrs?.length ? 0.35 : 0) : 0);
+    } else {
       const gapF = clamp(gap / 14, 0.12, 1.0);
       const prof = 0.75 + pers.professionalita / 40 + (p.attrs.determinazione - 50) / 500;
       const minutes = 0.7 + 0.45 * p.playingTime;
@@ -100,7 +103,9 @@ export function developWeekly(world: World, p: Player, ctx: DevContext, rng: Rng
     }
   } else {
     // Il declino è più lento per i professionisti e con una buona preparazione fisica.
-    annual *= 1.2 - pers.professionalita / 50 - (ctx.physical - 1) * 0.6;
+    // Strutture (palestra, centro di allenamento), preparatore atletico e intensità rallentano molto il calo: con tutto al massimo
+    // un veterano perde circa un terzo di quanto perderebbe senza cure.
+    annual *= clamp(1.2 - pers.professionalita / 50 - (ctx.physical - 1) * 0.9 - (ctx.training - 1) * 0.5 - (ctx.intensity - 1) * 0.5, 0.2, 1.4);
   }
   const weekly = annual / TRAINING_WEEKS;
   if (Math.abs(weekly) < 0.0005) return;

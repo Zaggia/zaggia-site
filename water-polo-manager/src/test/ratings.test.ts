@@ -124,3 +124,36 @@ describe('mercato ricco', () => {
     expect(live.filter((p) => !p.clubId && p.overall >= 86).length).toBeGreaterThanOrEqual(1);
   });
 });
+
+describe('allenamento e declino', () => {
+  it('con palestra, centro di allenamento e intensità alta un veterano perde molto meno e chi è al potenziale continua a migliorare', () => {
+    const w = newWorld(3);
+    const club = w.clubs[w.userClubId];
+    const base = Object.values(w.players).find((p) => p.clubId === club.id && p.role === 'ALA' && !p.retired)!;
+    const run = (age: number, potential: number, ctxSetup: () => void) => {
+      ctxSetup();
+      const ctx = devContext(w, club);
+      let tot = 0;
+      const n = 25;
+      for (let i = 0; i < n; i++) {
+        const p = structuredClone(base);
+        p.birthYear = w.season - age; p.potential = potential; p.playingTime = 0.9;
+        for (const k of Object.keys(p.attrs) as (keyof typeof p.attrs)[]) p.attrs[k] = 78;
+        p.overall = 78;
+        const rng = Rng.fromSeed(500 + i);
+        for (let wk = 0; wk < 42; wk++) developWeekly(w, p, ctx, rng);
+        tot += p.overall - 78;
+      }
+      return tot / n;
+    };
+    const poor = () => { club.facilities.palestra.level = 1; club.facilities.allenamento.level = 1; club.training.intensity = 'media'; };
+    const best = () => { club.facilities.palestra.level = 5; club.facilities.allenamento.level = 5; club.training.intensity = 'alta'; };
+    const poorOld = run(33, 78, poor), bestOld = run(33, 78, best);
+    expect(bestOld).toBeGreaterThan(poorOld + 0.8);
+    // Un giocatore nel pieno della carriera già al potenziale, con le strutture al massimo, guadagna ancora qualcosa ogni anno.
+    expect(run(27, 78, best)).toBeGreaterThanOrEqual(0.5);
+    // E nessuno scende di colpo: un trentunenne con strutture al massimo perde meno di un punto.
+    expect(run(31, 78, best)).toBeGreaterThan(-1);
+  });
+});
+

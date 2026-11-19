@@ -130,3 +130,8 @@ Requisiti: Node 20+.
 - **Bug corretto**: nella finestra dell'offerta gli errori (liquidità insufficiente, mercato chiuso, giocatore non interessato, "categoria superiore") non comparivano più dopo il rifacimento a più giri, quindi "Invia offerta" sembrava non fare nulla. Ora compaiono in un riquadro rosso, e la cifra proposta non supera la liquidità.
 - La **rosa piena (15) non blocca più le offerte né le trattative** con i giocatori: si tratta normalmente e, quando c'è l'accordo, il gioco chiede chi svincolare (con il costo della buonuscita) e firma. Prima il pulsante era disattivato e per fare un'offerta bisognava prima liberare un posto.
 - A mercato chiuso la finestra dice quando riapre; gli svincolati si ingaggiano sempre.
+
+### Allenamento e declino (corretto)
+- **Perché i giocatori calavano anche con i bonus**: la curva d'età partiva dai 29 anni con perdite ripide (da -0,6 a -3,9 punti l'anno) e i bonus di allenamento (strutture, intensità) incidevano pochissimo sul calo; inoltre chi era già al proprio potenziale non migliorava più, qualunque fosse l'allenamento.
+- Ora la curva è più dolce (picco fino a 28 anni, poi -0,25 a 29, -0,5 a 30, -0,85 a 31, -1,3 a 32, -1,9 a 33…) e il calo è frenato da palestra, centro di allenamento, preparatore atletico e intensità alta: con tutto al massimo un veterano perde circa un terzo di prima (a 31 anni circa zero, a 33 circa -1).
+- Chi è al potenziale e ha meno di 32 anni continua a guadagnare un po' con strutture al massimo (circa +1 l'anno) e con l'allenamento mirato; il potenziale sale insieme all'overall.
