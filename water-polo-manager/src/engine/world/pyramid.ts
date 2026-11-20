@@ -11,7 +11,7 @@ import { shiftClub } from './migrate';
 import { tuneOverall } from '../player/generate';
 
 /** Fasce di forza di squadra per categoria (le stesse delle regole delle nuove carriere). */
-export const PYRAMID_BANDS: Record<string, [number, number]> = { A1: [60, 88], A2: [47, 62], B: [34, 50], C: [24, 44] };
+export const PYRAMID_BANDS: Record<string, [number, number]> = { A1: [64, 92], A2: [47, 62], B: [34, 50], C: [24, 44] };
 /** Quanto un giocatore può stare sotto/sopra il livello della propria squadra. */
 export const BELOW = 8;
 export const ABOVE = 7;
@@ -24,7 +24,7 @@ function shiftPlayer(world: World, p: Player, delta: number) {
 }
 
 /** Forza media delle società (tranne la tua) in ogni categoria: è quella di una carriera appena creata e si mantiene nel tempo. */
-export const DIVISION_MEAN: Record<string, number> = { A1: 74, A2: 55, B: 43, C: 35 };
+export const DIVISION_MEAN: Record<string, number> = { A1: 78, A2: 55, B: 43, C: 35 };
 
 /**
  * Impedisce l'inflazione: mercato e sviluppo fanno salire piano piano il livello medio dei club gestiti dal computer

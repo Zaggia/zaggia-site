@@ -44,7 +44,7 @@ export const DEFAULT_RULES: WorldRules = {
       startDate: '10-04',
       prizeByPosition: [150000, 100000, 70000, 50000, 35000, 30000, 25000, 20000, 15000, 12000, 10000, 8000, 6000, 5000],
       promotionPrize: 0,
-      strength: [60, 86],
+      strength: [64, 90],
       budget: [700_000, 5_500_000],
       reputation: [55, 94],
       fans: [1500, 16000],

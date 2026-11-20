@@ -162,3 +162,22 @@ describe('offerte con la rosa piena', () => {
     }
   });
 });
+
+describe('motivo dell’interesse', () => {
+  it('con interesse basso non dice mai "è disposto ad ascoltare": spiega il motivo, anche nel rifiuto della trattativa', async () => {
+    const { interestIn } = await import('../engine/transfer/contracts');
+    const w = newWorld();
+    const user = w.clubs[w.userClubId];
+    // Un giocatore di un club di prestigio, ambizioso e fedele, verso un club piccolo.
+    const top = Object.values(w.clubs).find((c) => c.name === 'Pro Recco')!;
+    const p = w.players[top.playerIds.find((id) => w.players[id].overall >= 70)!];
+    p.personality.lealta = 18; p.personality.ambizione = 18;
+    const i = interestIn(w, p, user);
+    expect(i.value).toBeLessThan(45);
+    expect(i.reason).not.toMatch(/disposto ad ascoltare/);
+    const r = negotiate(w, p, user, { wage: 50000, years: 2, status: 'titolare' });
+    expect(r.result).toBe('reject');
+    expect(r.message).toMatch(/non è interessato: /);
+    expect(r.message).not.toMatch(/disposto ad ascoltare/);
+  });
+});

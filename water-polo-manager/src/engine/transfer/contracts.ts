@@ -51,27 +51,35 @@ export function interestIn(world: World, p: Player, club: Club): Interest {
   const age = ageOf(p, world.season);
   let v = 60;
   let reason = 'È disposto ad ascoltare la proposta.';
+  // Motivi che abbassano l'interesse (con quanto pesano): se è basso si dice il più importante, non una frase neutra.
+  const neg: [number, string][] = [];
   const repGap = club.reputation - (cur?.reputation ?? Math.max(5, p.reputation - 10));
   v += repGap * 0.5;
+  if (repGap < 0) neg.push([repGap * 0.5, 'Il club non ha il prestigio che cerca.']);
   const tierGap = tierOf(world, club) - tierOf(world, cur);
-  if (cur && tierGap > 0) { v -= tierGap * 18; reason = 'Non vuole scendere di categoria.'; }
+  if (cur && tierGap > 0) { v -= tierGap * 18; reason = 'Non vuole scendere di categoria.'; neg.push([-tierGap * 18, 'Non vuole scendere di categoria.']); }
   if (tierGap < 0) v += -tierGap * 10;
   const ceiling = divisionCeiling(world, club);
-  if (p.overall > ceiling && age < 33) { v -= (p.overall - ceiling) * 3; reason = 'Ritiene il campionato troppo basso per il suo livello.'; }
+  if (p.overall > ceiling && age < 33) { v -= (p.overall - ceiling) * 3; reason = 'Ritiene il campionato troppo basso per il suo livello.'; neg.push([-(p.overall - ceiling) * 3, 'Ritiene il campionato troppo basso per il suo livello.']); }
   // Un giocatore da categoria superiore scende solo malvolentieri (anche da svincolato).
   const natural = levelTier(world, p.overall);
   const down = tierOf(world, club) - natural;
-  if (down > 0 && age < 32) { v -= down * 14; if (v < 45) reason = 'Si considera un giocatore da categoria superiore.'; }
+  if (down > 0 && age < 32) { v -= down * 14; if (v < 45) reason = 'Si considera un giocatore da categoria superiore.'; neg.push([-down * 14, 'Si considera un giocatore da categoria superiore.']); }
   if (!cur) v += 15;
   if (p.wantsToLeave) v += 15;
-  if (cur && p.personality.lealta >= 15 && !p.wantsToLeave) v -= 10;
+  if (cur && p.personality.lealta >= 15 && !p.wantsToLeave) { v -= 10; neg.push([-10, 'È molto legato alla sua squadra e non vuole andarsene.']); }
   if (p.nationality === 'ITA' && club.country === 'ITA') v += 4;
   if (age >= 33) v += 10;
-  if (p.personality.ambizione >= 15 && repGap < 0) v -= 10;
+  if (p.personality.ambizione >= 15 && repGap < 0) { v -= 10; neg.push([-10, 'È ambizioso e cerca un club di maggiore prestigio.']); }
   if (p.negotiationBlockedUntil != null && p.negotiationBlockedUntil > world.day) { v = 0; reason = 'Ha interrotto le trattative con te.'; }
   v = clamp(Math.round(v), 0, 100);
   if (v >= 70) reason = 'È entusiasta dell’interesse del club.';
   else if (v >= 45 && reason === 'È disposto ad ascoltare la proposta.') reason = 'Valuterà la proposta con attenzione.';
+  else if (v < 45 && !(p.negotiationBlockedUntil != null && p.negotiationBlockedUntil > world.day)) {
+    // Interesse basso: si dice il motivo principale (prima restava la frase "è disposto ad ascoltare", che non c'entrava).
+    neg.sort((a, b) => a[0] - b[0]);
+    reason = neg[0]?.[1] ?? 'Non è convinto del progetto del club.';
+  }
   return { value: v, reason };
 }
 
@@ -157,7 +165,7 @@ function demandAtRound(t: ContractTerms, round: number, bias: number): number {
 export function negotiate(world: World, p: Player, club: Club, offer: ContractOffer): NegotiationResult {
   const interest = interestIn(world, p, club);
   const renewal = p.clubId === club.id;
-  if (!renewal && interest.value < 30) return { result: 'reject', message: interest.reason };
+  if (!renewal && interest.value < 30) return { result: 'reject', message: `${p.firstName} ${p.lastName} non è interessato: ${interest.reason}` };
   if (renewal && p.wantsToLeave && p.morale < 25) return { result: 'reject', message: 'Ha deciso di cambiare aria e non vuole rinnovare.' };
   // Una trattativa ferma da settimane riparte da zero.
   let neg: Negotiation | undefined = world.negotiations[p.id];

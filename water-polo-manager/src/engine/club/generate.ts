@@ -152,7 +152,7 @@ export function generateRealRoster(ctx: GenCtx, clubId: string, level: number, c
     if (star != null) exact = Math.round(star - veteran);
     else {
       const young = age < 22 ? (22 - age) * 1.4 : 0;
-      exact = Math.round(clamp(level + (r.f ? 3 : -2) + (nat !== country ? 1 : 0) + (role === 'POR' && i === 0 ? 1 : 0) + (nameHash(r.n) % 5) - 2 - young - veteran, 20, 95));
+      exact = Math.round(clamp(level + (r.f ? 3 : -2) + (nat !== country ? 1 : 0) + (role === 'POR' && i === 0 ? 1 : 0) + (nameHash(r.n) % 5) - 2 - young - veteran, 20, 88));
     }
     // Potenziale fisso: i più giovani hanno ancora margine, chi ha più di 26 anni è al massimo.
     const potential = Math.min(99, exact + (age <= 20 ? 6 : age <= 23 ? 3 : age <= 26 ? 1 : 0));
@@ -165,7 +165,8 @@ export function generateRealRoster(ctx: GenCtx, clubId: string, level: number, c
   for (const [r, n] of Object.entries(TARGET) as [Role, number][]) for (let k = count(roles, r); k < n; k++) missing.push(r);
   while (players.length < size) {
     const role = missing.shift() ?? 'UNI';
-    players.push(generatePlayer(ctx, { level: level - 3 + ctx.rng.gauss(0, 4), role, clubId, foreignChance, contractYears: ctx.rng.int(1, 2) }));
+    // I giocatori generati non superano 86: i fuoriclasse sono solo quelli veri.
+    players.push(generatePlayer(ctx, { level: Math.min(86, level - 3 + ctx.rng.gauss(0, 4)), role, clubId, foreignChance, contractYears: ctx.rng.int(1, 2) }));
   }
   assignNumbers(players);
   // Dove la rosa pubblica indica il numero di calottina, si usa quello.

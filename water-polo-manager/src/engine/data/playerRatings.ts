@@ -44,10 +44,10 @@ export function starRating(name: string): number | null {
  * perché oltre ai fuoriclasse hanno anche gli altri titolari e le riserve di livello alto.
  */
 export const TOP_CLUB_LEVELS: Record<string, number> = {
-  'Pro Recco': 86, 'Ferencváros': 86, 'CN Atlètic-Barceloneta': 84, 'Olympiacos': 82, 'AN Brescia': 80, 'VK Radnički Kragujevac': 80,
-  'VK Novi Beograd': 79, 'HAVK Mladost': 79, 'VK Jadran Spalato': 77, 'RN Savona': 76, 'Pallanuoto Trieste': 76, 'VK Jug Dubrovnik': 75,
-  'CC Ortigia': 74, 'CN Marseille': 74, 'CN Posillipo': 73, 'Circolo Canottieri Napoli': 72, 'De Akker Bologna': 72, 'Panathinaikos': 72,
-  'Iren Genova Quinto': 71, 'SS Lazio Nuoto': 71, 'Telimar Palermo': 70, 'CN Sabadell': 72, 'VK Jadran Herceg Novi': 72,
+  'Pro Recco': 90, 'Ferencváros': 86, 'CN Atlètic-Barceloneta': 84, 'Olympiacos': 82, 'AN Brescia': 84, 'VK Radnički Kragujevac': 80,
+  'VK Novi Beograd': 79, 'HAVK Mladost': 79, 'VK Jadran Spalato': 77, 'RN Savona': 80, 'Pallanuoto Trieste': 80, 'VK Jug Dubrovnik': 75,
+  'CC Ortigia': 78, 'CN Marseille': 74, 'CN Posillipo': 77, 'Circolo Canottieri Napoli': 76, 'De Akker Bologna': 76, 'Panathinaikos': 72,
+  'Iren Genova Quinto': 75, 'SS Lazio Nuoto': 75, 'Telimar Palermo': 74, 'CN Sabadell': 72, 'VK Jadran Herceg Novi': 72,
   'PVK Primorac Kotor': 72, 'Vasas': 72, 'Spandau 04': 66, 'NO Vouliagmeni': 68, 'CN Barcelona': 68, 'BVSC-Zugló': 70, 'Szolnoki Dózsa': 70,
   'CSM Oradea': 62, 'CSA Steaua București': 64,
 };

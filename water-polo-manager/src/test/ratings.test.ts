@@ -24,8 +24,8 @@ describe('overall precisi dei giocatori veri', () => {
     expect(best.overall).toBe(97);
     const names = top(w, 10).map((p) => p.lastName);
     for (const n of ['Argyropoulos', 'Skoumpakis', 'Mandić', 'Manhercz', 'Kakaris']) expect(names, n).toContain(n);
-    // Nessun giocatore generato (non famoso) tra i primi 25.
-    expect(top(w, 25).every((p) => p.real)).toBe(true);
+    // Nessun giocatore generato (non famoso) tra i primi 7 (poi ci sono anche gli svincolati di lusso generati).
+    expect(top(w, 7).every((p) => p.real)).toBe(true);
   });
 
   it('un giocatore vero ha lo stesso overall in ogni carriera (nessuna casualità) nei club di vertice', () => {
@@ -64,7 +64,7 @@ describe('overall precisi dei giocatori veri', () => {
     expect(migrateWorld(w)).toBe(true);
     expect(g.overall).toBe(97);
     expect(g.rated).toBe(true);
-    expect(w.version).toBe(11);
+    expect(w.version).toBe(12);
   });
 });
 

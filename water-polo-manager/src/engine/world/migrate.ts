@@ -92,6 +92,21 @@ export function migrateWorld(world: World): boolean {
     sustainTalent(world, 14);
     ensureLuxuryFreeAgents(world, ctxOf(world), worldRng(world));
   }
+  if (from < 12) {
+    // v12: giocatori di Serie A1 più forti (+4 a tutti, i campioni con valore fisso restano come sono) e nuova fascia di forza.
+    for (const lg of world.rules.leagues) if (lg.key === 'A1') lg.strength = [...DEFAULT_RULES.leagues[0].strength];
+    for (const club of Object.values(world.clubs)) {
+      if (club.country !== 'ITA' || club.division !== 'A1' || club.isUser) continue;
+      for (const id of club.playerIds) {
+        const p = world.players[id];
+        if (!p || p.retired || starRating(`${p.firstName} ${p.lastName}`) != null) continue;
+        tuneOverall(p.attrs, p.role, Math.min(94, p.overall + 4));
+        p.overall = computeOverall(p.attrs, p.role);
+        p.potential = Math.max(p.potential, p.overall);
+        refreshValue(p, world.season);
+      }
+    }
+  }
   world.version = WORLD_VERSION;
   return true;
 }
