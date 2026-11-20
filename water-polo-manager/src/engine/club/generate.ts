@@ -4,6 +4,7 @@ import { NATIONS } from '../data/names';
 import { TOP_CLUB_LEVELS, plainName, starRating } from '../data/playerRatings';
 import { BIRTH_YEARS } from '../data/birthYears';
 import { generatePlayer } from '../player/generate';
+import { econOverall, stretchOverall } from '../player/scale';
 import { expectedWage } from '../player/value';
 import { remainingGrowth } from '../player/development';
 import { generateCoach, generateStaff, STAFF_ROLES } from '../staff/coach';
@@ -213,6 +214,8 @@ export function academyMean(academyLevel: number, directorRating: number, reputa
 
 export function generateYouth(ctx: GenCtx, clubId: string, mean: number, count: number, academyLevel: number): Player[] {
   const out: Player[] = [];
+  // Il potenziale medio del vivaio segue la scala nuova degli overall.
+  mean = stretchOverall(mean);
   for (let i = 0; i < count; i++) {
     const age = ctx.rng.int(15, 18);
     const golden = ctx.rng.chance(0.002 + academyLevel * 0.0015);
@@ -292,13 +295,14 @@ export function generateClub(ctx: GenCtx, seed: ClubSeed): GeneratedClub {
   const youth = generateYouth(ctx, id, academyMean(facilities.giovanile.level, 30, club.reputation), seed.isUser ? 3 : ctx.rng.int(2, 4), facilities.giovanile.level);
   club.youthIds = youth.map((p) => p.id);
   players.push(...youth);
-  const coachLevel = clamp(seed.level + ctx.rng.gauss(seed.isUser ? -2 : 0, 6), 15, 92);
+  // L'allenatore non cambia con la scala nuova degli overall: la sua qualità segue il livello "economico" della squadra.
+  const coachLevel = clamp(econOverall(seed.level) + ctx.rng.gauss(seed.isUser ? -2 : 0, 6), 15, 92);
   const coach = generateCoach(ctx, coachLevel, id);
   club.coachId = coach.id;
   const staff: StaffMember[] = [];
   const roles = seed.isUser ? (['vice', 'medico'] as const) : STAFF_ROLES.slice(0, seed.staffRoles);
   for (const r of roles) {
-    const s = generateStaff(ctx, r, clamp(seed.level + ctx.rng.gauss(-4, 7), 10, 90), id);
+    const s = generateStaff(ctx, r, clamp(econOverall(seed.level) + ctx.rng.gauss(-4, 7), 10, 90), id);
     club.staff[r] = s.id;
     staff.push(s);
   }

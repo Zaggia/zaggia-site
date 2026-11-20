@@ -64,7 +64,7 @@ describe('overall precisi dei giocatori veri', () => {
     expect(migrateWorld(w)).toBe(true);
     expect(g.overall).toBe(97);
     expect(g.rated).toBe(true);
-    expect(w.version).toBe(12);
+    expect(w.version).toBe(13);
   });
 });
 
@@ -157,3 +157,48 @@ describe('allenamento e declino', () => {
   });
 });
 
+
+describe('bilanciamento dei livelli (scala nuova)', () => {
+  it('A2, B e C sono molto più alte di prima, con salti netti tra categorie, e gli stipendi restano quelli di prima', async () => {
+    const { expectedWage } = await import('../engine/player/value');
+    const { econOverall, stretchOverall } = await import('../engine/player/scale');
+    const w = newWorld(4);
+    const med = (div: string) => {
+      const ps = Object.values(w.clubs).filter((c) => c.division === div && !c.isUser).flatMap((c) => c.playerIds.map((id) => w.players[id].overall)).sort((a, b) => a - b);
+      return ps[Math.floor(ps.length / 2)];
+    };
+    const [a1, a2, b, c] = [med('A1'), med('A2'), med('B'), med('C')];
+    expect(a2, 'A2 non è più da serie C').toBeGreaterThanOrEqual(61);
+    expect(b).toBeGreaterThanOrEqual(51);
+    expect(c).toBeGreaterThanOrEqual(41);
+    expect(a1 - a2).toBeGreaterThanOrEqual(8);
+    expect(a2 - b).toBeGreaterThanOrEqual(7);
+    expect(b - c).toBeGreaterThanOrEqual(7);
+    // La scala economica è l'inverso della scala nuova: un overall di C di oggi costa come uno di C di prima.
+    expect(Math.abs(econOverall(stretchOverall(35)) - 35)).toBeLessThan(0.5);
+    const p = Object.values(w.players).find((x) => x.clubId && !x.youth && x.overall >= 50 && x.overall <= 52)!;
+    expect(expectedWage(p, w.season)).toBeLessThan(2600);
+  });
+
+  it('le vecchie carriere salgono sulla scala nuova con la migrazione v13 (la tua squadra compresa) e i soldi restano gli stessi', async () => {
+    const { econOverall } = await import('../engine/player/scale');
+    const w = newWorld(6);
+    // Si riporta il mondo alla scala vecchia: tutti i non-A1 non famosi scendono alla scala economica.
+    const { tuneOverall } = await import('../engine/player/generate');
+    const { computeOverall } = await import('../engine/player/attributes');
+    for (const p of Object.values(w.players)) {
+      const club = p.clubId ? w.clubs[p.clubId] : null;
+      if (p.rated || (club?.division === 'A1' && !club.isUser) || !club) continue;
+      tuneOverall(p.attrs, p.role, Math.round(econOverall(p.overall)));
+      p.overall = computeOverall(p.attrs, p.role);
+    }
+    const user = w.clubs[w.userClubId];
+    const before = user.playerIds.map((id) => w.players[id].overall).reduce((a, b) => a + b, 0) / user.playerIds.length;
+    w.version = 12;
+    expect(migrateWorld(w)).toBe(true);
+    const after = user.playerIds.map((id) => w.players[id].overall).reduce((a, b) => a + b, 0) / user.playerIds.length;
+    expect(after).toBeGreaterThan(before + 6);
+    const b = Object.values(w.clubs).filter((x) => x.division === 'B' && !x.isUser).flatMap((x) => x.playerIds.map((id) => w.players[id].overall));
+    expect(b.reduce((a, v) => a + v, 0) / b.length).toBeGreaterThan(48);
+  });
+});

@@ -1,5 +1,6 @@
 import type { Player } from '../types';
 import { clamp, niceMoney } from '../util';
+import { econOverall } from './scale';
 
 export function ageOf(p: { birthYear: number }, season: number): number {
   return season - p.birthYear;
@@ -7,7 +8,8 @@ export function ageOf(p: { birthYear: number }, season: number): number {
 
 /** Stipendio annuo atteso in base al livello del giocatore (in euro). */
 export function expectedWage(p: Player, season: number): number {
-  const ovr = p.overall;
+  // Stipendi e valori sono tarati sulla scala economica: gli overall delle categorie minori sono più alti di prima, i soldi no.
+  const ovr = econOverall(p.overall);
   const age = ageOf(p, season);
   let w = 1200 * Math.exp(0.075 * (ovr - 35)) * (1 + Math.max(0, ovr - 80) * 0.08);
   // La reputazione personale fa salire le pretese.

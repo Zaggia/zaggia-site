@@ -12,6 +12,7 @@ import { clamp, lerp } from '../util';
 import { generateClub } from '../club/generate';
 import { generateCoach, generateStaff, STAFF_ROLES } from '../staff/coach';
 import { generatePlayer } from '../player/generate';
+import { stretchOverall } from '../player/scale';
 import { startSeason } from '../season/start';
 import { balancePyramid } from './pyramid';
 import { capForeignStrength } from './migrate';
@@ -21,7 +22,7 @@ import { ctxOf, type GenCtx } from './context';
 import { setTicketPrices } from '../club/manage';
 import { newFinances } from '../economy/ledger';
 
-export const WORLD_VERSION = 12;
+export const WORLD_VERSION = 13;
 
 export interface NewCareerOptions {
   careerName: string;
@@ -207,7 +208,7 @@ export function createWorld(opts: NewCareerOptions): World {
   }
   // Svincolati, allenatori e staff senza squadra.
   for (let i = 0; i < 180; i++) {
-    const p = generatePlayer(ctx, { level: clamp(rng.gauss(36, 11), 18, 72), foreignChance: 0.25 });
+    const p = generatePlayer(ctx, { level: stretchOverall(clamp(rng.gauss(36, 11), 18, 72)), foreignChance: 0.25 });
     world.players[p.id] = p;
   }
   for (let i = 0; i < 40; i++) {
@@ -236,7 +237,7 @@ export function createWorld(opts: NewCareerOptions): World {
 export function addForeignClub(world: World, ctx: GenCtx, fc: RealForeignClub, rank: number, usedShort: Set<string>) {
   const nation = NATIONS[fc.nation];
   const size = FOREIGN_CITY_SIZE[fc.city] ?? 2;
-  const level = clamp(52 + nation.school * 4.2 - rank * 2.4 + size * 0.8 + (fc.bonus ?? 0) + ctx.rng.gauss(0, 1.5), 48, 82);
+  const level = clamp(57 + nation.school * 4.2 - rank * 2.4 + size * 0.8 + (fc.bonus ?? 0) + ctx.rng.gauss(0, 1.5), 52, 86);
   const short = !usedShort.has(fc.short) ? (usedShort.add(fc.short), fc.short) : makeShort(fc.city, usedShort);
   const g = generateClub(ctx, {
     name: fc.name,

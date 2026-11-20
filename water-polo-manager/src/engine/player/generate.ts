@@ -5,6 +5,7 @@ import type { GenCtx } from '../world/context';
 import { ROLE_WEIGHTS, computeOverall, emptyAttributes } from './attributes';
 import { expectedWage, marketValue } from './value';
 import { remainingGrowth } from './development';
+import { econOverall } from './scale';
 
 export interface PlayerGenOptions {
   level: number;
@@ -180,7 +181,8 @@ export function generatePlayer(ctx: GenCtx, opts: PlayerGenOptions): Player {
     condition: ctx.rng.int(88, 100),
     form: [],
     experience: clamp(Math.round((age - 15) * 4 + overall * 0.35 + ctx.rng.gauss(0, 6)), 0, 100),
-    reputation: clamp(Math.round(overall * 1.1 - 22 + ctx.rng.gauss(0, 5)), 1, 99),
+    // La reputazione personale (e quindi gli ingaggi richiesti) segue la scala economica, non quella degli overall.
+    reputation: clamp(Math.round(econOverall(overall) * 1.1 - 22 + ctx.rng.gauss(0, 5)), 1, 99),
     value: 0,
     transferListed: false,
     loanListed: false,

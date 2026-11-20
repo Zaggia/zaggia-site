@@ -6,6 +6,7 @@ import { ALL_ATTRS, GK_ATTRS, MENT_ATTRS, PHYS_ATTRS, TECH_ATTRS, type AttrKey, 
 import { clamp } from '../util';
 import { ROLE_WEIGHTS, computeOverall } from './attributes';
 import { ageOf, refreshValue } from './value';
+import { econOverall } from './scale';
 import { physicalFactor, trainingFactor } from '../club/facilities';
 
 /** Crescita annua dell'overall in funzione dell'età (prima dei moltiplicatori). */
@@ -150,7 +151,7 @@ export function seasonEndDevelopment(world: World, p: Player, rng: Rng, avgRatin
     p.potential = Math.max(p.overall, Math.min(p.potential, p.overall + (age >= 30 ? 0 : 2)));
   }
   p.experience = clamp(p.experience + 3 + p.playingTime * 5, 0, 100);
-  p.reputation = clamp(Math.round(p.reputation * 0.7 + (p.overall * 1.1 - 22) * 0.3 + (avgRating > 6.8 ? 2 : 0)), 1, 99);
+  p.reputation = clamp(Math.round(p.reputation * 0.7 + (econOverall(p.overall) * 1.1 - 22) * 0.3 + (avgRating > 6.8 ? 2 : 0)), 1, 99);
 }
 
 /** Probabilità di ritiro a fine stagione. */

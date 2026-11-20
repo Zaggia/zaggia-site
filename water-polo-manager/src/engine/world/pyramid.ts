@@ -11,7 +11,7 @@ import { shiftClub } from './migrate';
 import { tuneOverall } from '../player/generate';
 
 /** Fasce di forza di squadra per categoria (le stesse delle regole delle nuove carriere). */
-export const PYRAMID_BANDS: Record<string, [number, number]> = { A1: [64, 92], A2: [47, 62], B: [34, 50], C: [24, 44] };
+export const PYRAMID_BANDS: Record<string, [number, number]> = { A1: [68, 94], A2: [58, 78], B: [48, 68], C: [38, 58] };
 /** Quanto un giocatore può stare sotto/sopra il livello della propria squadra. */
 export const BELOW = 8;
 export const ABOVE = 7;
@@ -24,7 +24,7 @@ function shiftPlayer(world: World, p: Player, delta: number) {
 }
 
 /** Forza media delle società (tranne la tua) in ogni categoria: è quella di una carriera appena creata e si mantiene nel tempo. */
-export const DIVISION_MEAN: Record<string, number> = { A1: 78, A2: 55, B: 43, C: 35 };
+export const DIVISION_MEAN: Record<string, number> = { A1: 78, A2: 66, B: 56, C: 46 };
 
 /**
  * Impedisce l'inflazione: mercato e sviluppo fanno salire piano piano il livello medio dei club gestiti dal computer
@@ -32,7 +32,7 @@ export const DIVISION_MEAN: Record<string, number> = { A1: 78, A2: 55, B: 43, C:
  * senza che questo dipenda dalle sue scelte. A ogni stagione la media di ogni categoria torna a quella di partenza.
  * Le differenze tra i club restano: si sposta in blocco la forza di tutti.
  */
-export function stabilizeLevels(world: World, maxStep = 3): number {
+export function stabilizeLevels(world: World, maxStep = 5): number {
   let changed = 0;
   for (const [div, target] of Object.entries(DIVISION_MEAN)) {
     const clubs = Object.values(world.clubs).filter((c) => c.country === 'ITA' && c.division === div && !c.isUser);
@@ -40,7 +40,7 @@ export function stabilizeLevels(world: World, maxStep = 3): number {
     const strengths = clubs.map((c) => teamStrength(world, c));
     const mean = strengths.reduce((a, b) => a + b, 0) / strengths.length;
     const delta = clamp(target - mean, -maxStep, maxStep);
-    if (Math.abs(target - mean) < 1) continue;
+    if (Math.abs(target - mean) < 0.6) continue;
     clubs.forEach((c, i) => { shiftClub(world, c.id, Math.round(strengths[i] + delta)); changed++; });
   }
   return changed;
@@ -80,7 +80,7 @@ export function sustainTalent(world: World, maxStep = 4): number {
 }
 
 /** Riporta ogni società italiana (tranne la tua) nella fascia della sua categoria e avvicina i giocatori al livello di squadra. */
-export function balancePyramid(world: World, maxStep = 3): number {
+export function balancePyramid(world: World, maxStep = 5): number {
   let changed = stabilizeLevels(world, maxStep);
   for (const club of Object.values(world.clubs)) {
     if (club.isUser || club.country !== 'ITA') continue;

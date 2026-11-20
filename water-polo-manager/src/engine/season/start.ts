@@ -9,6 +9,7 @@ import type { Rng } from '../rng';
 import type { World } from '../types';
 import { createContinental, createEuropeanSupercup, createLeague, createNationalCup, createSupercup, foreignRanking } from '../competition/builder';
 import { generatePlayer } from '../player/generate';
+import { stretchOverall } from '../player/scale';
 import { aiHireCoach, aiSummerPlanning, ownerInvestment, setAiBudgets } from '../ai/clubAI';
 import { autoLineup } from '../club/lineup';
 import { chooseTactics } from '../ai/tactics';
@@ -107,7 +108,7 @@ function replenishFreeAgents(world: World, rng: Rng) {
   }
   const target = 220;
   for (let i = free.length; i < target; i++) {
-    const level = clamp(rng.gauss(36, 11), 18, 72);
+    const level = stretchOverall(clamp(rng.gauss(36, 11), 18, 72));
     const p = generatePlayer(ctx, { level, foreignChance: 0.3, age: rng.int(19, 32) });
     world.players[p.id] = p;
   }

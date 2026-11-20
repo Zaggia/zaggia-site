@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createWorld } from '../engine/world/generate';
 import { REAL_FOREIGN } from '../engine/data/realClubs';
 import { TOP_CLUB_LEVELS } from '../engine/data/playerRatings';
+import { stretchOverall } from '../engine/player/scale';
 import { migrateWorld } from '../engine/world/migrate';
 import { teamStrength } from '../engine/club/lineup';
 import { buildMatchSetup } from '../engine/match/setup';
@@ -54,7 +55,8 @@ it('una carriera salvata con le vecchie forze viene riequilibrata (gironi con fo
   const spreadBefore = Math.max(...groups.map(spread));
   w.version = 2;
   expect(migrateWorld(w)).toBe(true);
-  expect(teamStrength(w, user)).toBe(before);
+  // La tua squadra non perde terreno: sale come tutte le altre sulla scala nuova degli overall (migrazione v13).
+  expect(Math.abs(teamStrength(w, user) - Math.round(stretchOverall(before)))).toBeLessThanOrEqual(2);
   const spreadAfter = groups.map(spread);
   expect(Math.min(...spreadAfter), 'ogni girone ha squadre forti e deboli').toBeGreaterThan(Math.max(8, spreadBefore + 3));
   const means = groups.map((g) => g.reduce((t, c) => t + teamStrength(w, c), 0) / g.length);
@@ -101,7 +103,12 @@ it('una carriera creata con società e giocatori inventati passa al mondo reale 
     const bonus = REAL_FOREIGN.find((f) => f.name === name)?.bonus ?? 0;
     // I club di vertice e quelli di A1 vengono anche rinforzati (migrazioni v9 e v12): possono solo salire.
     if (c && (TOP_CLUB_LEVELS[name] != null || c.division === 'A1')) expect(teamStrength(w, c) - strengthBefore[c.id], name).toBeGreaterThanOrEqual(-3);
-    else if (c) expect(Math.abs(teamStrength(w, c) - strengthBefore[c.id]), name).toBeLessThanOrEqual(3 + bonus);
+    // Le altre categorie e i club esteri salgono sulla scala nuova (migrazione v13).
+    else if (c) {
+      const d = teamStrength(w, c) - strengthBefore[c.id];
+      expect(d, name).toBeGreaterThanOrEqual(-6);
+      expect(d, name).toBeLessThanOrEqual(15 + bonus);
+    }
   }
   // I giocatori inventati sostituiti sono ritirati: non entrano nel mercato come svincolati.
   const freeAgents = Object.values(w.players).filter((p) => !p.clubId && !p.retired).length;
@@ -132,7 +139,7 @@ describe('playoff promozione in Serie B', () => {
     b.postseason = [];
     w.version = 4;
     expect(migrateWorld(w)).toBe(true);
-    expect(w.version).toBe(12);
+    expect(w.version).toBe(13);
     expect(b.directPromotion).toBe(0);
     expect(b.postseason).toHaveLength(1);
   });

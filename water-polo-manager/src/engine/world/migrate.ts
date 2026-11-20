@@ -20,6 +20,7 @@ import { ctxOf } from './context';
 import { assignRealRosters } from './migrateReal';
 import { TOP_CLUB_LEVELS, starRating } from '../data/playerRatings';
 import { tuneOverall } from '../player/generate';
+import { stretchOverall } from '../player/scale';
 
 /** Porta un mondo salvato alla versione corrente. Restituisce true se è stato modificato. */
 export function migrateWorld(world: World): boolean {
@@ -107,6 +108,16 @@ export function migrateWorld(world: World): boolean {
       }
     }
   }
+  if (from < 13) {
+    // v13: bilanciamento dei livelli: A2, B e C sono più alte (A2 intorno a 66, B 56, C 46; A1 78) e i giocatori delle categorie minori
+    // salgono di conseguenza. Stipendi e valori restano quelli di prima (sono tarati sulla scala economica).
+    for (const lg of world.rules.leagues) {
+      const def = DEFAULT_RULES.leagues.find((l) => l.key === lg.key);
+      if (def) lg.strength = [...def.strength];
+    }
+    stretchWorldLevels(world);
+    balancePyramid(world, 10);
+  }
   world.version = WORLD_VERSION;
   return true;
 }
@@ -151,7 +162,7 @@ export function shiftClub(world: World, clubId: string, target: number): void {
     if (Math.abs(delta) < 0.6) break;
     // I giocatori famosi con overall fissato non si spostano: se la squadra è piena di campioni lo spostamento ha un limite.
     moved += delta;
-    if (Math.abs(moved) > 24) break;
+    if (Math.abs(moved) > 24 && club.playerIds.some((id) => world.players[id]?.rated)) break;
     for (const id of club.playerIds) {
       const p = world.players[id];
       if (!p || p.rated) continue;
@@ -231,4 +242,34 @@ export function applyStarRatings(world: World): { stars: number; clubs: number }
     for (const id of club.playerIds) if (world.players[id]?.real) world.players[id].rated = true;
   }
   return { stars, clubs };
+}
+
+/**
+ * Porta i giocatori delle categorie minori (A2, B, C, club esteri non di vertice, svincolati e vivai) sulla scala nuova degli overall.
+ * I campioni con valore fisso e i giocatori di A1 (già alzati dalla v12) non si toccano; se sei in A1 la tua squadra prende i +4 che
+ * gli altri club di A1 hanno già avuto. Il potenziale sale con l'overall.
+ */
+export function stretchWorldLevels(world: World): number {
+  const user = world.clubs[world.userClubId];
+  const userInA1 = !!user && user.division === 'A1';
+  let changed = 0;
+  for (const p of Object.values(world.players)) {
+    if (p.retired || p.rated || starRating(`${p.firstName} ${p.lastName}`) != null) continue;
+    const club = p.clubId ? world.clubs[p.clubId] : null;
+    let target: number;
+    if (club?.division === 'A1' && !club.isUser) continue;
+    if (club?.isUser && userInA1) target = Math.min(94, p.overall + 4);
+    else if (!club) {
+      if (p.overall >= 66) continue;
+      target = stretchOverall(p.overall);
+    } else target = stretchOverall(p.overall);
+    target = Math.round(target);
+    if (target === p.overall) continue;
+    tuneOverall(p.attrs, p.role, target);
+    p.overall = computeOverall(p.attrs, p.role);
+    p.potential = Math.max(Math.round(club?.isUser && userInA1 ? p.potential + 4 : stretchOverall(p.potential)), p.overall);
+    refreshValue(p, world.season);
+    changed++;
+  }
+  return changed;
 }
