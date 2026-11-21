@@ -12,6 +12,7 @@ import { STATUS_LABELS } from '../../engine/transfer/contracts';
 import { Crest } from './Crest';
 import { Avatar } from './Avatar';
 import { Badge, Bar, DataTable, Flag, Ovr, type Column } from './ui';
+import { GK_CAP } from './Cap';
 import { cls, fmtK, formatShortDate } from '../format';
 
 export function ClubName({ club, size = 22, link = true, short }: { club: Club; size?: number; link?: boolean; short?: boolean }) {
@@ -35,7 +36,7 @@ export function PlayerName({ p, world, avatar }: { p: Player; world: World; avat
   const club = p.clubId ? world.clubs[p.clubId] : null;
   return (
     <button className="inline-flex items-center gap-2 min-w-0 hover:underline text-left" onClick={(e) => { e.stopPropagation(); go('player', p.id); }}>
-      {avatar && <Avatar player={p} color={club?.colors[0] ?? '#334155'} size={28} />}
+      {avatar && <Avatar player={p} color={club?.colors[0] ?? '#4a78c4'} size={36} cap={false} />}
       <span className="truncate font-medium">{p.firstName[0]}. {p.lastName}</span>
     </button>
   );
@@ -231,4 +232,61 @@ export function KnowledgeNote({ world, p }: { world: World; p: Player }) {
   const k = knowledgeOf(world, p);
   if (k >= 100) return null;
   return <span className="text-[11px] text-faint">Conoscenza degli osservatori: {k}%</span>;
+}
+
+
+export const ROLE_COLOR: Record<Player['role'], string> = {
+  POR: '#ff5c6e', CEN: '#ffa63d', DIF: '#4cc3ff', CVA: '#3fdd86', MAN: '#b592ff', ALA: '#34dcf2', UNI: '#ffc83d',
+};
+
+/** Carta giocatore: volto grande, valore, ruolo e stato. Pensata per essere toccata. */
+export function PlayerCard({ p, world, own, onClick, selected }: { p: Player; world: World; own?: boolean; onClick?: () => void; selected?: boolean }) {
+  const go = useGame((s) => s.go);
+  const club = p.clubId ? world.clubs[p.clubId] : null;
+  const color = club?.colors[0] ?? '#4a78c4';
+  const showOwn = own || p.clubId === world.userClubId;
+  const r = overallRange(world, p);
+  const rc = ROLE_COLOR[p.role];
+  return (
+    <button
+      onClick={onClick ?? (() => go('player', p.id))}
+      className={cls(
+        'tile panel-flat text-left p-3.5 pt-3 flex flex-col gap-2.5 relative overflow-hidden',
+        selected && '!border-aqua',
+      )}
+      style={{ background: `linear-gradient(160deg, ${rc}2e 0%, transparent 55%), var(--color-deep)` }}
+    >
+      <div className="flex items-start gap-3">
+        <Avatar player={p} color={p.role === 'POR' ? GK_CAP : color} size={68} />
+        <div className="min-w-0 flex-1 pt-0.5">
+          <div className="font-bold text-[15px] leading-tight truncate">{p.firstName[0]}. {p.lastName}</div>
+          <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+            <span className="rounded-full px-2 py-0.5 text-[11px] font-extrabold text-[#06223f]" style={{ background: rc }}>{ROLE_SHORT[p.role]}</span>
+            <Flag code={p.nationality} />
+            <span className="text-xs text-mute num">{ageOf(p, world.season)} anni</span>
+          </div>
+        </div>
+        {showOwn ? <Ovr v={p.overall} size="lg" /> : <Ovr v={(r[0] + r[1]) / 2} size="lg" range={r} />}
+      </div>
+      {showOwn ? (
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-mute">
+          <div>Forma fisica<Bar value={p.condition} height={8} className="mt-0.5" /></div>
+          <div>Morale<Bar value={p.morale} height={8} color={p.morale < 35 ? '#ff5c6e' : p.morale < 55 ? '#ffa63d' : '#3fdd86'} className="mt-0.5" /></div>
+        </div>
+      ) : (
+        <div className="text-xs text-mute truncate">{club ? club.name : 'Svincolato'} · valore {fmtK(p.value)}</div>
+      )}
+      <div className="min-h-[22px]"><StatusBadges p={p} world={world} /></div>
+    </button>
+  );
+}
+
+export function PlayerCards({ world, players, own }: { world: World; players: Player[]; own?: boolean }) {
+  const sorted = [...players].sort((a, b) => b.overall - a.overall);
+  if (!sorted.length) return <div className="text-center text-mute text-sm py-8">Nessun giocatore.</div>;
+  return (
+    <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      {sorted.map((p) => <PlayerCard key={p.id} p={p} world={world} own={own} />)}
+    </div>
+  );
 }

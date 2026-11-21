@@ -1,5 +1,6 @@
-import { Icon } from '../components/icons';
-import { useState } from 'react';
+import { Icon, GameIcon } from '../components/icons';
+import { ROLE_COLOR } from '../components/game';
+import { useEffect, useState } from 'react';
 import { useGame, useWorld } from '../../store/game';
 import { Avatar } from '../components/Avatar';
 import { Badge, Bar, Button, Modal, Ovr, PageHeader, Panel } from '../components/ui';
@@ -10,8 +11,20 @@ import { cls } from '../format';
 import { nextFixture } from '../../engine/world/queries';
 
 const POS: Record<number, [number, number]> = {
-  6: [50, 17], 1: [86, 24], 5: [14, 24], 2: [74, 50], 4: [26, 50], 3: [50, 64], 0: [50, 90],
+  6: [50, 17], 1: [86, 24], 5: [14, 24], 2: [74, 50], 4: [26, 50], 3: [50, 58], 0: [50, 86],
 };
+
+function useSmallScreen(): boolean {
+  const q = '(max-width: 639px)';
+  const [small, setSmall] = useState(() => typeof window !== 'undefined' && window.matchMedia(q).matches);
+  useEffect(() => {
+    const m = window.matchMedia(q);
+    const on = () => setSmall(m.matches);
+    m.addEventListener('change', on);
+    return () => m.removeEventListener('change', on);
+  }, []);
+  return small;
+}
 
 export function LineupScreen() {
   const world = useWorld();
@@ -19,6 +32,7 @@ export function LineupScreen() {
   const club = world.clubs[world.userClubId];
   const l = club.lineup;
   const [sel, setSel] = useState<number | 'bench' | null>(null);
+  const small = useSmallScreen();
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveName, setSaveName] = useState('');
   const squad = [...club.playerIds, ...club.youthIds].map((id) => world.players[id]).filter(Boolean);
@@ -69,17 +83,18 @@ export function LineupScreen() {
       <PageHeader
         title="Formazione"
         subtitle={next ? `Prossima partita: ${next.label}` : 'Scegli i 7 in acqua e la panchina'}
+        icon={<GameIcon name="tactics" size={56} />}
         actions={<>
-          <Button variant="outline" onClick={() => s.act((w) => { const c = w.clubs[w.userClubId]; c.lineup = autoLineup(w, c); }, 'Formazione consigliata applicata.')}>Formazione consigliata</Button>
-          <Button variant="outline" onClick={() => { setSaveName(`Formazione ${club.savedLineups.length + 1}`); setSaveOpen(true); }}>Salva formazione</Button>
-          <Button variant="ghost" onClick={() => s.go('tattiche')}>Tattiche →</Button>
+          <Button variant="gold" icon="spark" title="Il gioco sceglie i migliori 7 e la panchina per te" onClick={() => s.act((w) => { const c = w.clubs[w.userClubId]; c.lineup = autoLineup(w, c); }, 'Formazione consigliata applicata.')}>Formazione consigliata</Button>
+          <Button variant="outline" icon="save" onClick={() => { setSaveName(`Formazione ${club.savedLineups.length + 1}`); setSaveOpen(true); }}>Salva formazione</Button>
+          <Button variant="primary" icon="tattiche" onClick={() => s.go('tattiche')}>Vai alle tattiche</Button>
         </>}
       />
-      <div className="grid xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] gap-5">
-        <div className="space-y-5">
-          <Panel title="In acqua" subtitle="Tocca una posizione, poi scegli il giocatore dall’elenco.">
-            <div className="relative water-bg rounded-xl overflow-hidden border border-line-2 aspect-[4/3.2] max-h-[560px] mx-auto">
-              <div className="absolute left-1/2 -translate-x-1/2 top-0 w-[28%] h-[4%] border-2 border-white/70 border-t-0 rounded-b" />
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] gap-5">
+        <div className="space-y-5 min-w-0">
+          <Panel icon="formazione" title="In acqua" subtitle="1) Tocca una posizione nella vasca  2) Scegli il giocatore dall’elenco a destra.">
+            <div className="relative water-bg rounded-3xl overflow-hidden border-4 border-[#e8f6ff]/80 shadow-[0_0_0_4px_rgba(10,40,90,0.6),inset_0_0_60px_rgba(0,40,90,0.5)] aspect-[4/5] sm:aspect-[4/3.2] sm:max-h-[580px] mx-auto">
+              <div className="absolute left-1/2 -translate-x-1/2 top-0 w-[28%] h-[4%] border-4 border-white border-t-0 rounded-b-xl bg-white/10" />
               <div className="absolute inset-x-0 top-[12%] border-t-2 border-dashed border-red-400/60" title="Linea dei 2 metri" />
               <div className="absolute inset-x-0 top-[30%] border-t-2 border-dashed border-yellow-300/60" title="Linea dei 5 metri" />
               <div className="absolute inset-x-0 bottom-[2%] border-t border-white/20" />
@@ -92,15 +107,22 @@ export function LineupScreen() {
                   <button
                     key={slot}
                     onClick={() => setSel(sel === slot ? null : slot)}
-                    className={cls('absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center w-24 group', sel === slot && 'z-10')}
+                    title={`${SLOT_LABELS[slot]}${p ? ': ' + p.firstName + ' ' + p.lastName : ': tocca per scegliere'}`}
+                    className={cls('absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center w-24 sm:w-28 group transition-transform', sel === slot ? 'z-10 scale-110' : 'hover:scale-105')}
                     style={{ left: `${x}%`, top: `${y}%` }}
                   >
-                    <div className={cls('rounded-2xl p-0.5 transition-all', sel === slot ? 'ring-2 ring-gold scale-110' : 'group-hover:ring-2 ring-aqua/60')}>
-                      {p ? <Avatar player={p} color={club.colors[0]} size={50} /> : <div className="w-[50px] h-[50px] rounded-xl border-2 border-dashed border-white/50 flex items-center justify-center text-white/70 text-xs font-bold">{SLOT_SHORT[slot]}</div>}
+                    <div className={cls('relative rounded-full transition-all', sel === slot && 'ring-4 ring-gold ring-offset-2 ring-offset-transparent animate-pulse')}>
+                      {p ? <Avatar player={p} color={club.colors[0]} size={small ? 50 : 66} /> : (
+                        <div className="w-[50px] h-[50px] sm:w-[66px] sm:h-[66px] rounded-full border-[3px] border-dashed border-white/80 bg-white/15 flex flex-col items-center justify-center text-white">
+                          <span className="font-display text-2xl font-extrabold leading-none">{SLOT_SHORT[slot]}</span>
+                          <span className="text-[9px] font-bold uppercase leading-none mt-0.5">tocca</span>
+                        </div>
+                      )}
+                      <span className="absolute -top-1 -left-1 flex h-6 w-6 items-center justify-center rounded-full bg-[#06223f] border-2 border-white text-[11px] font-extrabold text-white">{SLOT_SHORT[slot]}</span>
                     </div>
-                    <div className="mt-1 rounded-md bg-abyss/80 px-1.5 py-0.5 text-[11px] leading-tight text-center max-w-full">
-                      <div className="font-semibold truncate">{p ? p.lastName : SLOT_NAMES[slot]}</div>
-                      {p && <div className={cls('num', suit < 0.8 ? 'text-warn' : 'text-mute')}>{SLOT_SHORT[slot]} · {p.overall}{suit < 0.8 ? ' (fuori ruolo)' : ''}</div>}
+                    <div className="mt-1.5 rounded-full bg-[#06223f]/90 border border-white/25 px-2.5 py-0.5 text-[12px] leading-tight text-center max-w-full shadow-lg">
+                      <div className="font-bold truncate">{p ? p.lastName : SLOT_NAMES[slot]}</div>
+                      {p && <div className={cls('num font-semibold', suit < 0.8 ? 'text-warn' : 'text-aqua')}>{p.overall}{suit < 0.8 ? ' · fuori ruolo' : ''}</div>}
                     </div>
                   </button>
                 );
@@ -113,14 +135,14 @@ export function LineupScreen() {
             {typeof sel === 'number' && l.slots[sel] && (
               <div className="mt-3 flex justify-between items-center text-sm">
                 <span className="text-mute">Posizione selezionata: <b className="text-ink">{SLOT_LABELS[sel]}</b></span>
-                <Button size="sm" variant="ghost" onClick={() => clearSlot(sel)}>Libera posizione</Button>
+                <Button size="sm" variant="danger" icon="cross" onClick={() => clearSlot(sel)}>Libera posizione</Button>
               </div>
             )}
           </Panel>
           <Panel
             title={`Panchina (${l.bench.length}/${world.rules.matchSquadSize - 7})`}
             subtitle={<>Decidi quanto gioca ogni panchinaro: l’allenatore lo fa entrare a gioco fermo per rispettare i minuti, anche quando simuli la partita. Minuti previsti alla panchina: <b className="text-ink">{totalPlanned}</b> (il resto dei 224 della gara tocca ai titolari).</>}
-            actions={<Button size="sm" variant={sel === 'bench' ? 'gold' : 'outline'} onClick={() => setSel(sel === 'bench' ? null : 'bench')}>{sel === 'bench' ? 'Scegli dall’elenco…' : 'Aggiungi in panchina'}</Button>}
+            icon="rosa" actions={<Button size="sm" variant={sel === 'bench' ? 'gold' : 'success'} icon={sel === 'bench' ? 'next' : 'check'} onClick={() => setSel(sel === 'bench' ? null : 'bench')}>{sel === 'bench' ? 'Scegli dall’elenco…' : 'Aggiungi in panchina'}</Button>}
           >
             <div className="grid sm:grid-cols-2 gap-2">
               {l.bench.map((id) => {
@@ -133,9 +155,9 @@ export function LineupScreen() {
                 return (
                   <div key={id} className="panel-flat px-2.5 py-2">
                     <div className="flex items-center gap-2">
-                      <Avatar player={p} color={club.colors[0]} size={30} />
+                      <Avatar player={p} color={club.colors[0]} size={44} cap={false} />
                       <div className="flex-1 min-w-0 text-sm"><div className="font-medium truncate">{p.lastName}</div><div className="text-[11px] text-mute">{ROLE_SHORT[p.role]} · {p.overall}</div></div>
-                      <button className="text-mute hover:text-bad px-1" onClick={() => removeFromBench(id)} aria-label="Togli">×</button>
+                      <button className="press flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-mute hover:bg-bad hover:text-white" title="Togli dalla panchina" onClick={() => removeFromBench(id)} aria-label="Togli"><Icon name="cross" size={14} weight="bold" /></button>
                     </div>
                     <div className="mt-2 flex items-center gap-2">
                       <label className="text-[11px] text-mute shrink-0" htmlFor={`min-${id}`}>Minuti</label>
@@ -161,7 +183,7 @@ export function LineupScreen() {
               })}
             </div>
           </Panel>
-          <Panel title="Capitano e rigoristi">
+          <Panel icon="star" title="Capitano e rigoristi">
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <div className="text-xs text-mute mb-1">Capitano</div>
@@ -186,30 +208,30 @@ export function LineupScreen() {
             </div>
           </Panel>
         </div>
-        <div className="space-y-5">
+        <div className="space-y-5 min-w-0">
           {issues.length > 0 && (
-            <Panel title="Controlli">
+            <Panel icon="warn" title="Controlli">
               <ul className="space-y-1 text-sm">
                 {issues.map((i, k) => <li key={k} className={i.level === 'error' ? 'text-bad' : 'text-warn'}><Icon name={i.level === 'error' ? 'cross' : 'warn'} size={14} className="inline align-[-2px] mr-1" />{i.text}</li>)}
               </ul>
             </Panel>
           )}
-          <Panel title={sel == null ? 'Giocatori disponibili' : sel === 'bench' ? 'Scegli chi va in panchina' : `Scegli: ${SLOT_LABELS[sel]}`} subtitle="Nessun limite di stranieri: schiera chi vuoi.">
-            <div className="space-y-1 max-h-[640px] overflow-y-auto pr-1">
+          <Panel icon="rosa" title={sel == null ? 'Giocatori disponibili' : sel === 'bench' ? 'Scegli chi va in panchina' : `Scegli: ${SLOT_LABELS[sel]}`} subtitle="Nessun limite di stranieri: schiera chi vuoi.">
+            <div className="space-y-1.5 max-h-[680px] overflow-y-auto pr-1">
               {candidates.map((p) => {
                 const where = l.slots.indexOf(p.id) >= 0 ? SLOT_SHORT[l.slots.indexOf(p.id)] : l.bench.includes(p.id) ? 'PAN' : '';
                 const suit = typeof sel === 'number' ? slotSuitability(p.role, p.hand, sel) : 1;
                 return (
-                  <button key={p.id} disabled={sel == null} onClick={() => place(p)} className={cls('w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left', sel != null ? 'hover:bg-aqua/10' : 'cursor-default', where && 'opacity-70')}>
-                    <Avatar player={p} color={club.colors[0]} size={32} />
+                  <button key={p.id} disabled={sel == null} onClick={() => place(p)} className={cls('w-full flex items-center gap-3 px-2.5 py-2 rounded-2xl text-left border-2 border-white/[0.07] bg-white/[0.04] transition-colors', sel != null ? 'hover:bg-aqua/15 hover:border-aqua/60 active:scale-[0.99]' : 'cursor-default', where && 'opacity-60')}>
+                    <Avatar player={p} color={club.colors[0]} size={46} cap={false} />
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate">{p.firstName[0]}. {p.lastName} {p.youth && <Badge tone="violet">giovane</Badge>} {isForeign(p, club) && <Badge>straniero</Badge>}</div>
-                      <div className="text-[11px] text-mute">{ROLE_SHORT[p.role]}{p.hand === 'L' ? ' · mancino' : ''} · morale {Math.round(p.morale)}</div>
+                      <div className="text-[15px] font-bold truncate">{p.firstName[0]}. {p.lastName} {p.youth && <Badge tone="violet">giovane</Badge>} {isForeign(p, club) && <Badge>straniero</Badge>}</div>
+                      <div className="text-[12px] text-mute flex items-center gap-1.5"><span className="rounded-full px-1.5 text-[10.5px] font-extrabold text-[#06223f]" style={{ background: ROLE_COLOR[p.role] }}>{ROLE_SHORT[p.role]}</span>{p.hand === 'L' ? 'mancino · ' : ''}morale {Math.round(p.morale)}</div>
                     </div>
                     <div className="w-16"><Bar value={p.condition} height={4} /></div>
                     {typeof sel === 'number' && <span className={cls('text-[11px] w-10 text-right num', suit < 0.8 ? 'text-warn' : 'text-good')}>{Math.round(suit * 100)}%</span>}
                     <Ovr v={p.overall} size="sm" />
-                    <span className="w-8 text-[10px] text-aqua font-bold text-right">{where}</span>
+                    <span className={cls('w-9 text-[11px] font-extrabold text-center rounded-full', where ? 'bg-aqua text-[#032a3a]' : '')}>{where}</span>
                   </button>
                 );
               })}
@@ -219,14 +241,14 @@ export function LineupScreen() {
             )}
           </Panel>
           {club.savedLineups.length > 0 && (
-            <Panel title="Formazioni salvate">
+            <Panel icon="save" title="Formazioni salvate">
               <ul className="space-y-1">
                 {club.savedLineups.map((sl, i) => (
                   <li key={i} className="flex items-center justify-between gap-2 text-sm">
                     <span className="truncate">{sl.name}</span>
                     <span className="flex gap-1">
-                      <Button size="sm" variant="outline" onClick={() => s.act((w) => { const c = w.clubs[w.userClubId]; c.lineup = structuredClone(c.savedLineups[i].lineup); }, `Caricata: ${sl.name}`)}>Carica</Button>
-                      <Button size="sm" variant="ghost" onClick={() => s.act((w) => { w.clubs[w.userClubId].savedLineups.splice(i, 1); })}>Elimina</Button>
+                      <Button size="sm" variant="success" icon="check" onClick={() => s.act((w) => { const c = w.clubs[w.userClubId]; c.lineup = structuredClone(c.savedLineups[i].lineup); }, `Caricata: ${sl.name}`)}>Carica</Button>
+                      <Button size="sm" variant="danger" icon="cross" onClick={() => s.act((w) => { w.clubs[w.userClubId].savedLineups.splice(i, 1); })}>Elimina</Button>
                     </span>
                   </li>
                 ))}
@@ -236,7 +258,7 @@ export function LineupScreen() {
         </div>
       </div>
       <Modal open={saveOpen} onClose={() => setSaveOpen(false)} title="Salva formazione"
-        footer={<><Button variant="ghost" onClick={() => setSaveOpen(false)}>Annulla</Button><Button onClick={() => { s.act((w) => { const c = w.clubs[w.userClubId]; c.savedLineups.push({ name: saveName.trim() || 'Formazione', lineup: structuredClone(c.lineup) }); if (c.savedLineups.length > 8) c.savedLineups.shift(); }, 'Formazione salvata.'); setSaveOpen(false); }}>Salva</Button></>}>
+        footer={<><Button variant="outline" onClick={() => setSaveOpen(false)}>Annulla</Button><Button variant="success" icon="save" onClick={() => { s.act((w) => { const c = w.clubs[w.userClubId]; c.savedLineups.push({ name: saveName.trim() || 'Formazione', lineup: structuredClone(c.lineup) }); if (c.savedLineups.length > 8) c.savedLineups.shift(); }, 'Formazione salvata.'); setSaveOpen(false); }}>Salva</Button></>}>
         <input className="w-full" value={saveName} onChange={(e) => setSaveName(e.target.value)} autoFocus />
         <p className="text-xs text-faint mt-2">Puoi salvare fino a 8 formazioni (per esempio una per le partite in casa e una in trasferta).</p>
       </Modal>

@@ -86,28 +86,28 @@ function MatchPrep({ world, f, isToday }: { world: World; f: Fixture; isToday: b
             </ul>
           )}
           <div className="flex flex-wrap gap-2 mt-3">
-            <Button size="sm" variant="outline" onClick={() => s.go('formazione')}>Formazione</Button>
-            <Button size="sm" variant="outline" onClick={() => s.go('tattiche')}>Tattiche</Button>
+            <Button size="sm" variant="outline" icon="formazione" onClick={() => s.go('formazione')}>Formazione</Button>
+            <Button size="sm" variant="outline" icon="tattiche" onClick={() => s.go('tattiche')}>Tattiche</Button>
           </div>
           {isToday ? (
             <div className="mt-5">
               {!enough ? (
                 <div className="space-y-2">
                   <p className="text-sm text-bad">Non hai 7 giocatori disponibili. Tessera degli svincolati, promuovi dei giovani oppure accetta la sconfitta a tavolino.</p>
-                  <Button variant="danger" onClick={() => s.forfeit()}>Rinuncia alla partita (0–5)</Button>
+                  <Button variant="danger" icon="cross" onClick={() => s.forfeit()}>Rinuncia alla partita (0–5)</Button>
                 </div>
               ) : (
                 <div className="grid sm:grid-cols-3 gap-2">
-                  <Button variant="gold" size="lg" disabled={errors.length > 0} onClick={() => s.startMatch('live')}>Segui la cronaca</Button>
-                  <Button size="lg" disabled={errors.length > 0} onClick={() => s.startMatch('fast')}>Simula veloce</Button>
-                  <Button size="lg" variant="outline" disabled={errors.length > 0} onClick={() => s.startMatch('instant')}>Risultato immediato</Button>
+                  <Button variant="gold" size="lg" icon="play" title="Guarda la partita minuto per minuto e cambia tattica mentre si gioca" disabled={errors.length > 0} onClick={() => s.startMatch('live')}>Segui la cronaca</Button>
+                  <Button size="lg" variant="primary" icon="forward" title="Simula la partita velocemente e mostra solo il tabellino" disabled={errors.length > 0} onClick={() => s.startMatch('fast')}>Simula veloce</Button>
+                  <Button size="lg" variant="outline" icon="bolt" title="Vedi subito il risultato finale" disabled={errors.length > 0} onClick={() => s.startMatch('instant')}>Risultato immediato</Button>
                 </div>
               )}
               <p className="text-[11px] text-faint mt-2">Nella cronaca puoi fare cambi, chiamare time-out e cambiare tattica in qualsiasi momento.</p>
             </div>
           ) : (
             <div className="mt-5">
-              <Button variant="outline" onClick={() => void s.continueGame('auto')}>Avanza fino alla partita</Button>
+              <Button variant="primary" size="lg" icon="forward" onClick={() => void s.continueGame('auto')}>Avanza fino alla partita</Button>
             </div>
           )}
         </div>

@@ -26,7 +26,7 @@ export function MainMenu() {
   if (wizard) return <NewCareer onCancel={() => setWizard(false)} />;
   return (
     <div className="min-h-full flex flex-col">
-      <section className="relative overflow-hidden border-b border-line">
+      <section className="relative overflow-hidden border-b-4 border-white/15">
         <img src={ART.hero} alt="" className="absolute inset-0 h-full w-full object-cover object-[70%_center]" />
         <div className="absolute inset-0 bg-gradient-to-r from-abyss via-abyss/85 to-abyss/10" />
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-abyss to-transparent" />
@@ -38,13 +38,13 @@ export function MainMenu() {
             Prendi una società di Serie C e portala fino alla Champions League, contro i club e i campioni veri.
           </p>
           <div className="flex flex-wrap gap-3 mt-8">
-            <Button size="lg" onClick={() => setWizard(true)}>Nuova carriera</Button>
-            {careers[0] && <Button size="lg" variant="outline" onClick={() => void s.openCareer(careers[0].id)}>Continua: {careers[0].name}</Button>}
+            <Button size="lg" variant="gold" icon="play" onClick={() => setWizard(true)}>Nuova carriera</Button>
+            {careers[0] && <Button size="lg" variant="primary" icon="forward" onClick={() => void s.openCareer(careers[0].id)}>Continua: {careers[0].name}</Button>}
           </div>
         </div>
       </section>
       <div className="max-w-5xl w-full mx-auto px-6 py-8">
-        <Panel title="Carriere salvate" subtitle={account ? 'Salvate su questo dispositivo e nel cloud: puoi riprenderle da qualsiasi computer o telefono.' : 'I salvataggi restano nel browser. Crea un account per averli anche online e giocare da più dispositivi.'}>
+        <Panel icon="save" title="Carriere salvate" subtitle={account ? 'Salvate su questo dispositivo e nel cloud: puoi riprenderle da qualsiasi computer o telefono.' : 'I salvataggi restano nel browser. Crea un account per averli anche online e giocare da più dispositivi.'}>
           {!careers.length && !cloudOnly.length && <p className="text-mute text-sm py-4">Nessuna carriera: creane una nuova per iniziare.</p>}
           <div className="grid sm:grid-cols-2 gap-3">
             {careers.map((c) => (
@@ -57,10 +57,10 @@ export function MainMenu() {
                   <div className="mt-1"><CloudBadge id={c.id} /></div>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <Button size="sm" onClick={() => void s.openCareer(c.id)}>Carica</Button>
+                  <Button size="sm" variant="success" icon="play" onClick={() => void s.openCareer(c.id)}>Gioca</Button>
                   <div className="flex gap-1">
-                    <Button size="sm" variant="ghost" onClick={() => setRenaming({ id: c.id, name: c.name })}>Rinomina</Button>
-                    <Button size="sm" variant="ghost" onClick={() => setDeleting(c.id)}>Elimina</Button>
+                    <Button size="sm" variant="outline" icon="info" onClick={() => setRenaming({ id: c.id, name: c.name })}>Rinomina</Button>
+                    <Button size="sm" variant="danger" icon="cross" onClick={() => setDeleting(c.id)}>Elimina</Button>
                   </div>
                 </div>
               </div>
@@ -73,18 +73,18 @@ export function MainMenu() {
                   <div className="text-xs text-mute truncate">{c.clubName} · {c.division === 'C' ? 'Serie C' : c.division === 'B' ? 'Serie B' : `Serie ${c.division}`} · {seasonLabel(c.season)}</div>
                   <div className="mt-1"><Badge tone="aqua">Solo nel cloud</Badge></div>
                 </div>
-                <Button size="sm" onClick={() => void s.pullCareer(c.id)}>Scarica e gioca</Button>
+                <Button size="sm" variant="success" icon="play" onClick={() => void s.pullCareer(c.id)}>Scarica e gioca</Button>
               </div>
             ))}
           </div>
         </Panel>
       </div>
       <Modal open={!!renaming} onClose={() => setRenaming(null)} title="Rinomina carriera"
-        footer={<><Button variant="ghost" onClick={() => setRenaming(null)}>Annulla</Button><Button onClick={() => { if (renaming) void s.renameCareer(renaming.id, renaming.name.trim() || 'Carriera'); setRenaming(null); }}>Salva</Button></>}>
+        footer={<><Button variant="outline" onClick={() => setRenaming(null)}>Annulla</Button><Button variant="success" icon="save" onClick={() => { if (renaming) void s.renameCareer(renaming.id, renaming.name.trim() || 'Carriera'); setRenaming(null); }}>Salva</Button></>}>
         <input className="w-full" value={renaming?.name ?? ''} onChange={(e) => setRenaming(renaming && { ...renaming, name: e.target.value })} autoFocus />
       </Modal>
       <Modal open={!!deleting} onClose={() => setDeleting(null)} title="Eliminare la carriera?"
-        footer={<><Button variant="ghost" onClick={() => setDeleting(null)}>Annulla</Button><Button variant="danger" onClick={() => { if (deleting) void s.removeCareer(deleting, deleteCloud); setDeleting(null); }}>Elimina definitivamente</Button></>}>
+        footer={<><Button variant="outline" onClick={() => setDeleting(null)}>Annulla</Button><Button variant="danger" icon="cross" onClick={() => { if (deleting) void s.removeCareer(deleting, deleteCloud); setDeleting(null); }}>Elimina definitivamente</Button></>}>
         <p className="text-sm text-mute">La carriera e tutti i suoi dati verranno cancellati. L’operazione non si può annullare.</p>
         {account && deleting && cloudList.some((c) => c.id === deleting) && (
           <label className="flex items-center gap-2 text-sm mt-3 cursor-pointer"><input type="checkbox" checked={deleteCloud} onChange={(e) => setDeleteCloud(e.target.checked)} /> Elimina anche la copia nel cloud</label>
@@ -140,7 +140,7 @@ function NewCareer({ onCancel }: { onCancel: () => void }) {
           <div className="text-aqua text-xs font-semibold uppercase tracking-[0.25em]">Nuova carriera</div>
           <h1 className="font-display text-4xl font-extrabold uppercase">Fonda la tua società</h1>
         </div>
-        <Button variant="ghost" onClick={onCancel}>Annulla</Button>
+        <Button variant="outline" icon="back" onClick={onCancel}>Annulla</Button>
       </div>
       <div className="flex gap-2 mb-6">
         {steps.map((t, i) => (
@@ -238,11 +238,11 @@ function NewCareer({ onCancel }: { onCancel: () => void }) {
             </div>
           </Panel>
           <div className="flex gap-2">
-            {step > 0 && <Button variant="outline" className="flex-1" onClick={() => setStep(step - 1)}>Indietro</Button>}
+            {step > 0 && <Button variant="outline" icon="back" className="flex-1" onClick={() => setStep(step - 1)}>Indietro</Button>}
             {step < 2 ? (
-              <Button className="flex-1" disabled={!valid} onClick={() => setStep(step + 1)}>Avanti</Button>
+              <Button className="flex-1" size="lg" icon="next" disabled={!valid} onClick={() => setStep(step + 1)}>Avanti</Button>
             ) : (
-              <Button className="flex-1" variant="gold" disabled={!valid} onClick={create}>Inizia la carriera</Button>
+              <Button className="flex-1" size="lg" variant="gold" icon="play" disabled={!valid} onClick={create}>Inizia la carriera</Button>
             )}
           </div>
           {!valid && <p className="text-xs text-warn">Inserisci un nome (almeno 3 lettere) e un’abbreviazione.</p>}

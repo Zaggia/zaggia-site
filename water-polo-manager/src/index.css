@@ -5,24 +5,24 @@
   --font-display: "Barlow Condensed", "Arial Narrow", ui-sans-serif, sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, monospace;
 
-  --color-abyss: #070c16;
-  --color-night: #0a111d;
-  --color-deep: #0d1625;
-  --color-panel: #101b2c;
-  --color-panel-2: #14223a;
-  --color-line: #1b2a40;
-  --color-line-2: #26395a;
-  --color-ink: #e7eef7;
-  --color-mute: #8d9db3;
-  --color-faint: #5f708a;
-  --color-aqua: #2ad0e6;
-  --color-aqua-2: #17afc6;
-  --color-pool: #38bdf8;
-  --color-gold: #f2c230;
-  --color-good: #34c77b;
-  --color-warn: #f0a23b;
-  --color-bad: #ef5a5a;
-  --color-violet: #a78bfa;
+  --color-abyss: #071a3a;
+  --color-night: #0b2250;
+  --color-deep: #0e2a5e;
+  --color-panel: #143368;
+  --color-panel-2: #1a3f7d;
+  --color-line: #284f8f;
+  --color-line-2: #3a66ad;
+  --color-ink: #f4f8ff;
+  --color-mute: #b2c4e4;
+  --color-faint: #86a0cc;
+  --color-aqua: #34dcf2;
+  --color-aqua-2: #16b8d3;
+  --color-pool: #4cc3ff;
+  --color-gold: #ffc83d;
+  --color-good: #3fdd86;
+  --color-warn: #ffa63d;
+  --color-bad: #ff5c6e;
+  --color-violet: #b592ff;
 }
 
 :root {
@@ -35,7 +35,11 @@ html, body, #root {
 
 body {
   margin: 0;
-  background: radial-gradient(1100px 520px at 85% -12%, rgba(42, 208, 230, 0.07) 0%, transparent 60%), var(--color-abyss);
+  background:
+    radial-gradient(900px 480px at 90% -10%, rgba(52, 220, 242, 0.20) 0%, transparent 60%),
+    radial-gradient(800px 520px at -5% 105%, rgba(76, 131, 255, 0.22) 0%, transparent 60%),
+    linear-gradient(180deg, #0a2457 0%, #071a3a 100%);
+  background-attachment: fixed;
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -43,7 +47,7 @@ body {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #26395a transparent;
+  scrollbar-color: #3a66ad transparent;
 }
 
 ::selection {
@@ -65,24 +69,48 @@ body {
 }
 
 .panel {
-  background: var(--color-panel);
-  border: 1px solid var(--color-line);
-  border-radius: 14px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 12px 32px -22px rgba(2, 8, 20, 0.9);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 38%), var(--color-panel);
+  border: 2px solid rgba(120, 170, 255, 0.22);
+  border-radius: 24px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), 0 6px 0 -2px rgba(4, 14, 36, 0.55), 0 22px 40px -24px rgba(2, 8, 24, 0.9);
 }
 
 .panel-flat {
-  background: var(--color-deep);
-  border: 1px solid var(--color-line);
-  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 60%), var(--color-deep);
+  border: 2px solid rgba(120, 170, 255, 0.16);
+  border-radius: 18px;
+}
+
+/* Pulsanti "da gioco": rotondi, in rilievo, con il bordo inferiore che si schiaccia al tocco. */
+.btn {
+  position: relative;
+  border-radius: 16px;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.38), 0 4px 0 var(--btn-edge, rgba(0, 0, 0, 0.45)), 0 10px 18px -8px rgba(0, 0, 0, 0.5);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease;
+}
+.btn:hover:not(:disabled) {
+  filter: brightness(1.08) saturate(1.05);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.3), 0 1px 0 var(--btn-edge, rgba(0, 0, 0, 0.45));
+}
+
+/* Tessera cliccabile: si solleva al passaggio del mouse. */
+.tile {
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.tile:hover {
+  transform: translateY(-2px);
+  border-color: rgba(52, 220, 242, 0.7);
 }
 
 /* Illustrazioni 2D: sfumatura verso il pannello per far leggere il testo sopra. */
 .art-fade-left {
-  background: linear-gradient(90deg, var(--color-panel) 0%, rgba(16, 27, 44, 0.92) 38%, rgba(16, 27, 44, 0.35) 70%, rgba(16, 27, 44, 0.1) 100%);
+  background: linear-gradient(90deg, var(--color-panel) 0%, rgba(20, 51, 104, 0.92) 38%, rgba(20, 51, 104, 0.35) 70%, rgba(20, 51, 104, 0.05) 100%);
 }
 .art-fade-bottom {
-  background: linear-gradient(0deg, var(--color-panel) 0%, rgba(16, 27, 44, 0.7) 45%, transparent 100%);
+  background: linear-gradient(0deg, var(--color-panel) 0%, rgba(20, 51, 104, 0.7) 45%, transparent 100%);
 }
 
 .press:active {
@@ -95,8 +123,10 @@ body {
 
 .water-bg {
   background:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 12.5%),
-    linear-gradient(180deg, #0b4a6f 0%, #0a3d5c 50%, #0b4a6f 100%);
+    radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.22) 0%, transparent 45%),
+    radial-gradient(ellipse at 75% 70%, rgba(255, 255, 255, 0.14) 0%, transparent 50%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.10) 0 3px, transparent 3px 12.5%),
+    linear-gradient(180deg, #19b5e8 0%, #0e8fd0 55%, #1ba6dc 100%);
 }
 
 .fade-in {
@@ -130,16 +160,18 @@ body {
 
 input, select, textarea {
   background: var(--color-night);
-  border: 1px solid var(--color-line-2);
-  border-radius: 8px;
+  border: 2px solid var(--color-line);
+  border-radius: 12px;
   color: var(--color-ink);
-  padding: 6px 10px;
+  padding: 7px 12px;
+  font-size: 14px;
+  font-weight: 600;
   outline: none;
 }
 
 input:focus, select:focus, textarea:focus {
   border-color: var(--color-aqua);
-  box-shadow: 0 0 0 3px rgba(42, 208, 230, 0.16);
+  box-shadow: 0 0 0 4px rgba(52, 220, 242, 0.22);
 }
 
 input[type='range'] {
@@ -158,4 +190,9 @@ input[type='color'] {
 table {
   border-collapse: separate;
   border-spacing: 0;
+}
+
+/* Le colonne delle griglie possono restringersi sotto il contenuto: niente scorrimento orizzontale su telefono. */
+main .grid > * {
+  min-width: 0;
 }

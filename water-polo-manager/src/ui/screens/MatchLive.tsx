@@ -9,6 +9,7 @@ import type { DefenseTactic, MatchEvent, OffenseTactic } from '../../engine/type
 import { SLOT_SHORT } from '../../engine/player/attributes';
 import { cls } from '../format';
 import { Icon } from '../components/icons';
+import { Avatar } from '../components/Avatar';
 
 const SPEEDS = [
   { label: 'Lenta', ms: 1600 },
@@ -149,6 +150,8 @@ function FeedItem({ e, d, userSide }: { e: MatchEvent; d: { title?: string; text
 
 function Bench({ st, side }: { st: MatchState; side: 0 | 1 }) {
   const s = useGame.getState();
+  const world = useWorld();
+  const ink = world.clubs[world.userClubId].colors[0];
   const team = side === 0 ? st.setup.home : st.setup.away;
   const sd = st.sides[side];
   const [slot, setSlot] = useState<number | null>(null);
@@ -163,16 +166,17 @@ function Bench({ st, side }: { st: MatchState; side: 0 | 1 }) {
     s.liveUpdate({});
   };
   return (
-    <Panel title="Panchina e tattica" subtitle="Tocca un giocatore in acqua e poi chi deve entrare.">
+    <Panel icon="formazione" title="Panchina e tattica" subtitle="Tocca un giocatore in acqua e poi chi deve entrare.">
       <div className="space-y-1">
         {sd.slots.map((idx, k) => {
           if (idx < 0) return <div key={k} className="text-xs text-bad">{SLOT_SHORT[k]}: vuoto</div>;
           const p = team.players[idx];
           const ps = sd.p[idx];
           return (
-            <button key={k} onClick={() => setSlot(slot === k ? null : k)} className={cls('w-full flex items-center gap-2 rounded-lg px-2 py-1 text-left', slot === k ? 'bg-gold/15 ring-1 ring-gold' : 'hover:bg-white/[0.04]')}>
-              <span className="w-8 text-[10px] font-bold text-aqua">{SLOT_SHORT[k]}</span>
-              <span className="flex-1 text-sm truncate">{p.name}</span>
+            <button key={k} onClick={() => setSlot(slot === k ? null : k)} className={cls('w-full flex items-center gap-2 rounded-2xl px-2 py-1 text-left', slot === k ? 'bg-gold/20 ring-2 ring-gold' : 'hover:bg-white/10')}>
+              <span className="w-8 text-[11px] font-extrabold text-aqua">{SLOT_SHORT[k]}</span>
+              {world.players[p.id] && <Avatar player={world.players[p.id]} color={ink} size={34} cap={false} />}
+              <span className="flex-1 text-sm font-bold truncate">{p.name}</span>
               {ps.fouls > 0 && <Badge tone={ps.fouls >= 2 ? 'bad' : 'warn'}>{ps.fouls} f</Badge>}
               <span className="w-16"><Bar value={energyOf(st, side, idx) * 100} height={4} /></span>
             </button>
@@ -185,9 +189,10 @@ function Bench({ st, side }: { st: MatchState; side: 0 | 1 }) {
           if (water.has(idx)) return null;
           const ps = sd.p[idx];
           return (
-            <button key={p.id} disabled={ps.out || slot == null} onClick={() => doSub(idx)} className={cls('w-full flex items-center gap-2 rounded-lg px-2 py-1 text-left', slot != null && !ps.out ? 'hover:bg-aqua/10' : '', ps.out && 'opacity-40')}>
-              <span className="w-8 text-[10px] text-faint">{p.role === 'POR' ? 'POR' : '#' + p.number}</span>
-              <span className="flex-1 text-sm truncate">{p.name}{ps.out ? ' (fuori)' : ''}</span>
+            <button key={p.id} disabled={ps.out || slot == null} onClick={() => doSub(idx)} className={cls('w-full flex items-center gap-2 rounded-2xl px-2 py-1 text-left', slot != null && !ps.out ? 'hover:bg-aqua/15' : '', ps.out && 'opacity-40')}>
+              <span className="w-8 text-[11px] font-bold text-faint">{p.role === 'POR' ? 'POR' : '#' + p.number}</span>
+              {world.players[p.id] && <Avatar player={world.players[p.id]} color={ink} size={34} cap={false} />}
+              <span className="flex-1 text-sm font-bold truncate">{p.name}{ps.out ? ' (fuori)' : ''}</span>
               <span className="w-16"><Bar value={ps.energy * 100} height={4} /></span>
             </button>
           );
@@ -202,8 +207,8 @@ function Bench({ st, side }: { st: MatchState; side: 0 | 1 }) {
         </select>
       </div>
       <div className="flex flex-wrap gap-2 mt-2">
-        <Button size="sm" onClick={() => { setTactics(st, side, { ...sd.tactics, offense: off, defense: def }); s.liveUpdate({}); s.toast('Nuove istruzioni alla squadra.', 'ok'); }}>Applica tattica</Button>
-        <Button size="sm" variant="outline" disabled={sd.timeouts <= 0} onClick={() => { callTimeout(st, side); s.liveUpdate({}); }}>Time-out ({sd.timeouts})</Button>
+        <Button size="sm" variant="success" icon="check" onClick={() => { setTactics(st, side, { ...sd.tactics, offense: off, defense: def }); s.liveUpdate({}); s.toast('Nuove istruzioni alla squadra.', 'ok'); }}>Applica tattica</Button>
+        <Button size="sm" variant="gold" icon="pause" disabled={sd.timeouts <= 0} onClick={() => { callTimeout(st, side); s.liveUpdate({}); }}>Time-out ({sd.timeouts})</Button>
       </div>
       <div className="mt-3 space-y-1.5 text-xs">
         <label className="flex items-center gap-2"><input type="checkbox" checked={team.autoSubs} onChange={(e) => { setAuto(st, side, e.target.checked, team.coachAdjusts); s.liveUpdate({}); }} /> Cambi automatici dell’allenatore</label>

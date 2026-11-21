@@ -1,7 +1,8 @@
 import { useGame, useWorld } from '../../store/game';
 import { ArtBanner, Badge, Button, DataTable, Kv, Panel } from '../components/ui';
 import { ART } from '../art';
-import { PlayerName } from '../components/game';
+import { PlayerName, PlayerCards } from '../components/game';
+import { GameIcon } from '../components/icons';
 import { ROLE_SHORT, GROUP_LABELS } from '../../engine/player/attributes';
 import { ageOf } from '../../engine/player/value';
 import { potentialRange } from '../../engine/world/queries';
@@ -43,9 +44,9 @@ export function YouthScreen() {
       key: 'x', label: '',
       render: (p: Player) => (
         <span className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-          <Button size="sm" disabled={!!full} title={full ?? undefined} onClick={() => s.act((w) => promoteYouth(w, w.clubs[w.userClubId], w.players[p.id]), `${p.lastName} promosso in prima squadra.`)}>Promuovi</Button>
-          <Button size="sm" variant="ghost" onClick={() => s.act((w) => { w.players[p.id].transferListed = !w.players[p.id].transferListed; }, p.transferListed ? 'Tolto dal mercato.' : 'Segnalato ai club interessati.')}>{p.transferListed ? 'Non cedere' : 'Cedi'}</Button>
-          <Button size="sm" variant="ghost" onClick={() => s.act((w) => releasePlayer(w, w.players[p.id], 'lascia il vivaio'), 'Ragazzo svincolato.')}>Svincola</Button>
+          <Button size="sm" variant="success" icon="giovani" disabled={!!full} title={full ?? undefined} onClick={() => s.act((w) => promoteYouth(w, w.clubs[w.userClubId], w.players[p.id]), `${p.lastName} promosso in prima squadra.`)}>Promuovi</Button>
+          <Button size="sm" variant="gold" icon="mercato" onClick={() => s.act((w) => { w.players[p.id].transferListed = !w.players[p.id].transferListed; }, p.transferListed ? 'Tolto dal mercato.' : 'Segnalato ai club interessati.')}>{p.transferListed ? 'Non cedere' : 'Cedi'}</Button>
+          <Button size="sm" variant="danger" icon="cross" onClick={() => s.act((w) => releasePlayer(w, w.players[p.id], 'lascia il vivaio'), 'Ragazzo svincolato.')}>Svincola</Button>
         </span>
       ),
     },
@@ -53,11 +54,11 @@ export function YouthScreen() {
   ];
   return (
     <div className="space-y-5">
-      <ArtBanner image={ART.giovanile} title="Settore giovanile" className="mb-5" actions={<Button variant="outline" onClick={() => s.go('strutture')}>Migliora il vivaio</Button>}>
+      <ArtBanner image={ART.giovanile} title="Settore giovanile" className="mb-5" actions={<Button variant="gold" icon="strutture" onClick={() => s.go('strutture')}>Migliora il vivaio</Button>}>
         {youth.length} ragazzi, {FACILITIES.giovanile.levels[lvl - 1].toLowerCase()}. I giovani non contano nei 15 della prima squadra.
       </ArtBanner>
       <div className="grid lg:grid-cols-3 gap-5">
-        <Panel title="Il vivaio">
+        <Panel icon="giovani" title="Il vivaio">
           <Kv k="Livello" v={`${lvl} · ${FACILITIES.giovanile.levels[lvl - 1]}`} />
           <Kv k="Nuovi ragazzi ogni anno" v={2 + lvl} />
           <Kv k="Potenziale medio atteso" v={Math.round(mean)} />
@@ -73,7 +74,13 @@ export function YouthScreen() {
           </div>
         </Panel>
       </div>
-      <Panel title="Ragazzi del vivaio">
+      {youth.length > 0 && (
+        <div>
+          <h2 className="font-display text-[26px] font-extrabold uppercase tracking-wide mb-3 flex items-center gap-2"><GameIcon name="youth" size={36} />I tuoi talenti</h2>
+          <PlayerCards world={world} players={youth} own />
+        </div>
+      )}
+      <Panel icon="rosa" title="Ragazzi del vivaio" subtitle="Tabella completa: tocca una riga per aprire la scheda, oppure usa i pulsanti per promuovere, cedere o svincolare.">
         <DataTable rows={youth} columns={cols} rowKey={(p) => p.id} onRow={(p) => s.go('player', p.id)} initialSort="p" empty="Il vivaio è vuoto: i nuovi ragazzi arrivano a metà marzo." dense />
       </Panel>
     </div>

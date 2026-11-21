@@ -45,12 +45,12 @@ function PlayerView({ p }: { p: Player }) {
   return (
     <div className="space-y-5">
       <section className="panel relative overflow-hidden fade-in">
-        <div className="absolute inset-0 opacity-20" style={{ background: `linear-gradient(110deg, ${club?.colors[0] ?? '#334155'} 0%, transparent 55%)` }} />
+        <div className="absolute inset-0 opacity-40" style={{ background: `linear-gradient(110deg, ${club?.colors[0] ?? '#4a78c4'} 0%, transparent 60%)` }} />
         <div className="relative flex flex-wrap items-center gap-5 p-5">
-          <Avatar player={p} color={club?.colors[0] ?? '#334155'} size={104} />
+          <Avatar player={p} color={club?.colors[0] ?? '#4a78c4'} size={132} />
           <div className="flex-1 min-w-[220px]">
             <div className="flex items-center gap-2 text-sm text-mute"><Flag code={p.nationality} withName /> · {age} anni · {p.height} cm · {p.weight} kg · {p.hand === 'L' ? 'mancino' : 'destro'}</div>
-            <h1 className="font-display text-4xl font-extrabold leading-none mt-1">{p.firstName} {p.lastName}</h1>
+            <h1 className="font-display text-[46px] font-extrabold uppercase leading-none mt-1 drop-shadow-[0_3px_0_rgba(4,14,36,0.5)]">{p.firstName} {p.lastName}</h1>
             <div className="flex flex-wrap items-center gap-2 mt-2">
               <Badge tone="aqua">{ROLE_LABELS[p.role]}</Badge>
               {club ? <ClubName club={club} size={20} /> : <Badge>Svincolato</Badge>}
@@ -61,25 +61,25 @@ function PlayerView({ p }: { p: Player }) {
             <div className="text-xs text-mute mt-2">Carattere: {personalityLabel(p.personality)}{p.contract ? ` · contratto fino al ${p.contract.endSeason + 1} (${STATUS_LABELS[p.contract.status].toLowerCase()})` : ''}</div>
           </div>
           <div className="flex gap-4 items-center">
-            <div className="text-center"><div className="text-[10px] uppercase text-mute">Overall</div><Ovr v={own ? p.overall : (ovrR[0] + ovrR[1]) / 2} size="lg" range={own ? undefined : ovrR} /></div>
-            <div className="text-center"><div className="text-[10px] uppercase text-mute">Potenziale</div><Ovr v={(potR[0] + potR[1]) / 2} size="lg" range={potR} /></div>
+            <div className="text-center"><div className="text-[11px] font-bold uppercase text-mute mb-1">Valore</div><Ovr v={own ? p.overall : (ovrR[0] + ovrR[1]) / 2} size="lg" range={own ? undefined : ovrR} /></div>
+            <div className="text-center"><div className="text-[11px] font-bold uppercase text-mute mb-1">Potenziale</div><Ovr v={(potR[0] + potR[1]) / 2} size="lg" range={potR} /></div>
           </div>
         </div>
       </section>
 
-      <div className="flex flex-wrap gap-2">
-        {own && !p.youth && <Button onClick={() => setModal('renew')}>Rinnova contratto</Button>}
-        {own && !p.youth && <Button variant="outline" onClick={() => s.act((w) => { const x = w.players[p.id]; x.transferListed = !x.transferListed; if (x.transferListed) x.loanListed = false; }, p.transferListed ? 'Tolto dal mercato.' : 'Messo sul mercato: aspetta le offerte.')}>{p.transferListed ? 'Togli dal mercato' : 'Metti sul mercato'}</Button>}
-        {own && !p.youth && <Button variant="outline" onClick={() => s.act((w) => { const x = w.players[p.id]; x.loanListed = !x.loanListed; if (x.loanListed) x.transferListed = false; }, p.loanListed ? 'Tolto dalla lista prestiti.' : 'Disponibile per il prestito.')}>{p.loanListed ? 'Annulla prestito' : 'Offri in prestito'}</Button>}
-        {own && !p.youth && <Button variant="outline" onClick={() => s.act((w) => { w.clubs[w.userClubId].lineup.captainId = p.id; }, `${p.lastName} è il nuovo capitano.`)}>Nomina capitano</Button>}
-        {own && p.youth && <Button onClick={() => s.act((w) => promoteYouth(w, w.clubs[w.userClubId], w.players[p.id]), 'Promosso in prima squadra!')}>Promuovi in prima squadra</Button>}
-        {own && !p.youth && age <= 19 && <Button variant="outline" onClick={() => s.act((w) => demoteToYouth(w, w.clubs[w.userClubId], w.players[p.id]), 'Rimandato nel settore giovanile.')}>Rimanda nelle giovanili</Button>}
-        {own && <Button variant="danger" onClick={() => setModal('release')}>Svincola</Button>}
-        {!own && p.clubId && <Button onClick={() => setModal('bid')}>Fai un’offerta</Button>}
-        {!own && !p.clubId && !p.retired && <Button onClick={() => setModal('free')}>Proponi un contratto</Button>}
-        {!own && <Button variant="outline" onClick={() => s.act((w) => { w.shortlist = shortlisted ? w.shortlist.filter((x) => x !== p.id) : [...w.shortlist, p.id]; }, shortlisted ? 'Rimosso dagli osservati.' : 'Aggiunto alla lista degli osservati.')}>{shortlisted ? 'Togli dagli osservati' : 'Aggiungi agli osservati'}</Button>}
+      <div className="flex flex-wrap gap-3">
+        {own && !p.youth && <Button variant="success" icon="check" onClick={() => setModal('renew')}>Rinnova contratto</Button>}
+        {own && !p.youth && <Button variant="gold" icon="mercato" onClick={() => s.act((w) => { const x = w.players[p.id]; x.transferListed = !x.transferListed; if (x.transferListed) x.loanListed = false; }, p.transferListed ? 'Tolto dal mercato.' : 'Messo sul mercato: aspetta le offerte.')}>{p.transferListed ? 'Togli dal mercato' : 'Metti sul mercato'}</Button>}
+        {own && !p.youth && <Button variant="outline" icon="next" onClick={() => s.act((w) => { const x = w.players[p.id]; x.loanListed = !x.loanListed; if (x.loanListed) x.transferListed = false; }, p.loanListed ? 'Tolto dalla lista prestiti.' : 'Disponibile per il prestito.')}>{p.loanListed ? 'Annulla prestito' : 'Offri in prestito'}</Button>}
+        {own && !p.youth && <Button variant="outline" icon="star" onClick={() => s.act((w) => { w.clubs[w.userClubId].lineup.captainId = p.id; }, `${p.lastName} è il nuovo capitano.`)}>Nomina capitano</Button>}
+        {own && p.youth && <Button variant="success" icon="giovani" onClick={() => s.act((w) => promoteYouth(w, w.clubs[w.userClubId], w.players[p.id]), 'Promosso in prima squadra!')}>Promuovi in prima squadra</Button>}
+        {own && !p.youth && age <= 19 && <Button variant="outline" icon="back" onClick={() => s.act((w) => demoteToYouth(w, w.clubs[w.userClubId], w.players[p.id]), 'Rimandato nel settore giovanile.')}>Rimanda nelle giovanili</Button>}
+        {own && <Button variant="danger" icon="cross" onClick={() => setModal('release')}>Svincola</Button>}
+        {!own && p.clubId && <Button variant="gold" icon="mercato" onClick={() => setModal('bid')}>Fai un’offerta</Button>}
+        {!own && !p.clubId && !p.retired && <Button variant="success" icon="check" onClick={() => setModal('free')}>Proponi un contratto</Button>}
+        {!own && <Button variant="outline" icon="star" onClick={() => s.act((w) => { w.shortlist = shortlisted ? w.shortlist.filter((x) => x !== p.id) : [...w.shortlist, p.id]; }, shortlisted ? 'Rimosso dagli osservati.' : 'Aggiunto alla lista degli osservati.')}>{shortlisted ? 'Togli dagli osservati' : 'Aggiungi agli osservati'}</Button>}
         {!own && know < 100 && (
-          <Button variant="outline" disabled={!!scouting} onClick={() => s.act((w) => {
+          <Button variant="primary" icon="info" disabled={!!scouting} onClick={() => s.act((w) => {
             const obs = w.clubs[w.userClubId].staff.osservatore ? w.staff[w.clubs[w.userClubId].staff.osservatore!]?.rating ?? 0 : 0;
             const days = Math.max(4, Math.round(21 - obs / 6 - w.clubs[w.userClubId].facilities.scouting.level * 2));
             if (w.scouting.length >= 2 + w.clubs[w.userClubId].facilities.scouting.level) return 'Gli osservatori sono già tutti impegnati.';
@@ -92,7 +92,7 @@ function PlayerView({ p }: { p: Player }) {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-5">
-        <Panel title="Profilo">
+        <Panel icon="rosa" title="Profilo">
           <Kv k="Valore di mercato" v={fmtMoney(p.value)} />
           <Kv k="Ingaggio" v={p.contract ? `${fmtMoney(p.contract.wage)} / anno` : '—'} />
           <Kv k="Contratto" v={p.contract ? `${yearsLeft(p, world.season)} stagion${yearsLeft(p, world.season) === 1 ? 'e' : 'i'}` : '—'} />

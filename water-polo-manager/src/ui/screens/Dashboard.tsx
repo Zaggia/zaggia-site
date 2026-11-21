@@ -12,8 +12,10 @@ import { blocker } from '../../engine/season/advance';
 import { rosterLimit } from '../../engine/club/roster';
 import { RosterNotice } from '../components/RosterNotice';
 import { financialHealth } from '../../engine/economy/finance';
-import { Icon } from '../components/icons';
-import { HelpTip } from '../components/ui';
+import { Icon, GameIcon } from '../components/icons';
+import type { GameIconName } from '../gameIcons';
+import { Avatar } from '../components/Avatar';
+import { HelpTip, IconTile } from '../components/ui';
 import { ART } from '../art';
 import { todoList } from '../../engine/club/todo';
 
@@ -58,28 +60,46 @@ export function Dashboard() {
               {club.recent.length > 0 && <ResultDots recent={club.recent} />}
             </div>
           </div>
-          <div className="w-full sm:w-60 rounded-xl bg-abyss/60 backdrop-blur-sm border border-line px-4 py-3">
+          <div className="w-full sm:w-64 rounded-2xl bg-abyss/70 backdrop-blur-sm border-2 border-white/15 px-4 py-3">
             <div className="flex justify-between text-xs text-mute mb-1.5"><span className="flex items-center gap-1">Livello società {lvl} <HelpTip>Sale con promozioni, trofei, stagioni nelle categorie alte e strutture. Ogni livello sblocca strutture, tattiche e sponsor migliori.</HelpTip></span><span className="mono">{club.devPoints}/{nextTh}</span></div>
             <Bar value={club.devPoints - prevTh} max={Math.max(1, nextTh - prevTh)} color="#f2c230" />
           </div>
         </div>
       </section>
 
+      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+        {([
+          ['rosa', 'squad', 'La rosa', 'I tuoi giocatori'],
+          ['formazione', 'tactics', 'Formazione', 'Chi gioca'],
+          ['partite', 'match', 'Partite', 'Gioca la gara'],
+          ['mercato', 'market', 'Mercato', 'Compra e vendi'],
+          ['finanze', 'finance', 'Finanze', 'Conti del club'],
+          ['giovani', 'youth', 'Giovani', 'Il vivaio'],
+          ['strutture', 'stadium', 'Strutture', 'Migliora il club'],
+        ] as [Parameters<typeof go>[0], GameIconName, string, string][]).map(([v, ic, t, d]) => (
+          <button key={v} onClick={() => go(v)} className="tile panel-flat flex flex-col items-center gap-1 px-2 py-3.5 text-center">
+            <GameIcon name={ic} size={52} />
+            <span className="font-display text-[19px] font-extrabold uppercase leading-none mt-1">{t}</span>
+            <span className="text-[11.5px] text-mute leading-tight hidden sm:block">{d}</span>
+          </button>
+        ))}
+      </div>
+
       {b?.reason === 'roster' && <RosterNotice />}
       {b?.reason === 'match' && (
-        <div className="panel border-gold/40 p-4 flex flex-wrap items-center gap-3 fade-in">
-          <Icon name="ball" className="text-gold" size={24} weight="fill" />
+        <div className="panel !border-gold/60 p-4 flex flex-wrap items-center gap-4 fade-in">
+          <GameIcon name="match" size={52} />
           <div className="flex-1 min-w-[200px]">
-            <div className="font-semibold">Oggi si gioca</div>
+            <div className="font-display text-2xl font-extrabold uppercase">Oggi si gioca!</div>
             <div className="text-sm text-mute">Controlla formazione e tattiche, poi scendi in vasca.</div>
           </div>
-          <Button variant="gold" onClick={() => go('partite')}>Vai alla partita</Button>
+          <Button variant="gold" size="lg" icon="play" onClick={() => go('partite')}>Vai alla partita</Button>
         </div>
       )}
 
       <div className="grid lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] gap-5">
         <TodoPanel />
-        <Panel title="Prossima partita" actions={next && <Button size="sm" variant="outline" onClick={() => go('partite')}>Prepara</Button>}>
+        <Panel icon="partite" title="Prossima partita" actions={next && <Button size="sm" variant="primary" icon="play" onClick={() => go('partite')}>Prepara</Button>}>
           {next ? <NextMatch fixtureId={next.id} /> : <p className="text-mute text-sm">Nessuna partita in programma.</p>}
         </Panel>
       </div>
@@ -94,7 +114,7 @@ export function Dashboard() {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5">
-        <Panel title="Ultimo risultato" actions={last?.reportId && <Button size="sm" variant="ghost" onClick={() => go('report', last.reportId)}>Tabellino</Button>}>
+        <Panel icon="chart" title="Ultimo risultato" actions={last?.reportId && <Button size="sm" variant="outline" onClick={() => go('report', last.reportId)}>Tabellino</Button>}>
           {last ? <FixtureLine world={world} f={last} onClick={() => last.reportId && go('report', last.reportId)} /> : <p className="text-mute text-sm">La stagione non è ancora iniziata.</p>}
           <div className="grid grid-cols-2 gap-3 mt-4">
             <div><div className="text-xs text-mute mb-1">Morale medio</div><Bar value={avgMorale} color={avgMorale < 45 ? '#f59e0b' : '#22c55e'} /></div>
@@ -103,27 +123,37 @@ export function Dashboard() {
             <div><div className="text-xs text-mute mb-1">Preparazione atletica</div><Bar value={club.fitnessPrep} color="#38bdf8" /></div>
           </div>
         </Panel>
-        <Panel title="Stato della rosa" actions={<Button size="sm" variant="ghost" onClick={() => go('rosa')}>Rosa</Button>}>
-          <ul className="space-y-1.5 text-sm">
-            {injured.map((p) => <li key={p.id} className="flex justify-between"><button className="hover:underline" onClick={() => go('player', p.id)}>{p.firstName[0]}. {p.lastName}</button><Badge tone="bad">{p.injury!.name} · {p.injury!.daysLeft}g</Badge></li>)}
-            {unhappy.map((p) => <li key={p.id} className="flex justify-between"><button className="hover:underline" onClick={() => go('player', p.id)}>{p.firstName[0]}. {p.lastName}</button><Badge tone="warn">{p.wantsToLeave ? 'Vuole andarsene' : 'Scontento'}</Badge></li>)}
-            {expiring.slice(0, 4).map((p) => <li key={p.id} className="flex justify-between"><button className="hover:underline" onClick={() => go('player', p.id)}>{p.firstName[0]}. {p.lastName}</button><Badge tone="warn">Contratto in scadenza</Badge></li>)}
-            {!injured.length && !unhappy.length && !expiring.length && <li className="text-mute">Tutti disponibili e sereni.</li>}
+        <Panel icon="rosa" title="Stato della rosa" actions={<Button size="sm" variant="outline" onClick={() => go('rosa')}>Apri la rosa</Button>}>
+          <ul className="space-y-2 text-sm">
+            {[
+              ...injured.map((p) => ({ p, badge: <Badge tone="bad">✚ {p.injury!.name} · {p.injury!.daysLeft}g</Badge> })),
+              ...unhappy.map((p) => ({ p, badge: <Badge tone="warn">{p.wantsToLeave ? 'Vuole andarsene' : 'Scontento'}</Badge> })),
+              ...expiring.slice(0, 4).map((p) => ({ p, badge: <Badge tone="warn">Contratto in scadenza</Badge> })),
+            ].map(({ p, badge }, i) => (
+              <li key={p.id + i}>
+                <button className="w-full flex items-center gap-3 rounded-2xl bg-white/[0.05] hover:bg-white/10 px-3 py-2 text-left" onClick={() => go('player', p.id)}>
+                  <Avatar player={p} color={club.colors[0]} size={40} cap={false} />
+                  <span className="flex-1 min-w-0 font-bold truncate">{p.firstName[0]}. {p.lastName}</span>
+                  {badge}
+                </button>
+              </li>
+            ))}
+            {!injured.length && !unhappy.length && !expiring.length && <li className="text-mute">Tutti disponibili e sereni. 🎉</li>}
           </ul>
         </Panel>
       </div>
 
       <div className="grid lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-5">
-        <Panel title={comp ? `Classifica · ${comp.name}${pos && comp.phases[0].groups.length > 1 ? ` · ${comp.phases[0].groups[pos.group].name}` : ''}` : 'Classifica'} actions={<Button size="sm" variant="ghost" onClick={() => go('classifica')}>Completa</Button>}>
+        <Panel title={comp ? `Classifica · ${comp.name}${pos && comp.phases[0].groups.length > 1 ? ` · ${comp.phases[0].groups[pos.group].name}` : ''}` : 'Classifica'} icon="classifica" actions={<Button size="sm" variant="outline" onClick={() => go('classifica')}>Classifica completa</Button>}>
           {comp && pos ? <StandingsTable world={world} comp={comp} group={pos.group} compact /> : <p className="text-mute text-sm">—</p>}
         </Panel>
         <div className="space-y-5 min-w-0">
-          <Panel title="Posta" actions={<Button size="sm" variant="ghost" onClick={() => go('posta')}>Tutta</Button>}>
+          <Panel icon="posta" title="Posta" actions={<Button size="sm" variant="outline" onClick={() => go('posta')}>Apri la posta</Button>}>
             {unread.length ? (
               <ul className="space-y-1">
                 {unread.map((m) => (
                   <li key={m.id}>
-                    <button className="w-full text-left rounded-lg px-2 py-1.5 hover:bg-white/[0.04]" onClick={() => go('posta', m.id)}>
+                    <button className="w-full text-left rounded-xl px-3 py-2 hover:bg-white/10" onClick={() => go('posta', m.id)}>
                       <div className={cls('text-sm font-medium truncate', m.important && 'text-gold')}>{m.title}</div>
                       <div className="text-xs text-mute truncate">{formatShortDate(m.season, m.day)} · {m.body}</div>
                     </button>
@@ -132,7 +162,7 @@ export function Dashboard() {
               </ul>
             ) : <p className="text-mute text-sm">Nessun messaggio da leggere.</p>}
           </Panel>
-          <Panel title="Obiettivi">
+          <Panel icon="star" title="Obiettivi">
             <ul className="space-y-2 text-sm">
               <li className="flex justify-between gap-3"><span className="text-mute">Stagione</span><span className="font-semibold text-right">{OBJECTIVE_LABELS[club.objective]}</span></li>
               {club.sponsors.map((s) => (
@@ -141,7 +171,7 @@ export function Dashboard() {
               {club.partner && <li className="flex justify-between gap-3"><span className="text-mute">{club.partner.name}</span><span className="text-right">{OBJECTIVE_LABELS[club.partner.objective]} entro il {club.partner.untilSeason + 1}</span></li>}
             </ul>
           </Panel>
-          <Panel title="Notizie" actions={<Button size="sm" variant="ghost" onClick={() => go('notizie')}>Tutte</Button>}>
+          <Panel icon="notizie" title="Notizie" actions={<Button size="sm" variant="outline" onClick={() => go('notizie')}>Tutte le notizie</Button>}>
             <ul className="space-y-2">
               {world.news.slice(0, 4).map((n) => (
                 <li key={n.id} className="text-sm"><div className="font-medium">{n.title}</div><div className="text-xs text-mute">{formatDate(n.season, n.day)} · {n.body}</div></li>
@@ -183,26 +213,30 @@ function TodoPanel() {
   const world = useWorld();
   const go = useGame((s) => s.go);
   const items = todoList(world);
-  const dot = { urgent: 'bg-gold', normal: 'bg-aqua', tip: 'bg-faint' } as const;
+  const tone = { urgent: 'gold', normal: 'aqua', tip: 'violet' } as const;
+  const ico: Record<string, string> = { rosa: 'rosa', formazione: 'formazione', mercato: 'mercato', sponsor: 'sponsor', strutture: 'strutture', finanze: 'finanze', staff: 'staff', giovani: 'giovani', posta: 'posta', partite: 'partite', tattiche: 'tattiche', calendario: 'calendario' };
   return (
-    <Panel title="Da fare adesso" subtitle={items.length ? 'Le prossime mosse utili, in ordine di urgenza.' : undefined}>
+    <Panel icon="bolt" title="Da fare adesso" subtitle={items.length ? 'Le prossime mosse utili, in ordine di urgenza. Tocca per aprirle.' : undefined}>
       {items.length ? (
-        <ul className="divide-y divide-line -mx-1">
+        <ul className="space-y-2">
           {items.slice(0, 6).map((t) => (
             <li key={t.id}>
-              <button className="w-full flex items-center gap-3 px-1 py-2.5 text-left rounded-lg hover:bg-white/[0.03] group" onClick={() => go(t.view as Parameters<typeof go>[0], t.param)}>
-                <span className={cls('h-2 w-2 rounded-full shrink-0', dot[t.tone])} aria-hidden />
+              <button
+                className={cls('tile w-full flex items-center gap-3 px-3 py-2.5 text-left rounded-2xl border-2 bg-white/[0.05] group', t.tone === 'urgent' ? 'border-gold/50' : 'border-white/10')}
+                onClick={() => go(t.view as Parameters<typeof go>[0], t.param)}
+              >
+                <IconTile name={ico[t.view] ?? 'next'} size={38} tone={tone[t.tone]} />
                 <span className="flex-1 min-w-0">
-                  <span className="block text-sm font-medium truncate">{t.title}</span>
+                  <span className="block text-[15px] font-bold truncate">{t.title}</span>
                   <span className="block text-xs text-mute truncate">{t.detail}</span>
                 </span>
-                <Icon name="next" size={16} className="text-faint group-hover:text-aqua shrink-0" />
+                <Icon name="next" size={20} weight="bold" className="text-faint group-hover:text-aqua shrink-0" />
               </button>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-mute py-2">Tutto in ordine. Premi <span className="text-ink font-medium">Continua</span> per andare avanti fino alla prossima novità.</p>
+        <p className="text-sm text-mute py-2">Tutto in ordine. Premi <span className="text-ink font-bold">Continua</span> per andare avanti fino alla prossima novità.</p>
       )}
     </Panel>
   );

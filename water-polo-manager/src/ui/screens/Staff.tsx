@@ -7,6 +7,7 @@ import { COACH_MIN_INTEREST, coachDemand, coachHireIssue, coachInterest, coachSe
 import type { Coach, CoachAttributes, StaffMember, StaffRole } from '../../engine/types';
 import { fmtMoney, ratingColor } from '../format';
 import { Ovr } from '../components/ui';
+import { StaffAvatar } from '../components/Avatar';
 
 export function StaffScreen() {
   const world = useWorld();
@@ -23,7 +24,7 @@ export function StaffScreen() {
         { id: 'mercatoStaff', label: 'Collaboratori liberi' },
       ]} />
       {tab === 'allenatore' && (coach ? <CoachCard coach={coach} /> : (
-        <Panel><Empty>Nessun allenatore: la squadra è guidata dal vice. <Button size="sm" onClick={() => setTab('mercatoAll')}>Scegli un allenatore</Button></Empty></Panel>
+        <Panel><Empty>Nessun allenatore: la squadra è guidata dal vice. <Button size="sm" variant="success" icon="check" onClick={() => setTab('mercatoAll')}>Scegli un allenatore</Button></Empty></Panel>
       ))}
       {tab === 'staff' && <StaffGrid onHire={() => setTab('mercatoStaff')} />}
       {tab === 'mercatoAll' && <CoachMarket />}
@@ -41,7 +42,7 @@ function CoachCard({ coach }: { coach: Coach }) {
     <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-5">
       <Panel title="Profilo">
         <div className="flex items-center gap-4 py-2">
-          <div className="w-16 h-16 rounded-2xl bg-panel-2 border border-line flex items-center justify-center font-display text-2xl font-bold">{coach.firstName[0]}{coach.lastName[0]}</div>
+          <StaffAvatar id={coach.id} size={76} />
           <div>
             <div className="font-display text-2xl font-bold">{coach.firstName} {coach.lastName}</div>
             <div className="text-sm text-mute flex items-center gap-1"><Flag code={coach.nationality} /> {age} anni · {coach.trophies} trofei</div>
@@ -53,8 +54,8 @@ function CoachCard({ coach }: { coach: Coach }) {
         <Kv k="Contratto" v={coach.contract ? `${fmtMoney(coach.contract.wage)} / anno fino al ${coach.contract.endSeason + 1}` : '—'} />
         <Kv k="Fiducia dell’ambiente" v={<div className="w-32"><Bar value={coach.security} color={coach.security < 30 ? '#ef4444' : '#22c55e'} /></div>} />
         <div className="flex flex-wrap gap-2 mt-4">
-          <Button variant="outline" onClick={() => s.act((w) => renewCoach(w, w.clubs[w.userClubId], 2), 'Contratto dell’allenatore rinnovato per due stagioni.')}>Rinnova (2 anni)</Button>
-          <Button variant="danger" onClick={() => setFire(true)}>Esonera</Button>
+          <Button variant="success" icon="check" onClick={() => s.act((w) => renewCoach(w, w.clubs[w.userClubId], 2), 'Contratto dell’allenatore rinnovato per due stagioni.')}>Rinnova (2 anni)</Button>
+          <Button variant="danger" icon="cross" onClick={() => setFire(true)}>Esonera</Button>
         </div>
         {coach.history.length > 0 && (
           <div className="mt-4">
@@ -106,16 +107,17 @@ function StaffGrid({ onHire }: { onHire: () => void }) {
             <p className="text-xs text-mute min-h-[48px]">{STAFF_EFFECTS[role]}</p>
             {m ? (
               <div className="mt-2">
-                <div className="flex items-center justify-between">
-                  <div><div className="font-semibold">{m.firstName} {m.lastName}</div><div className="text-xs text-mute">{m.contract ? `${fmtMoney(m.contract.wage)} / anno` : ''}</div></div>
+                <div className="flex items-center gap-3">
+                  <StaffAvatar id={m.id} size={52} />
+                  <div className="min-w-0 flex-1"><div className="font-bold truncate">{m.firstName} {m.lastName}</div><div className="text-xs text-mute">{m.contract ? `${fmtMoney(m.contract.wage)} / anno` : ''}</div></div>
                   <Ovr v={m.rating} />
                 </div>
-                <Button size="sm" variant="ghost" className="mt-2" onClick={() => s.act((w) => fireStaff(w, w.clubs[w.userClubId], role), 'Collaboratore licenziato.')}>Licenzia</Button>
+                <Button size="sm" variant="danger" icon="cross" className="mt-3" onClick={() => s.act((w) => fireStaff(w, w.clubs[w.userClubId], role), 'Collaboratore licenziato.')}>Licenzia</Button>
               </div>
             ) : (
               <div className="mt-2">
                 <Badge tone="warn">Ruolo vacante</Badge>
-                <Button size="sm" className="mt-2 w-full" onClick={onHire}>Assumi</Button>
+                <Button size="sm" variant="success" icon="check" className="mt-2 w-full" onClick={onHire}>Assumi</Button>
               </div>
             )}
           </Panel>
@@ -138,7 +140,7 @@ function CoachMarket() {
   const hidden = free.length - free.filter((c) => coachInterest(world, c, club) >= COACH_MIN_INTEREST).length;
   const issue = pick ? coachHireIssue(world, club, pick.id, wage) : null;
   const cols = [
-    { key: 'n', label: 'Allenatore', render: (c: Coach) => <span className="font-medium">{c.firstName} {c.lastName} <Flag code={c.nationality} /></span>, sort: (c: Coach) => c.lastName },
+    { key: 'n', label: 'Allenatore', render: (c: Coach) => <span className="inline-flex items-center gap-2.5 font-bold"><StaffAvatar id={c.id} size={36} />{c.firstName} {c.lastName} <Flag code={c.nationality} /></span>, sort: (c: Coach) => c.lastName },
     { key: 'r', label: 'Valutazione', render: (c: Coach) => <Ovr v={coachRating(c)} size="sm" />, sort: (c: Coach) => coachRating(c) },
     { key: 'p', label: 'Filosofia', render: (c: Coach) => <span className="text-xs">{PHILOSOPHY_LABELS[c.philosophy]}</span> },
     { key: 't', label: 'Tattica', render: (c: Coach) => c.attrs.tattica, sort: (c: Coach) => c.attrs.tattica, hideOnMobile: true },
@@ -163,7 +165,7 @@ function CoachMarket() {
       <DataTable rows={list} columns={cols} rowKey={(c) => c.id} initialSort="r" dense />
       {pick && (
         <Modal open onClose={() => setPick(null)} title={`Contratto per ${pick.firstName} ${pick.lastName}`} wide
-          footer={<><Button variant="ghost" onClick={() => setPick(null)}>Annulla</Button><Button disabled={!!issue} title={issue ?? undefined} onClick={() => { if (s.act((w) => hireCoach(w, w.clubs[w.userClubId], pick.id, wage, years), `${pick.lastName} è il nuovo allenatore!`)) setPick(null); }}>Firma</Button></>}>
+          footer={<><Button variant="outline" onClick={() => setPick(null)}>Annulla</Button><Button variant="success" icon="check" disabled={!!issue} title={issue ?? undefined} onClick={() => { if (s.act((w) => hireCoach(w, w.clubs[w.userClubId], pick.id, wage, years), `${pick.lastName} è il nuovo allenatore!`)) setPick(null); }}>Firma</Button></>}>
           <div className="flex items-center gap-2 mb-3 text-sm">
             <Badge tone={coachInterest(world, pick, club) >= 60 ? 'good' : coachInterest(world, pick, club) >= COACH_MIN_INTEREST ? 'warn' : 'bad'}>Interesse {coachInterest(world, pick, club)}%</Badge>
             <span className="text-mute">{coachRating(pick) >= 0 ? `Valutazione ${coachRating(pick)}` : ''}</span>
@@ -188,7 +190,7 @@ function StaffMarket() {
   const [role, setRole] = useState<StaffRole>('vice');
   const list = Object.values(world.staff).filter((m) => !m.clubId && m.role === role).sort((a, b) => b.rating - a.rating);
   const cols = [
-    { key: 'n', label: 'Nome', render: (m: StaffMember) => <span className="font-medium">{m.firstName} {m.lastName} <Flag code={m.nationality} /></span> },
+    { key: 'n', label: 'Nome', render: (m: StaffMember) => <span className="inline-flex items-center gap-2.5 font-bold"><StaffAvatar id={m.id} size={36} />{m.firstName} {m.lastName} <Flag code={m.nationality} /></span> },
     { key: 'r', label: 'Valutazione', render: (m: StaffMember) => <Ovr v={m.rating} size="sm" />, sort: (m: StaffMember) => m.rating },
     { key: 'a', label: 'Età', render: (m: StaffMember) => world.season - m.birthYear },
     { key: 'i', label: 'Interesse', render: (m: StaffMember) => { const v = staffInterest(m, club); return <Badge tone={v >= 60 ? 'good' : v >= 30 ? 'warn' : 'bad'}>{v}%</Badge>; } },
