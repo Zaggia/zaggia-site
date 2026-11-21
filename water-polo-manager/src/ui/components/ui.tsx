@@ -60,15 +60,15 @@ export function Panel({ title, children, actions, className, pad = true, subtitl
   return (
     <section className={cls('panel fade-in min-w-0', className)}>
       {(title || actions) && (
-        <header className="flex items-center justify-between gap-3 px-5 pt-4 pb-3">
-          <div className="flex items-center gap-3 min-w-0">
+        <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5 px-5 pt-4 pb-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1 basis-[15rem]">
             {icon && <IconTile name={icon} size={36} />}
             <div className="min-w-0">
               {title && <h3 className="font-display text-[22px] font-bold uppercase tracking-wide leading-tight text-ink">{title}</h3>}
               {subtitle && <p className="text-[13px] text-mute mt-0.5 leading-relaxed">{subtitle}</p>}
             </div>
           </div>
-          {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
+          {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
         </header>
       )}
       <div className={pad ? 'px-5 pb-5' : ''}>{children}</div>
@@ -384,13 +384,13 @@ export function HelpTip({ children, className }: { children: ReactNode; classNam
 }
 
 /** Intestazione illustrata: immagine 2D a destra, testo a sinistra su sfumatura. */
-export function ArtBanner({ image, title, children, actions, className, height = 'h-44 sm:h-52' }: { image: string; title: ReactNode; children?: ReactNode; actions?: ReactNode; className?: string; height?: string }) {
+export function ArtBanner({ image, title, children, actions, className, height = 'min-h-44 sm:min-h-52' }: { image: string; title: ReactNode; children?: ReactNode; actions?: ReactNode; className?: string; height?: string }) {
   return (
     <section className={cls('panel relative overflow-hidden fade-in', height, className)}>
       <img src={image} alt="" className="absolute inset-y-0 right-0 h-full w-full sm:w-[72%] object-cover object-center" loading="lazy" />
       <div className="absolute inset-0 art-fade-left" />
       <div className="absolute inset-0 bg-panel/60 sm:hidden" />
-      <div className="relative h-full flex flex-col justify-center gap-2 px-5 sm:px-7 max-w-xl">
+      <div className="relative min-h-[inherit] flex flex-col justify-center gap-2 px-5 sm:px-7 py-5 max-w-xl">
         <h1 className="font-display text-[34px] sm:text-[40px] font-extrabold uppercase tracking-wide leading-none">{title}</h1>
         {children && <div className="text-sm text-mute leading-relaxed">{children}</div>}
         {actions && <div className="flex flex-wrap gap-2 mt-2">{actions}</div>}

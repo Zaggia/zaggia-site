@@ -163,7 +163,7 @@ export function LineupScreen() {
                       <label className="text-[11px] text-mute shrink-0" htmlFor={`min-${id}`}>Minuti</label>
                       <select
                         id={`min-${id}`}
-                        className="flex-1 min-w-0 h-8 text-sm"
+                        className="flex-1 min-w-0 h-10 text-sm"
                         value={chosen ? String(l.minutes![id]) : 'auto'}
                         onChange={(e) => update((lin) => {
                           const m = { ...(lin.minutes ?? {}) };
@@ -228,7 +228,7 @@ export function LineupScreen() {
                       <div className="text-[15px] font-bold truncate">{p.firstName[0]}. {p.lastName} {p.youth && <Badge tone="violet">giovane</Badge>} {isForeign(p, club) && <Badge>straniero</Badge>}</div>
                       <div className="text-[12px] text-mute flex items-center gap-1.5"><span className="rounded-full px-1.5 text-[10.5px] font-extrabold text-[#06223f]" style={{ background: ROLE_COLOR[p.role] }}>{ROLE_SHORT[p.role]}</span>{p.hand === 'L' ? 'mancino · ' : ''}morale {Math.round(p.morale)}</div>
                     </div>
-                    <div className="w-16"><Bar value={p.condition} height={4} /></div>
+                    <div className="hidden sm:block w-16"><Bar value={p.condition} height={6} /></div>
                     {typeof sel === 'number' && <span className={cls('text-[11px] w-10 text-right num', suit < 0.8 ? 'text-warn' : 'text-good')}>{Math.round(suit * 100)}%</span>}
                     <Ovr v={p.overall} size="sm" />
                     <span className={cls('w-9 text-[11px] font-extrabold text-center rounded-full', where ? 'bg-aqua text-[#032a3a]' : '')}>{where}</span>

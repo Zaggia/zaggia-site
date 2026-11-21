@@ -55,8 +55,8 @@ export function SettingsScreen() {
         </div>
       </Panel>
       <Panel title="Rinomina">
-        <div className="flex gap-2">
-          <input className="flex-1" value={name} onChange={(e) => setName(e.target.value)} />
+        <div className="flex flex-wrap gap-2">
+          <input className="flex-1 min-w-[12rem]" value={name} onChange={(e) => setName(e.target.value)} />
           <Button variant="outline" onClick={() => meta && void s.renameCareer(meta.id, name.trim() || meta.name).then(() => s.toast('Carriera rinominata.', 'ok'))}>Rinomina</Button>
         </div>
       </Panel>

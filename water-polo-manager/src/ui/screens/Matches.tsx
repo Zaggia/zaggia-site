@@ -120,7 +120,7 @@ function TeamSide({ world, club }: { world: World; club: Club }) {
   return (
     <div className="flex flex-col items-center text-center min-w-0">
       <Crest spec={club.crest} size={72} />
-      <div className="font-display text-xl sm:text-2xl font-extrabold mt-2 leading-tight"><ClubName club={club} size={0} /></div>
+      <div className="font-display text-xl sm:text-2xl font-extrabold mt-2 leading-tight max-w-full [&_.truncate]:whitespace-normal [&_.truncate]:overflow-visible [&_button]:max-w-full"><ClubName club={club} size={0} /></div>
       <div className="text-xs text-mute mt-1">Forza {teamStrength(world, club)} · reputazione {Math.round(club.reputation)}</div>
       {club.recent.length > 0 && <div className="mt-2"><ResultDots recent={club.recent} /></div>}
     </div>

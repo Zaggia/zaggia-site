@@ -88,7 +88,7 @@ export function TacticsScreen() {
                 const on = t.manUp.shooters.includes(p.id);
                 return (
                   <button key={p.id} onClick={() => set((x) => { x.manUp.shooters = on ? x.manUp.shooters.filter((i) => i !== p.id) : [...x.manUp.shooters, p.id].slice(-2); })}
-                    className={cls('px-2 py-1 rounded-md text-xs border', on ? 'border-aqua bg-aqua/15 text-aqua' : 'border-line text-mute hover:text-ink')}>
+                    className={cls('press px-3 h-8 rounded-full text-[13px] font-bold border-2', on ? 'border-aqua bg-aqua text-[#032a3a]' : 'border-white/15 bg-white/[0.06] text-mute hover:text-ink')}>
                     {p.lastName} <span className="text-faint">T{Math.round(p.attrs.tiro)} S{Math.round(p.attrs.superiorita)}</span>
                   </button>
                 );

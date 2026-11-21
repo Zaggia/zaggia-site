@@ -158,6 +158,10 @@ body {
   to { background-position: 120px 0; }
 }
 
+select {
+  min-height: 42px;
+}
+
 input, select, textarea {
   background: var(--color-night);
   border: 2px solid var(--color-line);

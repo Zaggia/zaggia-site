@@ -22,9 +22,9 @@ export function StandingsScreen() {
       {!comp ? <Empty>Campionato non disponibile.</Empty> : (
         <div className="space-y-5">
           {comp.phases[0].groups.length > 1 && (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               {comp.phases[0].groups.map((gr, i) => (
-                <button key={gr.name} onClick={() => setGroup(i)} className={cls('px-3 py-1.5 rounded-lg text-sm font-semibold border', g === i ? 'border-aqua text-aqua bg-aqua/10' : 'border-line text-mute hover:text-ink')}>
+                <button key={gr.name} onClick={() => setGroup(i)} className={cls('press h-10 px-4 rounded-full text-sm font-bold border-2 transition-colors', g === i ? 'bg-aqua border-aqua text-[#032a3a]' : 'border-white/15 bg-white/[0.06] text-mute hover:text-ink hover:bg-white/10')}>
                   {gr.name}{gr.clubIds.includes(user.id) ? ' (il tuo girone)' : ''}
                 </button>
               ))}

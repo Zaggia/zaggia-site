@@ -36,7 +36,7 @@ export function InboxScreen() {
         <Panel title="Messaggi">
           <div className="flex flex-wrap gap-1 mb-3">
             {(['tutte', ...Object.keys(CAT_LABELS)] as (InboxCategory | 'tutte')[]).map((c) => (
-              <button key={c} onClick={() => setCat(c)} className={cls('px-2 py-0.5 rounded text-xs border', cat === c ? 'border-aqua text-aqua' : 'border-line text-mute')}>{c === 'tutte' ? 'Tutte' : CAT_LABELS[c]}</button>
+              <button key={c} onClick={() => setCat(c)} className={cls('press h-8 px-3 rounded-full text-[13px] font-bold border-2 transition-colors', cat === c ? 'bg-aqua border-aqua text-[#032a3a]' : 'border-white/15 bg-white/[0.06] text-mute hover:text-ink')}>{c === 'tutte' ? 'Tutte' : CAT_LABELS[c]}</button>
             ))}
           </div>
           <ul className="space-y-1 max-h-[640px] overflow-y-auto pr-1">
