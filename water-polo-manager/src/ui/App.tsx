@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { Component, useEffect, useState, type ReactNode } from 'react';
 import { useGame, type ViewName } from '../store/game';
 import { MainMenu } from './screens/MainMenu';
 import { Icon, GameIcon } from './components/icons';
-import { IconTile } from './components/ui';
+import { Button, IconTile } from './components/ui';
 import { NAV_GAME_ICON } from './gameIcons';
 import { Crest } from './components/Crest';
 import { cls, fmtMoney, formatDate, seasonLabel } from './format';
@@ -76,15 +76,40 @@ export function App() {
   useEffect(() => {
     const s = useGame.getState();
     void s.refreshCareers();
-    void s.initAccount().then(() => s.resumeLast()).finally(() => setBooted(true));
+    // L'avvio non deve dipendere dalla rete: il controllo dell'account può continuare in background.
+    const account = s.initAccount().catch(() => undefined);
+    const wait = new Promise<void>((r) => setTimeout(r, 3500));
+    void Promise.race([account, wait]).then(() => s.resumeLast()).catch(() => undefined).finally(() => setBooted(true));
   }, []);
   return (
-    <>
+    <ErrorBoundary>
       {!booted ? <Splash /> : world ? <Shell /> : <MainMenu />}
       {busy && <BusyOverlay text={busy} />}
       <Toasts />
-    </>
+    </ErrorBoundary>
   );
+}
+
+/** Se una schermata va in errore, invece di una pagina bianca mostra cosa fare: la carriera salvata resta al sicuro. */
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  render() {
+    if (!this.state.error) return this.props.children;
+    return (
+      <div className="min-h-full flex items-center justify-center p-5">
+        <div className="panel max-w-md w-full p-6 text-center">
+          <h1 className="font-display text-3xl font-extrabold uppercase">Ops, qualcosa non va</h1>
+          <p className="text-sm text-mute mt-2">Si è verificato un errore in questa schermata. La tua carriera è salvata: non hai perso nulla.</p>
+          <p className="text-xs text-faint mt-3 break-words">{this.state.error.message}</p>
+          <div className="flex flex-wrap justify-center gap-3 mt-5">
+            <Button variant="success" icon="play" onClick={() => location.reload()}>Ricarica il gioco</Button>
+            <Button variant="outline" icon="back" onClick={() => { this.setState({ error: null }); useGame.getState().go('dashboard'); }}>Torna alla dashboard</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 }
 
 function Splash() {

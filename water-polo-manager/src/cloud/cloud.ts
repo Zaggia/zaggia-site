@@ -93,8 +93,12 @@ export function setSyncedAt(id: string, at: number | null) {
 
 async function call(action: string, init: { token?: string; body?: unknown; raw?: Uint8Array; query?: string; headers?: Record<string, string> } = {}): Promise<Response> {
   let res: Response;
+  // Senza un limite di tempo, una risposta che non arriva bloccherebbe l'app (e l'avvio) all'infinito.
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), init.raw ? 90_000 : action === 'me' || action === 'list' ? 8_000 : 25_000);
   try {
     res = await fetch(`${API}${action}${init.query ?? ''}`, {
+      signal: ctl.signal,
       method: 'POST',
       headers: {
         ...(init.token ? { authorization: `Bearer ${init.token}` } : {}),
@@ -105,8 +109,10 @@ async function call(action: string, init: { token?: string; body?: unknown; raw?
       body: init.raw ? (init.raw as unknown as BodyInit) : init.body !== undefined ? JSON.stringify(init.body) : undefined,
     });
   } catch {
+    clearTimeout(timer);
     throw new CloudError('offline', 0);
   }
+  clearTimeout(timer);
   if (!res.ok) {
     const data = (await res.json().catch(() => ({}))) as { error?: string; params?: Record<string, number | string> };
     throw new CloudError(data.error ?? 'server_error', res.status, data.params);
