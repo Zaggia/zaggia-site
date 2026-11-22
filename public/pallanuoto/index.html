@@ -8,6 +8,19 @@
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <meta name="description" content="Water Polo Manager — The Road to Glory: gestionale di pallanuoto. Parti dalla Serie C e porta il tuo club in Champions League." />
+    <script>
+      // Rete di sicurezza: se il gioco non parte entro pochi secondi, spiega cosa fare invece di lasciare lo schermo vuoto.
+      (function () {
+        var errs = [];
+        window.addEventListener('error', function (e) { errs.push(String(e.message || e)); });
+        window.addEventListener('unhandledrejection', function (e) { errs.push(String((e.reason && e.reason.message) || e.reason)); });
+        setTimeout(function () {
+          var root = document.getElementById('root');
+          if (!root || root.childElementCount > 0) return;
+          root.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;font-family:system-ui,sans-serif;color:#fff;text-align:center"><div style="max-width:380px"><h1 style="font-size:26px;margin:0 0 8px">Il gioco non è partito</h1><p style="opacity:.8;font-size:15px;line-height:1.4">La tua carriera è al sicuro. Prova a ricaricare la pagina.</p><p style="opacity:.55;font-size:12px;word-break:break-word">' + errs.slice(0, 2).join(" · ").replace(/</g, "&lt;") + '</p><button onclick="location.reload()" style="margin-top:14px;padding:12px 22px;border:0;border-radius:14px;background:#34dcf2;color:#032a3a;font-weight:700;font-size:16px">Ricarica</button></div></div>';
+        }, 7000);
+      })();
+    </script>
     <script type="module" crossorigin src="./assets/index-C3Fv8Y2j.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/index-DVxGQ-5q.css">
   </head>
