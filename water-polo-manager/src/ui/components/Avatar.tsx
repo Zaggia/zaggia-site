@@ -5,11 +5,11 @@ import type { Player } from '../../engine/types';
 import { faceFor, staffFaceFor } from '../faces';
 import { Cap, GK_CAP } from './Cap';
 
-type AvatarPlayer = Pick<Player, 'id' | 'role' | 'capNumber' | 'nationality' | 'birthYear'>;
+type AvatarPlayer = Pick<Player, 'id' | 'role' | 'capNumber' | 'nationality' | 'birthYear' | 'height' | 'weight'>;
 
 export function Avatar({ player, color, size = 48, cap = true }: { player: AvatarPlayer; color: string; size?: number; cap?: boolean }) {
   const ring = player.role === 'POR' ? GK_CAP : color;
-  const src = faceFor(player.id, player.nationality, player.birthYear);
+  const src = faceFor(player.id, player.nationality, player.birthYear, player.height, player.weight);
   const showCap = cap && size >= 40;
   const capSize = Math.round(size * (size >= 100 ? 0.4 : 0.62));
   return (
