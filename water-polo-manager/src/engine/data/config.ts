@@ -264,7 +264,7 @@ export const DEFAULT_RULES: WorldRules = {
     },
   ],
   windows: [
-    { name: 'Mercato estivo', start: '07-01', end: '09-30' },
+    { name: 'Mercato estivo', start: '07-01', end: '10-12' },
     { name: 'Mercato invernale', start: '01-02', end: '01-31' },
   ],
   blackouts: [['12-20', '01-09']],

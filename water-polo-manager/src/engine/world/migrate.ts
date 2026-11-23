@@ -118,6 +118,10 @@ export function migrateWorld(world: World): boolean {
     stretchWorldLevels(world);
     balancePyramid(world, 10);
   }
+  if (from < 14) {
+    // v14: il mercato estivo resta aperto fino al 12 ottobre (prima chiudeva il 30 settembre), in tutte le carriere.
+    for (const w of world.rules.windows) if (w.name === 'Mercato estivo') w.end = '10-12';
+  }
   world.version = WORLD_VERSION;
   return true;
 }

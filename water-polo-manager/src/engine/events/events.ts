@@ -74,7 +74,7 @@ const TEMPLATES: Template[] = [
       }
       if (choice === 'promessa') {
         const win = transferWindowOpen(world).open;
-        p.promise = { kind: 'strengthen', untilDay: win ? Math.min(world.day + 60, dayOf(world.season, '09-30')) : world.day + 90, season: world.season };
+        p.promise = { kind: 'strengthen', untilDay: win ? Math.min(world.day + 60, dayOf(world.season, world.rules.windows[0]?.end ?? '10-12')) : world.day + 90, season: world.season };
         (p as any).promiseLevel = p.overall - 5;
         p.morale = clamp(p.morale + 8, 0, 100);
         return `${fullName(p)} ti dà fiducia. Ingaggia un giocatore di almeno ${p.overall - 5} di overall entro la scadenza.`;

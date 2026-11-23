@@ -260,11 +260,20 @@ export function finalizeLeague(world: World, comp: Competition) {
     for (const ph of comp.phases.filter((p) => p.sourceGroup === g || (p.sourceGroup == null && p.purpose !== 'main'))) {
       if (ph.purpose === 'promotion') {
         const last = ph.rounds[ph.rounds.length - 1];
-        for (const t of last?.ties ?? []) if (t.winnerId) promoted.add(t.winnerId);
+        // Se il vincitore dei playoff è già promosso direttamente (classifica cambiata dopo il sorteggio), sale al suo posto la finalista.
+        for (const t of last?.ties ?? []) {
+          if (!t.winnerId) continue;
+          if (!promoted.has(t.winnerId)) promoted.add(t.winnerId);
+          else if (t.loserId && !promoted.has(t.loserId)) promoted.add(t.loserId);
+        }
       }
       if (ph.purpose === 'playout') {
         const last = ph.rounds[ph.rounds.length - 1];
-        for (const t of last?.ties ?? []) if (t.loserId) relegated.add(t.loserId);
+        for (const t of last?.ties ?? []) {
+          if (!t.loserId) continue;
+          if (!relegated.has(t.loserId)) relegated.add(t.loserId);
+          else if (t.winnerId && !relegated.has(t.winnerId)) relegated.add(t.winnerId);
+        }
       }
     }
   });

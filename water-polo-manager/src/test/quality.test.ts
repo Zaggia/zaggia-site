@@ -139,7 +139,7 @@ describe('playoff promozione in Serie B', () => {
     b.postseason = [];
     w.version = 4;
     expect(migrateWorld(w)).toBe(true);
-    expect(w.version).toBe(13);
+    expect(w.version).toBe(14);
     expect(b.directPromotion).toBe(0);
     expect(b.postseason).toHaveLength(1);
   });

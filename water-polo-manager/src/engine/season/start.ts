@@ -214,7 +214,7 @@ export function startSeason(world: World, rng: Rng, first = false) {
   if (!first) {
     const div = world.rules.leagues.find((l) => l.key === user.division)?.name ?? user.division;
     addMessage(world, 'societa', `Inizia la stagione ${world.season}/${(world.season + 1) % 100}`,
-      `${user.name} è iscritta alla ${div}. Mercato estivo aperto fino al 30 settembre: è il momento di costruire la squadra e di preparare il fisico.`, { important: true });
+      `${user.name} è iscritta alla ${div}. Mercato estivo aperto fino al 12 ottobre: è il momento di costruire la squadra e di preparare il fisico.`, { important: true });
     addNews(world, `Al via la stagione ${world.season}/${(world.season + 1) % 100}`, 'Calendari pubblicati per tutti i campionati e le coppe.', 'campionato');
   }
 }

@@ -22,7 +22,7 @@ import { ctxOf, type GenCtx } from './context';
 import { setTicketPrices } from '../club/manage';
 import { newFinances } from '../economy/ledger';
 
-export const WORLD_VERSION = 13;
+export const WORLD_VERSION = 14;
 
 export interface NewCareerOptions {
   careerName: string;
@@ -227,7 +227,7 @@ export function createWorld(opts: NewCareerOptions): World {
   startSeason(world, rng, true);
   const user = world.clubs[world.userClubId];
   addMessage(world, 'societa', `Benvenuto, presidente ${opts.presidentName}!`,
-    `Sei il nuovo presidente di ${user.name}, iscritta alla Serie C. In cassa ci sono ${fmtMoney(user.finances.balance)} e la rosa è modesta: la strada verso la Serie A1 è lunga. Imposta formazione e tattiche, valuta gli sponsor e sfrutta il mercato estivo, aperto fino al 30 settembre.`,
+    `Sei il nuovo presidente di ${user.name}, iscritta alla Serie C. In cassa ci sono ${fmtMoney(user.finances.balance)} e la rosa è modesta: la strada verso la Serie A1 è lunga. Imposta formazione e tattiche, valuta gli sponsor e sfrutta il mercato estivo, aperto fino al 12 ottobre.`,
     { important: true });
   addNews(world, `Nasce un nuovo progetto a ${user.city}`, `${user.name} si presenta ai nastri di partenza della Serie C con il presidente ${opts.presidentName}.`, 'societa');
   return world;
