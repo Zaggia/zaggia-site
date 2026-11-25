@@ -125,7 +125,8 @@ export function fillRoster(world: World, club: Club): string[] {
     }
     if (!pick) {
       // Nessuno svincolato "giusto": si prende il più economico disponibile.
-      const cheap = [...free].reverse().find((p) => !gkShort || p.role === 'POR') ?? null;
+      // Se mancano portieri svincolati si prende comunque il più economico: una rosa a 14 è peggio di un portiere in meno.
+      const cheap = [...free].reverse().find((p) => !gkShort || p.role === 'POR') ?? [...free].reverse()[0] ?? null;
       if (cheap) { pick = cheap; wage = Math.round(wageDemand(world, cheap, club, 'riserva', 1) * 0.9); }
     }
     // Il giovane sale in prima squadra se è già all'altezza o se ha un futuro da titolare: il vivaio non va svuotato.

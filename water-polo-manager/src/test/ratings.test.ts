@@ -64,7 +64,7 @@ describe('overall precisi dei giocatori veri', () => {
     expect(migrateWorld(w)).toBe(true);
     expect(g.overall).toBe(97);
     expect(g.rated).toBe(true);
-    expect(w.version).toBe(14);
+    expect(w.version).toBe(15);
   });
 });
 

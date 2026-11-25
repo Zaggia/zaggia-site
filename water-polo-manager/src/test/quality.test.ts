@@ -106,7 +106,8 @@ it('una carriera creata con società e giocatori inventati passa al mondo reale 
     // Le altre categorie e i club esteri salgono sulla scala nuova (migrazione v13).
     else if (c) {
       const d = teamStrength(w, c) - strengthBefore[c.id];
-      expect(d, name).toBeGreaterThanOrEqual(-6);
+      // I club esteri sono stati ritarati sulla scala europea (v15): rispetto al mondo di partenza, già ritarato, possono scostarsi di più.
+      expect(d, name).toBeGreaterThanOrEqual(c.country === 'ITA' ? -6 : -14);
       expect(d, name).toBeLessThanOrEqual(15 + bonus);
     }
   }
@@ -139,7 +140,7 @@ describe('playoff promozione in Serie B', () => {
     b.postseason = [];
     w.version = 4;
     expect(migrateWorld(w)).toBe(true);
-    expect(w.version).toBe(14);
+    expect(w.version).toBe(15);
     expect(b.directPromotion).toBe(0);
     expect(b.postseason).toHaveLength(1);
   });

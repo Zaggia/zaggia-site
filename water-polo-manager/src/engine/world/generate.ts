@@ -14,7 +14,7 @@ import { generateCoach, generateStaff, STAFF_ROLES } from '../staff/coach';
 import { generatePlayer } from '../player/generate';
 import { stretchOverall } from '../player/scale';
 import { startSeason } from '../season/start';
-import { balancePyramid } from './pyramid';
+import { balancePyramid, stabilizeForeign } from './pyramid';
 import { capForeignStrength } from './migrate';
 import { addMessage, addNews, fmtMoney } from '../news';
 import { autoLineup } from '../club/lineup';
@@ -22,7 +22,7 @@ import { ctxOf, type GenCtx } from './context';
 import { setTicketPrices } from '../club/manage';
 import { newFinances } from '../economy/ledger';
 
-export const WORLD_VERSION = 14;
+export const WORLD_VERSION = 15;
 
 export interface NewCareerOptions {
   careerName: string;
@@ -224,6 +224,7 @@ export function createWorld(opts: NewCareerOptions): World {
   // Formazioni iniziali
   for (const club of Object.values(world.clubs)) club.lineup = autoLineup(world, club);
   balancePyramid(world);
+  stabilizeForeign(world, 30);
   startSeason(world, rng, true);
   const user = world.clubs[world.userClubId];
   addMessage(world, 'societa', `Benvenuto, presidente ${opts.presidentName}!`,

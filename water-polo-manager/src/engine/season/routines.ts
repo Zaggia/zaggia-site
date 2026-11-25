@@ -79,7 +79,10 @@ export function weeklyMorale(world: World) {
   const inSeason = world.day > dayOf(world.season, '10-15') && world.day < dayOf(world.season, '05-31');
   for (const club of Object.values(world.clubs)) {
     const coach = club.coachId ? world.coaches[club.coachId] : null;
-    const target = 55 + (coach ? coach.attrs.spogliatoio / 6 : 0) + (club.chemistry - 50) / 10;
+    // L'affiatamento dei club esteri crollava (giocano poche partite e il mercato lo abbassa a ogni acquisto): torna verso un valore normale.
+    if (club.country !== 'ITA' && !club.isUser) club.chemistry = clamp(club.chemistry + (68 - club.chemistry) * 0.12, 0, 100);
+    // I club esteri non hanno il campionato italiano a dare morale: partono da una base più alta (come un club italiano che vince).
+    const target = 55 + (coach ? coach.attrs.spogliatoio / 6 : 0) + (club.chemistry - 50) / 10 + (club.country !== 'ITA' ? 7 : 0);
     for (const id of club.playerIds) {
       const p = world.players[id];
       if (!p) continue;

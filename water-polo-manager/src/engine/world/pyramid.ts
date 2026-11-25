@@ -9,6 +9,9 @@ import type { Player, World } from '../types';
 import { clamp } from '../util';
 import { shiftClub } from './migrate';
 import { tuneOverall } from '../player/generate';
+import { REAL_FOREIGN, FOREIGN_CITY_SIZE } from '../data/realClubs';
+import { NATIONS } from '../data/names';
+import { TOP_CLUB_LEVELS } from '../data/playerRatings';
 
 /** Fasce di forza di squadra per categoria (le stesse delle regole delle nuove carriere). */
 export const PYRAMID_BANDS: Record<string, [number, number]> = { A1: [68, 94], A2: [58, 78], B: [48, 68], C: [38, 58] };
@@ -25,6 +28,65 @@ function shiftPlayer(world: World, p: Player, delta: number) {
 
 /** Forza media delle società (tranne la tua) in ogni categoria: è quella di una carriera appena creata e si mantiene nel tempo. */
 export const DIVISION_MEAN: Record<string, number> = { A1: 78, A2: 66, B: 56, C: 46 };
+
+/** Quanto i club europei sono stati alzati rispetto al livello base, perché le coppe non le vincano sempre le italiane. */
+export const FOREIGN_BOOST = 8;
+/** Anche i club europei di seconda fascia (quelli delle coppe minori) sono più forti di prima. */
+export const FOREIGN_MID_BOOST = 16;
+export const FOREIGN_TARGET_MAX = 95;
+/** Overall massimo dei giocatori non famosi dei club esteri. */
+export const FOREIGN_PLAYER_MAX = 92;
+
+/** Forza di riferimento di ogni club estero (per nome): dipende dalla scuola della nazione, dalla posizione nel campionato e dai grandi club. */
+export function foreignTargets(): Record<string, number> {
+  const rank = new Map<string, number>();
+  const out: Record<string, number> = {};
+  for (const fc of REAL_FOREIGN) {
+    const r = rank.get(fc.nation) ?? 0;
+    rank.set(fc.nation, r + 1);
+    const size = FOREIGN_CITY_SIZE[fc.city] ?? 2;
+    const base = 62 + (NATIONS[fc.nation]?.school ?? 0) * 2.4 - r * 2.4 + size * 0.8 + (fc.bonus ?? 0) * 2;
+    const top = TOP_CLUB_LEVELS[fc.name] != null ? TOP_CLUB_LEVELS[fc.name] + 2 : 0;
+    out[fc.name] = top
+      ? clamp(Math.round(Math.max(base, top) + FOREIGN_BOOST), 52, FOREIGN_TARGET_MAX)
+      : clamp(Math.round(base + FOREIGN_MID_BOOST), 52, FOREIGN_TARGET_MAX - 6);
+  }
+  return out;
+}
+
+/**
+ * I club europei restano forti: senza questo la loro forza calava stagione dopo stagione (i campioni invecchiano e vengono
+ * sostituiti da giocatori normali) e le coppe europee finivano quasi sempre alle italiane. Ogni stagione tornano verso il loro livello.
+ */
+export function stabilizeForeign(world: World, maxStep = 5): number {
+  const targets = foreignTargets();
+  let changed = 0;
+  for (const club of Object.values(world.clubs)) {
+    if (club.country === 'ITA') continue;
+    const target = targets[club.name];
+    if (target == null) continue;
+    const s = teamStrength(world, club);
+    if (Math.abs(target - s) >= 1) {
+      shiftClub(world, club.id, Math.round(s + clamp(target - s, -maxStep, maxStep)));
+      changed++;
+      // Un club forte non produce fuoriclasse: i giocatori non famosi restano sotto i campioni veri (il migliore del mondo ha 97).
+      for (const id of club.playerIds) {
+        const p = world.players[id];
+        if (p && !p.rated && p.overall > FOREIGN_PLAYER_MAX) shiftPlayer(world, p, -(p.overall - FOREIGN_PLAYER_MAX));
+      }
+    }
+    if (club.chemistry < 62) { club.chemistry = 62; changed++; }
+    // Anche l'allenatore è all'altezza della squadra (prima quelli esteri erano molto più scarsi di quelli italiani di pari livello).
+    const coach = club.coachId ? world.coaches[club.coachId] : null;
+    if (coach) {
+      const floor = clamp(Math.round(target - 6), 45, 88);
+      for (const k of Object.keys(coach.attrs) as (keyof typeof coach.attrs)[]) {
+        if (coach.attrs[k] < floor) { coach.attrs[k] = Math.min(floor, coach.attrs[k] + 6); changed++; }
+      }
+    }
+  }
+  return changed;
+}
 
 /**
  * Impedisce l'inflazione: mercato e sviluppo fanno salire piano piano il livello medio dei club gestiti dal computer
@@ -81,7 +143,7 @@ export function sustainTalent(world: World, maxStep = 4): number {
 
 /** Riporta ogni società italiana (tranne la tua) nella fascia della sua categoria e avvicina i giocatori al livello di squadra. */
 export function balancePyramid(world: World, maxStep = 5): number {
-  let changed = stabilizeLevels(world, maxStep);
+  let changed = stabilizeLevels(world, maxStep) + stabilizeForeign(world, Math.max(maxStep, 12));
   for (const club of Object.values(world.clubs)) {
     if (club.isUser || club.country !== 'ITA') continue;
     const band = PYRAMID_BANDS[club.division];

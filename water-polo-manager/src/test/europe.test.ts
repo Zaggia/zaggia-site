@@ -68,7 +68,7 @@ describe('coppe europee', () => {
     w.rules.cups = w.rules.cups.filter((c) => c.key !== 'EUSC');
     w.version = 6;
     expect(migrateWorld(w)).toBe(true);
-    expect(w.version).toBe(14);
+    expect(w.version).toBe(15);
     expect(w.rules.continental[0].name).toBe('European Aquatics Champions League');
     expect(w.rules.continental[0].stage2?.groupCount).toBe(2);
     expect(w.rules.cups.some((c) => c.key === 'EUSC')).toBe(true);

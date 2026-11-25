@@ -10,7 +10,7 @@ import { trimRoster } from '../club/roster';
 import { WORLD_VERSION } from './generate';
 import { DEFAULT_RULES } from '../data/config';
 import { realifyWorld } from './migrateReal';
-import { PYRAMID_BANDS, balancePyramid, sustainTalent } from './pyramid';
+import { PYRAMID_BANDS, balancePyramid, stabilizeForeign, sustainTalent } from './pyramid';
 import { ensureLuxuryFreeAgents } from '../season/start';
 import { worldRng } from './context';
 import { REAL_FOREIGN } from '../data/realClubs';
@@ -121,6 +121,10 @@ export function migrateWorld(world: World): boolean {
   if (from < 14) {
     // v14: il mercato estivo resta aperto fino al 12 ottobre (prima chiudeva il 30 settembre), in tutte le carriere.
     for (const w of world.rules.windows) if (w.name === 'Mercato estivo') w.end = '10-12';
+  }
+  if (from < 15) {
+    // v15: i club europei tornano al loro livello (e un po' più su): le coppe europee non devono essere sempre delle italiane.
+    stabilizeForeign(world, 14);
   }
   world.version = WORLD_VERSION;
   return true;
