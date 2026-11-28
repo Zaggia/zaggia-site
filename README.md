@@ -50,3 +50,14 @@ Il browser aggiorna la posizione solo con l'app aperta: tenere lo schermo acceso
 ## Water Polo Manager
 
 Nella cartella `water-polo-manager/` c'è un gestionale di pallanuoto (React + TypeScript + Vite), indipendente da Manhunt. La versione compilata è in `public/pallanuoto/` e viene quindi pubblicata dal sito all'indirizzo `/pallanuoto/`. Per aggiornarla dopo una modifica: `cd water-polo-manager && npm install && npm run build:site`. Gli account e i salvataggi nel cloud del gioco usano la funzione `netlify/functions/pallanuoto.mts` (store Blobs `pallanuoto`, separato da quello di Manhunt). Dettagli nel [README del gioco](water-polo-manager/README.md).
+
+## Burger's Bró
+
+Sito vetrina per **Burger's Bró – Hamburgeria De Blasio** (Via Santa Maria ai Monti 19, Napoli), in `public/burgers-bro/`, pubblicato all'indirizzo `/burgers-bro/`. HTML, CSS e JavaScript statici, nessun passaggio di build.
+
+- **Menu completo** (23 categorie, 261 voci) con prezzi, ingredienti e foto, preso dal menu digitale ufficiale del locale su Dishcovery il 28/11/2026 e salvato in `menu-data.js`. Il menu si sfoglia per categoria, con ricerca su tutte le voci e filtro "Solo Veg".
+- **Hamburger 3D** nell'apertura (three.js 0.169, in `vendor/`): si monta al caricamento e si scompone scorrendo, con le etichette degli strati del panino Burger's Bró. Senza WebGL resta la foto vera del panino.
+- Specialità, "Componi il tuo panino", All You Can Eat, promo November Veg (visibile solo a novembre), lato Veg, galleria, contatti e mappa caricata solo su richiesta.
+- Foto: quelle del menu ufficiale, convertite in WebP (`img/m` 720 px, `img/l` 1600 px).
+- Modello 3D: `BurgerLarge` dall'[Ultimate Food Pack di Quaternius](https://opengameart.org/content/low-poly-food-pack) (CC0), convertito in GLB con un nodo per ogni pezzo. Caratteri Anton, Archivo e Caveat Brush (SIL OFL, licenze in `fonts/`).
+- Orari: le schede pubbliche concordano solo su "martedì–domenica dalle 18:00, lunedì chiuso"; il sito mostra quello e invita a chiamare.

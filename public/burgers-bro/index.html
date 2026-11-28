@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Burger's Bró – Hamburgeria De Blasio · Napoli</title>
+  <meta name="description" content="Burger's Bró, hamburgeria De Blasio in Via Santa Maria ai Monti 19 a Napoli: panini special, zingare, piadine, patate, menu vegano e All You Can Eat. Sfoglia il menu completo con i prezzi.">
+  <meta name="theme-color" content="#0f0f10">
+  <meta property="og:type" content="restaurant">
+  <meta property="og:title" content="Burger's Bró – Hamburgeria De Blasio · Napoli">
+  <meta property="og:description" content="Panini special, zingare, piadine e un menu vegano tutto da scoprire. Via Santa Maria ai Monti 19, Napoli.">
+  <meta property="og:image" content="img/l/1735427478.webp">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="fonts/anton.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/archivo-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.min.js" } }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Restaurant",
+    "name": "Burger's Bró – Hamburgeria De Blasio",
+    "servesCuisine": ["Hamburger", "Panini", "Vegana"],
+    "telephone": "+39 081 751 3241",
+    "priceRange": "€",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Via Santa Maria ai Monti 19",
+      "postalCode": "80141",
+      "addressLocality": "Napoli",
+      "addressRegion": "NA",
+      "addressCountry": "IT"
+    },
+    "hasMenu": "https://dishcovery.menu/app/restaurants/5cdc75d09f2c686290aba46d420f3a4b/a-la-carte-menu",
+    "sameAs": ["https://www.facebook.com/burgersbronapoli/"]
+  }
+  </script>
+</head>
+<body>
+  <a class="skip" href="#menu">Vai al menu</a>
+
+  <header class="nav" id="top">
+    <div class="nav__in wrap">
+      <a class="brand" href="#top" aria-label="Burger's Bró, torna all'inizio">
+        <span class="brand__mark" aria-hidden="true">B</span>
+        <span class="brand__txt"><b>Burger's Bró</b><small>Hamburgeria De Blasio</small></span>
+      </a>
+      <nav class="nav__links" id="navLinks" aria-label="Sezioni">
+        <a href="#specialita">Specialità</a>
+        <a href="#menu">Menu</a>
+        <a href="#veg">Veg</a>
+        <a href="#promo">All You Can Eat</a>
+        <a href="#dove">Dove siamo</a>
+        <a class="nav__call-m" href="tel:+390817513241">Chiama 081 751 3241</a>
+      </nav>
+      <a class="btn btn--gold btn--sm nav__call" href="tel:+390817513241">
+        <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1L6.6 10.8Z"/></svg>
+        <span>081 751 3241</span>
+      </a>
+      <button class="nav__toggle" id="navToggle" aria-expanded="false" aria-controls="navLinks" aria-label="Apri il menu di navigazione">
+        <span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- HERO: hamburger 3D che si scompone scorrendo -->
+    <section class="hero" id="hero" aria-label="Burger's Bró">
+      <div class="hero__stage">
+        <div class="hero__bg" aria-hidden="true">
+          <span class="hero__word hero__word--out">Burger's</span>
+          <span class="hero__word hero__word--fill">Bró</span>
+        </div>
+        <div class="hero__canvas" id="burger3d" aria-hidden="true">
+          <img class="hero__fallback" src="img/m/1735427478.webp" alt="" width="333" height="720">
+        </div>
+        <ul class="hero__labels" id="burgerLabels" aria-hidden="true"></ul>
+        <div class="wrap hero__copy">
+          <p class="eyebrow">Hamburgeria De Blasio · Napoli</p>
+          <h1 class="hero__title">Fatto con<br><em>passione.</em></h1>
+          <p class="hero__lead">Hamburger di Scottona 180gr, zingare, piadine, patate e un menu vegano tutto da scoprire. In Via Santa Maria ai Monti 19.</p>
+          <div class="hero__cta">
+            <a class="btn btn--gold" href="#menu">Sfoglia il menu</a>
+            <a class="btn btn--ghost" href="#dove">Dove siamo</a>
+          </div>
+        </div>
+        <div class="hero__scroll" aria-hidden="true"><span>Scorri</span><i></i></div>
+        <p class="hero__caption" id="heroCaption" aria-hidden="true"></p>
+      </div>
+    </section>
+
+    <!-- Nastro ingredienti (tutti presi dal menu) -->
+    <div class="ticker-wrap"><div class="ticker" aria-label="Alcuni ingredienti del menu">
+      <div class="ticker__track" id="tickerTrack">
+        <span>Hamburger di Scottona 180gr</span><span>Provola di Agerola</span><span>Friarielli</span><span>Pulled Pork di nostra produzione</span><span>Porchetta di Ariccia</span><span>Mortadella e crema di pistacchio</span><span>Soffritto napoletano homemade</span><span>Caciocavallo Podolico</span><span>Crudo di Parma</span>
+      </div>
+    </div></div>
+
+    <!-- Numeri dal menu -->
+    <section class="stats wrap" aria-label="Il menu in numeri">
+      <dl class="stats__grid" id="stats"></dl>
+    </section>
+
+    <!-- Specialità con le foto vere -->
+    <section class="sec" id="specialita">
+      <div class="wrap">
+        <header class="sec__head reveal">
+          <p class="eyebrow">Dal nostro menu</p>
+          <h2 class="sec__title">Le specialità<br><span class="hand">della casa</span></h2>
+          <p class="sec__lead">Panini special, zingare e piadine: foto, prezzi e ingredienti sono quelli del menu del locale.</p>
+        </header>
+      </div>
+      <div class="rail" id="signature" tabindex="0" aria-label="Specialità, scorri in orizzontale"></div>
+    </section>
+
+    <!-- Componi il tuo panino -->
+    <section class="sec build" id="componi">
+      <div class="wrap build__grid">
+        <div class="reveal">
+          <p class="eyebrow">Componi il tuo panino</p>
+          <h2 class="sec__title">Carne, contorno e formaggio <span class="price-big" id="buildPrice"></span></h2>
+          <p class="sec__lead" id="buildNote"></p>
+        </div>
+        <div class="build__cols reveal" id="buildCols"></div>
+      </div>
+    </section>
+
+    <!-- Promo -->
+    <section class="sec promo" id="promo">
+      <div class="wrap promo__grid" id="promoGrid"></div>
+    </section>
+
+    <!-- Veg -->
+    <section class="sec veg" id="veg">
+      <div class="wrap">
+        <header class="sec__head reveal">
+          <p class="eyebrow eyebrow--veg">100% vegetale</p>
+          <h2 class="sec__title">Il lato <span class="hand hand--veg">Veg</span> del Bró</h2>
+          <p class="sec__lead" id="vegLead">Antipasti, panini, zingare, piadine e tagliate: tutto anche in versione vegetale.</p>
+        </header>
+        <div class="veg__grid" id="vegGrid"></div>
+      </div>
+    </section>
+
+    <!-- Menu completo -->
+    <section class="menu" id="menu" aria-labelledby="menuTitle">
+      <div class="wrap">
+        <header class="menu__head">
+          <div>
+            <p class="eyebrow eyebrow--dark">Menu alla carta</p>
+            <h2 class="menu__title" id="menuTitle">Il Menu</h2>
+          </div>
+          <div class="menu__tools">
+            <label class="search">
+              <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="m20 20-4.2-4.2M10.8 17.5a6.7 6.7 0 1 0 0-13.4 6.7 6.7 0 0 0 0 13.4Z"/></svg>
+              <span class="sr">Cerca nel menu</span>
+              <input id="menuSearch" type="search" placeholder="Cerca: pistacchio, friarielli, birra…" autocomplete="off">
+            </label>
+            <button class="toggle" id="vegToggle" type="button" aria-pressed="false"><span class="toggle__dot"></span>Solo Veg</button>
+          </div>
+        </header>
+      </div>
+      <nav class="chips" id="menuChips" aria-label="Categorie del menu"></nav>
+      <div class="wrap">
+        <div id="menuBody" class="menu__body"></div>
+        <p class="menu__empty" id="menuEmpty" hidden>Nessun piatto trovato. Prova con un'altra parola.</p>
+        <footer class="menu__notes">
+          <p><b>Coperto</b> <span id="coverPrice"></span></p>
+          <p><b>*</b> Questo piatto potrebbe contenere ingredienti surgelati.</p>
+          <p>Per allergeni e intolleranze chiedi al personale prima di ordinare.</p>
+          <p class="menu__src">Menu e foto dal menu digitale ufficiale del locale su <a href="https://dishcovery.menu/app/restaurants/5cdc75d09f2c686290aba46d420f3a4b/a-la-carte-menu" target="_blank" rel="noopener">Dishcovery</a>. Prezzi in euro.</p>
+        </footer>
+      </div>
+    </section>
+
+    <!-- Galleria -->
+    <section class="sec gallery" aria-labelledby="galTitle">
+      <div class="wrap">
+        <header class="sec__head reveal">
+          <p class="eyebrow">Galleria</p>
+          <h2 class="sec__title" id="galTitle">Le foto del Bró</h2>
+        </header>
+        <div class="gallery__grid" id="gallery"></div>
+      </div>
+    </section>
+
+    <!-- Dove siamo -->
+    <section class="sec where" id="dove" aria-labelledby="whereTitle">
+      <div class="wrap where__grid">
+        <div class="where__info reveal">
+          <p class="eyebrow">Dove siamo</p>
+          <h2 class="sec__title" id="whereTitle">Via Santa Maria<br>ai Monti 19</h2>
+          <p class="where__addr">80141 Napoli</p>
+          <ul class="where__list">
+            <li>
+              <span class="where__k">Telefono</span>
+              <a class="where__v" href="tel:+390817513241">081 751 3241</a>
+            </li>
+            <li>
+              <span class="where__k">Orari</span>
+              <span class="where__v">Martedì – domenica, la sera dalle 18:00<br>Lunedì chiuso</span>
+            </li>
+            <li>
+              <span class="where__k">A domicilio</span>
+              <span class="where__v where__links">
+                <a href="https://www.justeat.it/restaurants-burgers-bro---hamburgeria-de-blasio-80141/menu" target="_blank" rel="noopener">Just Eat</a>
+                <a href="https://glovoapp.com/en/it/napoli/stores/burgers-bro-nap-10ewo" target="_blank" rel="noopener">Glovo</a>
+              </span>
+            </li>
+            <li>
+              <span class="where__k">Social</span>
+              <a class="where__v" href="https://www.facebook.com/burgersbronapoli/" target="_blank" rel="noopener">Facebook · burgersbronapoli</a>
+            </li>
+          </ul>
+          <p class="where__note">Orari indicativi: per sicurezza chiama prima di venire.</p>
+          <div class="hero__cta">
+            <a class="btn btn--gold" href="tel:+390817513241">Chiama il locale</a>
+            <a class="btn btn--ghost" href="https://www.google.com/maps/search/?api=1&amp;query=Burger%27s%20Br%C3%B3%20Via%20Santa%20Maria%20ai%20Monti%2019%2080141%20Napoli" target="_blank" rel="noopener">Indicazioni</a>
+          </div>
+        </div>
+        <div class="map reveal" id="map">
+          <div class="map__ph">
+            <span class="map__pin" aria-hidden="true"></span>
+            <p><b>Burger's Bró</b><br>Via Santa Maria ai Monti 19, Napoli</p>
+            <button class="btn btn--ghost btn--sm" id="mapLoad" type="button">Mostra la mappa</button>
+            <small>La mappa viene caricata da Google Maps solo se la apri.</small>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot__in">
+      <div>
+        <p class="foot__brand">Burger's Bró</p>
+        <p>Hamburgeria De Blasio · Via Santa Maria ai Monti 19, 80141 Napoli · <a href="tel:+390817513241">081 751 3241</a></p>
+      </div>
+      <p class="foot__credits">Modello 3D: <a href="https://opengameart.org/content/low-poly-food-pack" target="_blank" rel="noopener">Ultimate Food Pack di Quaternius</a> (CC0). Caratteri: Anton, Archivo, Caveat Brush (SIL OFL).</p>
+    </div>
+  </footer>
+
+  <dialog class="lightbox" id="lightbox" aria-labelledby="lbTitle">
+    <form method="dialog"><button class="lightbox__x" aria-label="Chiudi">×</button></form>
+    <img id="lbImg" alt="">
+    <div class="lightbox__txt">
+      <p class="lightbox__cat" id="lbCat"></p>
+      <h3 id="lbTitle"></h3>
+      <p id="lbDesc"></p>
+      <p class="lightbox__price" id="lbPrice"></p>
+      <p class="lightbox__note" id="lbNote" hidden>* Questo piatto potrebbe contenere ingredienti surgelati.</p>
+    </div>
+  </dialog>
+
+  <script src="menu-data.js"></script>
+  <script src="app.js" defer></script>
+  <script type="module" src="burger3d.js"></script>
+</body>
+</html>
