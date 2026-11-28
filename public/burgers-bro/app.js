@@ -357,8 +357,7 @@
   if (track) Array.from(track.children).forEach(n => { const c = n.cloneNode(true); c.setAttribute('aria-hidden', 'true'); track.appendChild(c); });
 
   /* ---------- didascalia hero ---------- */
-  const sig = item('Panini Special', 'Burger’s Bró');
-  if (sig) $('#heroCaption').innerHTML = `<b>${esc(sig.n)}</b>${esc(ingText(sig))} · ${price(sig.p)}`;
+  $('#heroCaption').innerHTML = '<b>Strato dopo strato</b>panino, hamburger, formaggio, insalata, pomodoro e cipolla';
 
   /* ---------- comparse e contatori ---------- */
   const countUp = el => {

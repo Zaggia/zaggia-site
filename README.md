@@ -56,8 +56,8 @@ Nella cartella `water-polo-manager/` c'è un gestionale di pallanuoto (React + T
 Sito vetrina per **Burger's Bró – Hamburgeria De Blasio** (Via Santa Maria ai Monti 19, Napoli), in `public/burgers-bro/`, pubblicato all'indirizzo `/burgers-bro/`. HTML, CSS e JavaScript statici, nessun passaggio di build.
 
 - **Menu completo** (23 categorie, 261 voci) con prezzi, ingredienti e foto, preso dal menu digitale ufficiale del locale su Dishcovery il 28/11/2026 e salvato in `menu-data.js`. Il menu si sfoglia per categoria, con ricerca su tutte le voci e filtro "Solo Veg".
-- **Hamburger 3D** nell'apertura (three.js 0.169, in `vendor/`): si monta al caricamento e si scompone scorrendo, con le etichette degli strati del panino Burger's Bró. Senza WebGL resta la foto vera del panino.
+- **Hamburger 3D** nell'apertura (three.js 0.169, in `vendor/`): si monta al caricamento e si scompone scorrendo, con le etichette degli strati. Senza WebGL resta la foto vera del panino.
 - Specialità, "Componi il tuo panino", All You Can Eat, promo November Veg (visibile solo a novembre), lato Veg, galleria, contatti e mappa caricata solo su richiesta.
 - Foto: quelle del menu ufficiale, convertite in WebP (`img/m` 720 px, `img/l` 1600 px).
-- Modello 3D: `BurgerLarge` dall'[Ultimate Food Pack di Quaternius](https://opengameart.org/content/low-poly-food-pack) (CC0), convertito in GLB con un nodo per ogni pezzo. Caratteri Anton, Archivo e Caveat Brush (SIL OFL, licenze in `fonts/`).
+- Modello 3D: «Exploding Cheeseburger» (Microsoft Remix 3D, dichiarato CC0 nell'[Open Asset Kit di Ethereal Engine](https://github.com/ir-engine/ir-engine-assets-basic), file `assets/food/ExplodingCheeseburger_converted.glb`), ottimizzato con glTF-Transform: texture a 1024 px in WebP, solo l'animazione `open` (1,4 MB). L'animazione è guidata dallo scorrimento. Caratteri Anton, Archivo e Caveat Brush (SIL OFL, licenze in `fonts/`).
 - Orari: le schede pubbliche concordano solo su "martedì–domenica dalle 18:00, lunedì chiuso"; il sito mostra quello e invita a chiamare.

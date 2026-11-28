@@ -1,5 +1,6 @@
 /* Burger's Bró – hamburger 3D nell'hero: si monta all'apertura e si scompone scorrendo.
-   Modello: "Ultimate Food Pack" di Quaternius (CC0), convertito in GLB con un nodo per ogni pezzo. */
+   Modello: "Exploding Cheeseburger" (Microsoft Remix 3D, CC0, raccolto nell'Open Asset Kit di Ethereal Engine),
+   ottimizzato: texture a 1024 px in WebP e solo l'animazione "open", legata allo scorrimento della pagina. */
 import * as THREE from 'three';
 import { GLTFLoader } from './vendor/jsm/loaders/GLTFLoader.js';
 import { RoomEnvironment } from './vendor/jsm/environments/RoomEnvironment.js';
@@ -11,20 +12,21 @@ const copyEl = hero && hero.querySelector('.hero__copy');
 const words = hero ? Array.from(hero.querySelectorAll('.hero__word')) : [];
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// Strati del Burger's Bró del menu (triplo hamburger, cheddar, insalata iceberg, pomodoro…)
-// pick: quale dei due strati uguali del modello (sopra o sotto) indicare con l'etichetta
+// Strati indicati dalle etichette: osso del modello da seguire e nome in menu
 const LAYERS = [
-  { mat: 'LightYellow', pick: 'top', text: 'Panino' },
-  { mat: 'LightGreen', pick: 'top', text: 'Insalata Iceberg' },
-  { mat: 'Yellow', pick: 'top', text: 'Cheddar' },
-  { mat: 'Red', pick: 'bottom', text: 'Pomodoro' },
-  { mat: 'Brown', pick: 'bottom', text: 'Hamburger' }
+  { bone: 'Top_bread_jnt', text: 'Panino' },
+  { bone: 'Onion_2_jnt', text: 'Cipolla' },
+  { bone: 'Tomato_1_jnt', text: 'Pomodoro' },
+  { bone: 'lettuce_1_1_jnt', text: 'Insalata' },
+  { bone: 'cheese_mid_jnt', text: 'Formaggio' },
+  { bone: 'Patty_jnt', text: 'Hamburger' }
 ];
-const COLORS = { LightYellow: 0xd99848, White: 0xfff2d6, Brown: 0x5a321d, Yellow: 0xf7b51c, Red: 0xd63f2b, LightGreen: 0x79c043 };
-const ROUGH = { LightYellow: 0.55, White: 0.6, Brown: 0.72, Yellow: 0.32, Red: 0.28, LightGreen: 0.45 };
+const PEAK = 2.3; // secondo dell'animazione "open" in cui gli strati sono più distanziati
+const K_TILT = 0.2;
 
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a)); return t * t * (3 - 2 * t); };
+const lerp = (a, b, t) => a + (b - a) * t;
 
 function webgl() {
   try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { return false; }
@@ -37,42 +39,52 @@ async function init() {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 1.0;
 
   const scene = new THREE.Scene();
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-  scene.environmentIntensity = 0.55;
+  scene.environmentIntensity = 0.85;
   pmrem.dispose();
 
   const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
   camera.position.set(0, 0.62, 4.9);
   camera.lookAt(0, 0, 0);
 
-  const key = new THREE.DirectionalLight(0xffe0b0, 2.4); key.position.set(2.5, 3.2, 2.6); scene.add(key);
-  const rim = new THREE.DirectionalLight(0xf4c21b, 3.2); rim.position.set(-2.8, 1.2, -2.4); scene.add(rim);
-  const fill = new THREE.DirectionalLight(0xd63a2a, 0.9); fill.position.set(-3, -1, 2); scene.add(fill);
-  scene.add(new THREE.HemisphereLight(0xfff1d6, 0x2a1a10, 0.55));
+  const key = new THREE.DirectionalLight(0xffe3b8, 1.9); key.position.set(2.5, 3.2, 2.6); scene.add(key);
+  const rim = new THREE.DirectionalLight(0xf4c21b, 2.6); rim.position.set(-2.8, 1.2, -2.4); scene.add(rim);
+  const fill = new THREE.DirectionalLight(0xd63a2a, 0.5); fill.position.set(-3, -1, 2); scene.add(fill);
 
   const gltf = await new GLTFLoader().loadAsync('models/burger.glb');
   const model = gltf.scene;
-  const pieces = [];
+  const clip = gltf.animations[0];
+  const mixer = new THREE.AnimationMixer(model);
+  const action = mixer.clipAction(clip);
+  action.play();
+  action.paused = true;
+  const maxAniso = renderer.capabilities.getMaxAnisotropy();
+  const skinned = [];
   model.traverse(o => {
-    if (!o.isMesh) return;
-    const name = o.material.name;
-    o.material = new THREE.MeshStandardMaterial({ color: COLORS[name] ?? 0xcccccc, roughness: ROUGH[name] ?? 0.6, metalness: 0, flatShading: true });
-    o.geometry.computeBoundingBox();
-    const c = o.geometry.boundingBox.getCenter(new THREE.Vector3());
-    pieces.push({ mesh: o, mat: name, cy: c.y, y0: o.position.y, spin: (Math.random() - 0.5) * 0.5 });
+    if (o.isSkinnedMesh) { o.frustumCulled = false; skinned.push(o); }
+    if (o.isMesh && o.material) for (const k of ['map', 'normalMap', 'aoMap', 'roughnessMap', 'metalnessMap']) if (o.material[k]) o.material[k].anisotropy = maxAniso;
   });
-  // i semi di sesamo seguono il panino di sopra
-  const buns = pieces.filter(p => p.mat === 'LightYellow');
-  const topBun = buns.reduce((a, b) => (b.cy > a.cy ? b : a), buns[0]);
-  pieces.forEach(p => { if (p.mat === 'White') { p.cy = topBun.cy; p.spin = topBun.spin; } });
 
-  const box = new THREE.Box3().setFromObject(model);
-  const size = box.getSize(new THREE.Vector3());
-  model.position.y = -size.y / 2; // centro verticale (il modello va da y=0 a y=1)
+  const bones = {};
+  model.traverse(o => { if (o.isBone) bones[o.name] = o; });
+
+  // altezza e centro del panino chiuso (t = 0) e aperto (t = PEAK), in unità del modello
+  function poseBox(t) {
+    action.time = t; mixer.update(0); model.updateMatrixWorld(true);
+    const b = new THREE.Box3();
+    skinned.forEach(m => { m.computeBoundingBox(); b.union(m.boundingBox.clone().applyMatrix4(m.matrixWorld)); });
+    return b;
+  }
+  const bc = poseBox(0), bo = poseBox(PEAK);
+  const szC = bc.getSize(new THREE.Vector3()), szO = bo.getSize(new THREE.Vector3());
+  const ctC = bc.getCenter(new THREE.Vector3()), ctO = bo.getCenter(new THREE.Vector3());
+  const unit = 1 / Math.max(szC.x, szC.z);           // il panino chiuso è largo 1
+  const closedH = szC.y * unit, openH = szO.y * unit;
+  model.scale.setScalar(unit);
 
   const tilt = new THREE.Group(); // inclinazione verso la camera e parallasse
   const spin = new THREE.Group(); // rotazione continua
@@ -85,28 +97,24 @@ async function init() {
   const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
   grad.addColorStop(0, 'rgba(0,0,0,.55)'); grad.addColorStop(1, 'rgba(0,0,0,0)');
   g.fillStyle = grad; g.fillRect(0, 0, 128, 128);
-  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 1.9), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sc), transparent: true, depthWrite: false }));
+  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 1.7), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sc), transparent: true, depthWrite: false }));
   shadow.rotation.x = -Math.PI / 2;
   rig.add(shadow);
 
   // etichette degli strati
   const layers = LAYERS.map((L, i) => {
-    const all = pieces.filter(p => p.mat === L.mat);
-    if (!all.length) return null;
-    const ys = all.map(p => p.cy);
-    const lim = L.pick === 'top' ? Math.max(...ys) - 0.08 : Math.min(...ys) + 0.08;
-    const ps = all.filter(p => (L.pick === 'top' ? p.cy >= lim : p.cy <= lim));
-    const cy = ps.reduce((a, p) => a + p.cy, 0) / ps.length;
+    // i nomi nel file hanno un suffisso numerico (es. Top_bread_jnt.15): si cerca per prefisso
+    const bone = Object.values(bones).find(b => b.name.startsWith(L.bone));
+    if (!bone) return null;
     const li = document.createElement('li');
     li.innerHTML = `<span>${L.text}</span>`;
     labelsEl.appendChild(li);
-    return { ...L, cy, li, side: i % 2 ? -1 : 1 };
+    return { ...L, bone, li, side: i % 2 ? -1 : 1 };
   }).filter(Boolean);
 
   host.appendChild(renderer.domElement);
   host.classList.add('is-3d');
 
-  const K = 1.6; // quanto si allontanano gli strati
   let W = 1, H = 1, narrow = false, visH = 1, visW = 1;
   // posa a riposo (r) e scomposta (x): scala e posizione verticale/orizzontale in unità del mondo
   const pose = { rs: 1, xs: 1, ry: 0, xy: 0, xx: 0 };
@@ -119,23 +127,22 @@ async function init() {
     camera.updateProjectionMatrix();
     visH = 2 * camera.position.z * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
     visW = visH * camera.aspect;
-    const tall = 1 + K * 0.75; // altezza da scomposto rispetto a quella da montato
     if (narrow) {
       // telefono: a riposo sotto i pulsanti, scomposto al centro e spostato a sinistra per le etichette
-      const vh = H; // la tela copre tutta l'altezza dello schermo dell'hero
+      const vh = H;
       const cta = copyEl && copyEl.querySelector('.hero__cta');
       const ctaBottom = cta ? copyEl.offsetTop + cta.offsetTop + cta.offsetHeight : vh * 0.55;
       const free = Math.max(0.2, (vh - ctaBottom) / vh - 0.07);
-      pose.rs = Math.min(0.66 * visW / size.x, (free * 0.8) * visH / size.y);
+      pose.rs = Math.min(0.66 * visW, (free * 0.8) * visH / closedH);
       pose.ry = (0.5 - (ctaBottom / vh + free * 0.5 + 0.02)) * visH;
-      pose.xs = Math.min(0.5 * visW / size.x, 0.64 * visH / (size.y * tall));
+      pose.xs = Math.min(0.5 * visW, 0.7 * visH / openH);
       pose.xy = (0.5 - 0.47) * visH;
       pose.xx = -visW * 0.22;
     } else {
-      pose.rs = Math.min(1.05, 0.52 * visW / size.x, 0.42 * visH / size.y);
+      pose.rs = Math.min(1.2, 0.5 * visW, 0.42 * visH / closedH);
       pose.ry = 0;
-      pose.xs = Math.min(pose.rs * 0.85, 0.8 * visH / (size.y * tall));
-      pose.xy = -0.04 * visH;
+      pose.xs = Math.min(pose.rs * 0.9, 0.76 * visH / openH);
+      pose.xy = -0.03 * visH;
       pose.xx = 0;
     }
   }
@@ -163,7 +170,7 @@ async function init() {
   document.addEventListener('visibilitychange', () => { if (!document.hidden) loop(); });
 
   const t0 = performance.now();
-  let last = t0, running = false, explodeS = 0, angle = 0.6;
+  let last = t0, running = false, explodeS = 0, angle = 0.5;
   const v = new THREE.Vector3();
   const stageEl = hero.querySelector('.hero__stage');
 
@@ -177,21 +184,25 @@ async function init() {
 
     pointer.x += (pointer.tx - pointer.x) * Math.min(1, dt * 3);
     pointer.y += (pointer.ty - pointer.y) * Math.min(1, dt * 3);
-    if (!reduce) angle += dt * (0.32 - e * 0.18);
+    if (!reduce) angle += dt * (0.3 - e * 0.16);
     spin.rotation.y = angle;
-    tilt.rotation.x = 0.18 + e * 0.12 + pointer.y * 0.12;
-    tilt.rotation.z = -pointer.x * 0.06;
+    tilt.rotation.x = K_TILT + e * 0.1 + pointer.y * 0.12;
+    tilt.rotation.z = -pointer.x * 0.05;
     rig.rotation.y = pointer.x * 0.25;
-    const k = K;
-    pieces.forEach(p => {
-      p.mesh.position.y = p.y0 + (p.cy - 0.5) * k * e;
-      p.mesh.rotation.y = p.spin * e;
-    });
-    const s = pose.rs + (pose.xs - pose.rs) * e;
+
+    // animazione "open" guidata dallo scorrimento
+    action.time = e * PEAK;
+    mixer.update(0);
+    // il panino resta centrato: si sposta il modello in base alla posa corrente
+    const c = ctC.clone().lerp(ctO, e);
+    model.position.set(-c.x * unit, -c.y * unit, -c.z * unit);
+
+    const s = lerp(pose.rs, pose.xs, e);
     rig.scale.setScalar(s);
     rig.position.x = pose.xx * smooth(0.1, 0.7, e);
-    rig.position.y = pose.ry + (pose.xy - pose.ry) * e + (reduce ? 0 : Math.sin(t * 1.3) * 0.02 * s);
-    shadow.position.y = -size.y / 2 - 0.03 - e * k * 0.5;
+    rig.position.y = lerp(pose.ry, pose.xy, e) + (reduce ? 0 : Math.sin(t * 1.3) * 0.02 * s);
+    const h = lerp(closedH, openH, e);
+    shadow.position.y = -h / 2 - 0.02;
     shadow.material.opacity = 1 - e * 0.55;
 
     // testo dell'hero e scritte di sfondo
@@ -209,11 +220,14 @@ async function init() {
     // etichette: posizione proiettata a fianco di ogni strato
     const show = smooth(0.45, 0.75, e) * (progress > 0.04 ? 1 : 0);
     const hr = host.getBoundingClientRect(), sr = stageEl.getBoundingClientRect();
-    const radius = size.x * 0.5 * 1.08;
+    const radius = 0.5 * 1.12;
     layers.forEach(L => {
-      model.localToWorld(v.set(0, L.cy + (L.cy - 0.5) * k * e, 0)); // centro dello strato, già spostato
+      L.bone.getWorldPosition(v);
       const side = narrow ? 1 : L.side;
-      v.x = rig.position.x + side * radius * s;
+      // l'altezza segue l'osso; il lato è fisso a destra o a sinistra del panino
+      rig.worldToLocal(v);
+      v.x = side * radius; v.z = 0;
+      rig.localToWorld(v);
       v.project(camera);
       const x = hr.left - sr.left + (v.x + 1) / 2 * W;
       const y = hr.top - sr.top + (1 - v.y) / 2 * H;
